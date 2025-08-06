@@ -1,11 +1,11 @@
 /* Copyright 2025 Kevin Exton
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,23 +15,13 @@
 #pragma once
 #ifndef IOSCHED_BUFFERS
 #define IOSCHED_BUFFERS
-#include <streambuf>
+#include "socket.hpp"
+
 #include <memory>
-#include <vector>
-#include <tuple>
-#include <sys/socket.h>
+#include <streambuf>
 
 namespace iosched::buffers {
-    struct socket_message {
-        using address_type = std::tuple<struct sockaddr_storage, socklen_t>;
-        using ancillary_buffer = std::vector<char>;
-        using data_buffer = struct iovec;
-
-        struct msghdr header;
-        address_type addr;
-        ancillary_buffer ancillary;
-        data_buffer data;
-    };
+    using socket_message = ::iosched::socket::socket_message;
     class sockbuf : public std::streambuf {
         public:
             using Base = std::streambuf;

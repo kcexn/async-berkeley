@@ -6,6 +6,9 @@ Checks: >
   modernize-*,
   performance-*,
   readability-*,
-  -readability-braces-around-statements
+  -readability-braces-around-statements,
   -readability-magic-numbers
 HeaderFilterRegex: 'src/.*'
+CheckOptions:
+  misc-trailing-whitespace.AllowEmptyLines: false
+
