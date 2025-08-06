@@ -223,7 +223,7 @@ ctest --preset debug
 cd build
 ctest
 # Or run specific test:
-./tests/hello_test
+./tests/socket_test
 ```
 
 ## Usage
@@ -235,7 +235,7 @@ ctest
 #include <iostream>
 
 // Create a TCP socket stream
-io::streams::sockstream sock(AF_INET, SOCK_STREAM, 0);
+iosched::streams::sockstream sock(AF_INET, SOCK_STREAM, 0);
 
 // Connect to server
 struct sockaddr_in addr = {};
@@ -256,7 +256,7 @@ if (buffer && !sock.err()) {
 ### Cross-Platform Socket Messages
 
 ```cpp
-#include "src/socket/socket.hpp"
+#include "src/socket.hpp"
 
 // Create a unified socket message for cross-platform I/O
 iosched::socket::socket_message msg;
@@ -282,7 +282,7 @@ msg.ancillary = iosched::socket::ancillary_buffer(ancillary_data);
 #include <chrono>
 
 // Self-contained trigger with embedded poller
-io::trigger triggers;
+iosched::trigger triggers;
 
 // Add socket to polling (binary search insertion for O(log n))
 int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -310,10 +310,10 @@ triggers.clear(sockfd);           // Remove socket completely
 
 ### Core Components
 
-- **`io::buffers::sockbuf`**: Custom `std::streambuf` with dynamic 32KB+ buffers, handles TCP/UDP
-- **`io::basic_poller<T>`**: Template-based event polling using Linux `poll(2)` 
-- **`io::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
-- **`io::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
+- **`iosched::buffers::sockbuf`**: Custom `std::streambuf` with dynamic 32KB+ buffers, handles TCP/UDP
+- **`iosched::basic_poller<T>`**: Template-based event polling using Linux `poll(2)` 
+- **`iosched::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
+- **`iosched::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
 - **`iosched::socket::socket_message`**: Cross-platform socket message abstraction with unified API
 - **`iosched::socket::ancillary_buffer`**: Thread-safe ancillary data buffers for control messages
 - **`iosched::socket::data_buffer`**: Platform-agnostic data buffer (WSABUF/iovec abstraction)
