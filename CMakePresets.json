@@ -1,0 +1,73 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "debug",
+            "displayName": "Debug",
+            "description": "Debug build with tests enabled.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "IOSCHED_ENABLE_TESTS": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release",
+            "description": "Optimized release build.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "benchmark",
+            "displayName": "Benchmark",
+            "description": "High-performance build optimized for benchmarking with aggressive optimizations.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/benchmark",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS": "-O3 -DNDEBUG -march=native -mtune=native -flto",
+                "CMAKE_EXE_LINKER_FLAGS": "-flto",
+                "IOSCHED_ENABLE_TESTS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "description": "debug build with tests",
+            "displayName": "Debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "description": "optimized release build",
+            "displayName": "Release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "benchmark",
+            "description": "high-performance build for benchmarking",
+            "displayName": "Benchmark",
+            "configurePreset": "benchmark"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug",
+            "description": "tests",
+            "displayName": "Debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "benchmark",
+            "description": "benchmark tests",
+            "displayName": "Benchmark",
+            "configurePreset": "benchmark"
+        }
+    ]
+}

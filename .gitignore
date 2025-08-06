@@ -1,0 +1,8 @@
+# ide settings
+.vscode/
+
+# cmake related files
+build/
+Testing/
+*.cmake
+CMakeUserPresets.json
