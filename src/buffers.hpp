@@ -21,7 +21,7 @@
 #include <tuple>
 #include <sys/socket.h>
 
-namespace io::buffers{
+namespace iosched::buffers {
     struct socket_message {
         using address_type = std::tuple<struct sockaddr_storage, socklen_t>;
         using ancillary_buffer = std::vector<char>;
@@ -35,17 +35,12 @@ namespace io::buffers{
     class sockbuf : public std::streambuf {
         public:
             using Base = std::streambuf;
-            using pos_type = Base::pos_type;
-            using off_type = Base::off_type;
-            using int_type = Base::int_type;
-            using traits_type = Base::traits_type;
-            using char_type = Base::char_type;
             using size_type = std::size_t;
             using buffer_type = std::shared_ptr<socket_message>;
             using buffers_type = std::vector<buffer_type>;
             using native_handle_type = int;
             static constexpr native_handle_type BAD_SOCKET = -1;
-            static constexpr size_type MIN_BUFSIZE = 32*1024;
+            static constexpr size_type MIN_BUFSIZE = 32UL*1024;
 
             sockbuf();
             explicit sockbuf(native_handle_type sockfd, bool connected=false, std::ios_base::openmode which=(std::ios_base::in | std::ios_base::out));

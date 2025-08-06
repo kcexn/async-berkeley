@@ -23,7 +23,7 @@
 #include <poll.h>
 #include <unistd.h>
 
-namespace io::buffers{
+namespace iosched::buffers{
     namespace {
         static void throw_system_error(const std::string& what){
             throw std::system_error(

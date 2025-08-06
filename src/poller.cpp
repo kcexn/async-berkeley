@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "io.hpp"
-namespace io{
+namespace iosched{
     poller::size_type poller::_add(
         native_handle_type handle,
         events_type& events,

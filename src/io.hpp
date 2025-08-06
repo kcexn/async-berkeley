@@ -21,7 +21,7 @@
 #pragma once
 #ifndef IO
 #define IO
-namespace io {
+namespace iosched {
     namespace {
         template<class T>
         static bool shrink_to_fit(std::vector<T>& vec){

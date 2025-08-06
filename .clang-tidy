@@ -5,5 +5,7 @@ Checks: >
   cppcoreguidelines-*,
   modernize-*,
   performance-*,
-  readability-*
+  readability-*,
+  -readability-braces-around-statements
+  -readability-magic-numbers
 HeaderFilterRegex: 'src/.*'

@@ -17,7 +17,7 @@
 #pragma once
 #ifndef IO_STREAMS
 #define IO_STREAMS
-namespace io {
+namespace iosched {
     namespace streams {
         class sockstream: public std::iostream {
             using Base = std::iostream;

@@ -4,13 +4,14 @@
         {
             "name": "debug",
             "displayName": "Debug",
-            "description": "Debug build with tests enabled.",
+            "description": "Debug build with tests and coverage enabled.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "IOSCHED_ENABLE_TESTS": true
+                "IOSCHED_ENABLE_TESTS": true,
+                "IOSCHED_ENABLE_COVERAGE": true
             }
         },
         {

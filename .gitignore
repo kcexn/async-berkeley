@@ -6,3 +6,6 @@ build/
 Testing/
 *.cmake
 CMakeUserPresets.json
+
+# clang settings
+.clangd

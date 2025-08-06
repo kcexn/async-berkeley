@@ -1,12 +1,18 @@
 # iosched
 
-A high-performance C++17 I/O scheduling library providing asynchronous socket operations, event polling, and streaming interfaces with standard library integration.
+[![Build](https://github.com/kcexn/iosched/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/build.yml)
+[![Tests](https://github.com/kcexn/iosched/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/kcexn/iosched/branch/main/graph/badge.svg)](https://codecov.io/gh/kcexn/iosched)
+
+A high-performance C++17 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, and streaming interfaces with standard library integration.
 
 ## Features
 
+- **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations
 - **Custom Socket Buffers**: `std::streambuf` implementation with 32KB minimum buffers and dynamic resizing
 - **Event Polling**: Template-based polling system using Linux `poll(2)` with O(log n) binary search optimization
 - **Stream Interface**: Full C++ `iostream` compatibility for socket operations
+- **Thread-Safe Operations**: Mutex-protected ancillary data buffers with RAII management
 - **Non-blocking I/O**: Asynchronous socket operations using `MSG_DONTWAIT` flags
 - **Memory Efficient**: RAII-based resource management with automatic vector shrinking
 - **Policy-Based Design**: Template architecture for extensible polling and trigger systems
@@ -17,7 +23,75 @@ A high-performance C++17 I/O scheduling library providing asynchronous socket op
 
 - CMake 3.26+
 - C++17 compatible compiler
-- Linux (uses Linux-specific socket APIs)
+- Boost libraries (system-wide installation required)
+- Linux/Windows (cross-platform socket support)
+- Ninja build system (recommended) or Unix Makefiles
+
+### Installing Dependencies
+
+#### Boost Installation
+
+The project requires Boost libraries to be installed system-wide. Here are installation instructions for common platforms:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install libboost-all-dev
+# Or minimal installation:
+sudo apt-get install libboost-dev
+```
+
+**Red Hat/CentOS/Fedora:**
+```bash
+# Fedora
+sudo dnf install boost-devel
+
+# CentOS/RHEL
+sudo yum install boost-devel
+```
+
+**macOS (using Homebrew):**
+```bash
+brew install boost
+```
+
+**Windows (using vcpkg):**
+```cmd
+vcpkg install boost:x64-windows
+# Then set CMAKE_TOOLCHAIN_FILE to vcpkg.cmake when configuring
+```
+
+**Windows (using Conan):**
+```bash
+pip install conan
+conan install boost/1.82.0@ --build=missing
+```
+
+**Building Boost from source (any platform):**
+```bash
+# Download Boost 1.82+ from https://www.boost.org/
+wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
+tar -xzf boost_1_82_0.tar.gz
+cd boost_1_82_0
+./bootstrap
+./b2 --prefix=/usr/local install
+```
+
+#### Additional Tools (for development)
+
+**Code Coverage (optional):**
+```bash
+pip install gcovr
+```
+
+**Static Analysis (optional):**
+```bash
+# Ubuntu/Debian
+sudo apt-get install clang-tidy
+
+# macOS
+brew install llvm
+```
 
 ### Quick Start (CMake Presets - Recommended)
 
@@ -30,6 +104,14 @@ cmake --build --preset debug
 
 # Run tests
 ctest --preset debug
+
+# Generate code coverage reports (HTML)
+cmake --build --preset debug --target coverage
+# View coverage report: build/debug/coverage/index.html
+
+# For high-performance benchmarking
+cmake --preset benchmark
+cmake --build --preset benchmark
 ```
 
 ### Using Unix Makefiles (Alternative)
@@ -109,7 +191,27 @@ cmake --build .
 # With tests enabled
 cmake .. -DIOSCHED_ENABLE_TESTS=ON
 cmake --build .
+
+# If Boost is not found, specify the path manually:
+cmake .. -DBOOST_ROOT=/path/to/boost -DBoost_NO_SYSTEM_PATHS=TRUE
 ```
+
+### Troubleshooting
+
+**Boost not found errors:**
+```bash
+# If CMake cannot find Boost, try specifying the installation path:
+cmake .. -DBOOST_ROOT=/usr/local -DBoost_NO_SYSTEM_PATHS=TRUE
+
+# For custom Boost installations:
+cmake .. -DBOOST_INCLUDEDIR=/path/to/boost/include -DBOOST_LIBRARYDIR=/path/to/boost/lib
+
+# On Windows with vcpkg:
+cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+
+**Minimum Boost version issues:**
+The project only requires Boost.Predef (header-only), so any recent Boost version (1.70+) should work.
 
 ### Running Tests
 
@@ -151,6 +253,28 @@ if (buffer && !sock.err()) {
 }
 ```
 
+### Cross-Platform Socket Messages
+
+```cpp
+#include "src/socket/socket.hpp"
+
+// Create a unified socket message for cross-platform I/O
+iosched::socket::socket_message msg;
+
+// Set up main data buffer (works on both Windows and POSIX)
+std::vector<char> data(1024);
+msg.data.data() = data.data();
+msg.data.size() = data.size();
+
+// Add ancillary data (thread-safe)
+std::vector<char> ancillary_data(64);
+msg.ancillary = iosched::socket::ancillary_buffer(ancillary_data);
+
+// The message structure adapts automatically to platform:
+// - Windows: Uses WSABUF structures with WinSock2
+// - POSIX: Uses iovec structures with standard sockets
+```
+
 ### Event Polling
 
 ```cpp
@@ -190,11 +314,15 @@ triggers.clear(sockfd);           // Remove socket completely
 - **`io::basic_poller<T>`**: Template-based event polling using Linux `poll(2)` 
 - **`io::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
 - **`io::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
-- **`io::basic_handler<T>`**: Event processing interface for building async applications
+- **`iosched::socket::socket_message`**: Cross-platform socket message abstraction with unified API
+- **`iosched::socket::ancillary_buffer`**: Thread-safe ancillary data buffers for control messages
+- **`iosched::socket::data_buffer`**: Platform-agnostic data buffer (WSABUF/iovec abstraction)
 
 ### Design Principles
 
-- **Policy-Based Templates**: Core classes templated for extensible polling backends
+- **Cross-Platform Compatibility**: Unified API abstracts Windows WinSock2 and POSIX socket differences
+- **Policy-Based Templates**: Core classes templated for extensible polling backends (CRTP pattern)
+- **Thread Safety**: Mutex-protected operations with scoped locking for concurrent access
 - **Non-blocking by Design**: All socket operations use `MSG_DONTWAIT` flags
 - **RAII Resource Management**: Automatic cleanup with `std::shared_ptr<socket_message>` buffers
 - **Standard Library Integration**: Full compatibility with `std::iostream`, algorithms, and containers
@@ -205,6 +333,18 @@ triggers.clear(sockfd);           // Remove socket completely
 
 - **GoogleTest**: Auto-fetched via CMake FetchContent for unit testing
 - **NVIDIA stdexec**: Included via CPM.cmake for future execution model support
+- **Boost.Predef**: Used for cross-platform compiler and OS detection
+
+### Code Quality
+
+The project uses comprehensive static analysis with clang-tidy:
+
+```bash
+# Run clang-tidy on the entire codebase
+clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++17 -I src/
+```
+
+Configured rules include `bugprone-*`, `cert-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, and `readability-*` checks.
 
 ## License
 
