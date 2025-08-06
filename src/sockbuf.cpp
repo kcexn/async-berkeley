@@ -372,12 +372,12 @@ namespace io{
                 return -1;
             return egptr()-gptr();
         }
-        sockbuf::int_type sockbuf::overflow(sockbuf::int_type ch){
+        sockbuf::int_type sockbuf::overflow(sockbuf::int_type character){
             if(pbase() == nullptr || sync())
                 return traits_type::eof();
-            if(!traits_type::eq_int_type(ch, traits_type::eof()))
-                return sputc(ch);
-            return ch;
+            if(!traits_type::eq_int_type(character, traits_type::eof()))
+                return sputc(character);
+            return character;
         }
         sockbuf::int_type sockbuf::underflow() {
             if(eback() == nullptr || _recv())
