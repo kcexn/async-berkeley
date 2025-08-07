@@ -92,7 +92,7 @@ namespace iosched::socket {
 
                 // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
                 data_ = other.data_;
-                update_base();
+                static_cast<Base&>(*this) = static_cast<const Base&>(other);
             }
 
             /**
