@@ -18,7 +18,7 @@
 #include <vector>
 #include <cstring>
 #include <memory>
-#include "../src/socket.hpp"
+#include "../src/socket/socket_message.hpp"
 
 using namespace iosched::socket;
 
@@ -389,6 +389,7 @@ TEST_F(IntegrationTest, FullMessageConstruction) {
     for (size_t i = 0; i < main_data.size(); ++i) {
         main_data[i] = static_cast<char>(i % (test_data_size/4));
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     std::vector<char> ancillary_data((test_data_size/8));
     for (size_t i = 0; i < ancillary_data.size(); ++i) {
         ancillary_data[i] = static_cast<char>(i % (test_data_size/4));
@@ -414,7 +415,7 @@ TEST_F(IntegrationTest, MessageArrayOperations) {
     // Initialize each message with different data
     for (size_t i = 0; i < num_messages; ++i) {
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        std::vector<char> data(64 + i * 32);
+        std::vector<char> data(64 + (i * 32));
         for (size_t j = 0; j < data.size(); ++j) {
             // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
             data[j] = static_cast<char>(j % 256);
@@ -429,4 +430,3 @@ TEST_F(IntegrationTest, MessageArrayOperations) {
         EXPECT_EQ(messages[i].flags, i);
     }
 }
-
