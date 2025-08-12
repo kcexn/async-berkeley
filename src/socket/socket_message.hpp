@@ -29,8 +29,8 @@
  * - `data_buffer`: A wrapper for platform-specific data buffer types.
  */
 #pragma once
-#ifndef IOSCHED_SOCKET
-#define IOSCHED_SOCKET
+#ifndef IOSCHED_SOCKET_MESSAGE_HPP
+#define IOSCHED_SOCKET_MESSAGE_HPP
 #include <boost/predef.h>
 
 #include <mutex>
@@ -282,7 +282,7 @@ struct wsabuf_base : public WSABUF {
  * Updates the `len` and `buf` members of the `WSABUF` base struct to
  * point to the data stored in the `ancillary_buffer_impl`.
  */
-template <> void detail::ancillary_buffer_impl<wsabuf_base>::update_base() {
+template <> inline void detail::ancillary_buffer_impl<wsabuf_base>::update_base() {
   this->len = static_cast<ULONG>(data_.size());
   this->buf = const_cast<char *>(data_.data());
 }
@@ -297,7 +297,7 @@ using address_type = std::tuple<struct sockaddr_storage, int>;
  * @return A reference to the `buf` member of the `WSABUF` base struct.
  */
 template <>
-auto detail::data_buffer_impl<wsabuf_base>::get_data_ptr() -> auto & {
+inline auto detail::data_buffer_impl<wsabuf_base>::get_data_ptr() -> auto & {
   return this->buf;
 }
 
@@ -306,7 +306,7 @@ auto detail::data_buffer_impl<wsabuf_base>::get_data_ptr() -> auto & {
  * @return A reference to the `len` member of the `WSABUF` base struct.
  */
 template <>
-auto detail::data_buffer_impl<wsabuf_base>::get_size_ref() -> auto & {
+inline auto detail::data_buffer_impl<wsabuf_base>::get_size_ref() -> auto & {
   return this->len;
 }
 
@@ -328,7 +328,7 @@ struct posix_base {};
  * This is a no-op because the ancillary data buffer is not part of a
  * larger struct that needs updating.
  */
-template <> void detail::ancillary_buffer_impl<posix_base>::update_base() {}
+template <> inline void detail::ancillary_buffer_impl<posix_base>::update_base() {}
 
 /// @brief A thread-safe buffer for ancillary data on POSIX systems.
 using ancillary_buffer = detail::ancillary_buffer_impl<posix_base>;
@@ -343,7 +343,7 @@ using iovec_type = struct iovec;
  * @return A reference to the `iov_base` member of the `iovec` base struct.
  */
 template <>
-auto detail::data_buffer_impl<iovec_type>::get_data_ptr() -> auto & {
+inline auto detail::data_buffer_impl<iovec_type>::get_data_ptr() -> auto & {
   return this->iov_base;
 }
 
@@ -352,7 +352,7 @@ auto detail::data_buffer_impl<iovec_type>::get_data_ptr() -> auto & {
  * @return A reference to the `iov_len` member of the `iovec` base struct.
  */
 template <>
-auto detail::data_buffer_impl<iovec_type>::get_size_ref() -> auto & {
+inline auto detail::data_buffer_impl<iovec_type>::get_size_ref() -> auto & {
   return this->iov_len;
 }
 
@@ -383,4 +383,4 @@ struct socket_message {
 };
 
 } // namespace iosched::socket
-#endif
+#endif // IOSCHED_SOCKET_MESSAGE_HPP

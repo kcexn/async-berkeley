@@ -10,7 +10,7 @@ jobs:
   tests:
     name: Test and Coverage
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake
+        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake libhwloc-dev
 
     - name: Cache pip packages
       uses: actions/cache@v4
@@ -45,6 +45,9 @@ jobs:
           sudo apt-get install -y cmake
           cmake --version
         fi
+
+    - name: Create ccache directory
+      run: mkdir -p ~/.ccache
 
     - name: Setup ccache
       uses: actions/cache@v4

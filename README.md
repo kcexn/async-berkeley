@@ -3,6 +3,7 @@
 [![Build](https://github.com/kcexn/iosched/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/build.yml)
 [![Tests](https://github.com/kcexn/iosched/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/kcexn/iosched/branch/main/graph/badge.svg)](https://codecov.io/gh/kcexn/iosched)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 A high-performance C++17 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, and streaming interfaces with standard library integration.
 
@@ -246,7 +247,7 @@ inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 auto buffer = sock.connectto((struct sockaddr*)&addr, sizeof(addr));
 if (buffer && !sock.err()) {
     sock << "Hello, server!" << std::endl;
-    
+
     std::string response;
     std::getline(sock, response);
     std::cout << "Received: " << response << std::endl;
@@ -296,7 +297,7 @@ if (count > 0) {
             // Handle readable socket
         }
         if (event.revents & POLLOUT) {
-            // Handle writable socket  
+            // Handle writable socket
         }
     }
 }
@@ -311,7 +312,7 @@ triggers.clear(sockfd);           // Remove socket completely
 ### Core Components
 
 - **`iosched::buffers::sockbuf`**: Custom `std::streambuf` with dynamic 32KB+ buffers, handles TCP/UDP
-- **`iosched::basic_poller<T>`**: Template-based event polling using Linux `poll(2)` 
+- **`iosched::basic_poller<T>`**: Template-based event polling using Linux `poll(2)`
 - **`iosched::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
 - **`iosched::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
 - **`iosched::socket::socket_message`**: Cross-platform socket message abstraction with unified API
