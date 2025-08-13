@@ -12,7 +12,8 @@
                 "CMAKE_CXX_FLAGS": "-DBOOST_ASIO_NO_DEPRECATED -DBOOST_ASIO_NO_TS_EXECUTORS -DBOOST_ASIO_NO_EXTENSIONS",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "IOSCHED_ENABLE_TESTS": true,
-                "IOSCHED_ENABLE_COVERAGE": true
+                "IOSCHED_ENABLE_COVERAGE": true,
+                "IOSCHED_ENABLE_DOCS": true
             }
         },
         {

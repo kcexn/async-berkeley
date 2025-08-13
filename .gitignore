@@ -9,3 +9,6 @@ CMakeUserPresets.json
 
 # clang settings
 .clangd
+
+# generated documentation
+docs/html/

@@ -19,6 +19,11 @@
 #include <boost/asio.hpp>
 #include <boost/predef.h>
 
+/**
+ * @brief The main namespace for the iosched library.
+ *
+ * This namespace contains the core components for I/O scheduling.
+ */
 namespace iosched {
 using io_context = boost::asio::io_context;
 } // namespace iosched

@@ -49,6 +49,21 @@ vcpkg install boost:x64-windows
 
 #### Development Tools (Optional but Recommended)
 
+**Documentation Generator:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install doxygen
+
+# macOS
+brew install doxygen
+
+# Fedora
+sudo dnf install doxygen
+
+# Windows
+# Download from https://www.doxygen.nl/download.html
+```
+
 **Code Coverage Tool:**
 ```bash
 pip install gcovr
@@ -208,6 +223,101 @@ cmake --build . --target coverage
 cmake --build . --target coverage-xml
 # Output: build/coverage/coverage.xml
 ```
+
+#### Build with Documentation
+
+```bash
+mkdir build && cd build
+
+# Configure with documentation enabled
+cmake .. -DIOSCHED_ENABLE_DOCS=ON
+
+# Build the documentation
+cmake --build . --target docs
+
+# View documentation: build/docs/html/index.html
+
+# Deploy docs to GitHub Pages format
+cmake --build . --target docs-deploy
+# Copies to docs/html/ for GitHub Pages deployment
+```
+
+## Documentation Generation
+
+### Prerequisites for Documentation
+
+```bash
+# Install Doxygen (if not already installed)
+# Ubuntu/Debian
+sudo apt-get install doxygen
+
+# macOS
+brew install doxygen
+
+# Fedora
+sudo dnf install doxygen
+
+# Verify installation
+doxygen --version
+```
+
+### Generating Documentation
+
+#### Using Presets (Recommended)
+
+```bash
+# Configure debug build (includes documentation if enabled)
+cmake --preset debug
+
+# Enable documentation option
+cmake --build --preset debug -DIOSCHED_ENABLE_DOCS=ON
+
+# Generate documentation
+cmake --build --preset debug --target docs
+
+# Open documentation in browser
+xdg-open build/debug/docs/html/index.html  # Linux
+open build/debug/docs/html/index.html      # macOS
+start build/debug/docs/html/index.html     # Windows
+```
+
+#### Manual Documentation Setup
+
+```bash
+mkdir build && cd build
+
+# Configure with documentation enabled
+cmake .. -DIOSCHED_ENABLE_DOCS=ON
+
+# Generate API documentation
+cmake --build . --target docs
+
+# Deploy to GitHub Pages format
+cmake --build . --target docs-deploy
+```
+
+### Documentation Output Locations
+
+- **HTML Documentation**: `build/debug/docs/html/index.html` (main documentation)
+- **GitHub Pages**: `docs/html/index.html` (after running `docs-deploy` target)
+
+### Documentation Features
+
+The generated documentation includes:
+- Complete API reference for all classes and functions
+- Code examples and usage patterns
+- Cross-referenced source code listings
+- Search functionality
+- README content as main page
+- Class hierarchy diagrams (if Graphviz is installed)
+
+### Customizing Documentation
+
+Edit `docs/Doxyfile` to customize:
+- Project information and branding
+- Output formats and styling
+- Input file filters
+- Documentation sections
 
 ## Code Coverage
 
@@ -390,6 +500,9 @@ ctest --preset debug
 
 # Check coverage
 cmake --build --preset debug --target coverage
+
+# Generate documentation (if working on API docs)
+cmake --build --preset debug --target docs
 ```
 
 ### 4. Code Quality Checks
