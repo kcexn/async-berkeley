@@ -14,7 +14,7 @@
  */
 
 /**
- * @file error/error_handling.hpp
+ * @file error_handling.hpp
  * @brief Defines macros for creating compile-time error messages.
  *
  * This header provides a set of utility macros to generate formatted error

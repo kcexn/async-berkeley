@@ -14,7 +14,7 @@
  */
 
 /**
- * @file socket/socket.hpp
+ * @file socket.hpp
  * @brief Provides core cross-platform socket definitions and functions.
  *
  * This file contains fundamental type aliases and functions for handling

@@ -14,7 +14,7 @@
  */
 
 /**
- * @file socket/socket_handle.hpp
+ * @file socket_handle.hpp
  * @brief Defines a cross-platform, thread-safe socket handle with RAII.
  *
  * This file provides a `socket_handle` class that abstracts away the

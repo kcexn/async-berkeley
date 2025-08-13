@@ -14,7 +14,7 @@
  */
 
 /**
- * @file socket/socket_message.hpp
+ * @file socket_message.hpp
  * @brief Cross-platform socket message and buffer abstractions.
  *
  * This file defines a set of classes and type aliases for handling socket
