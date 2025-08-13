@@ -87,10 +87,11 @@ jobs:
     - name: Generate coverage XML
       run: cmake --build build --target coverage-xml
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5
+    - name: Upload coverage to Codacy
+      uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 #v1
       with:
-        files: "./build/coverage/coverage.xml"
+        project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        coverage-reports: "./build/coverage/coverage.xml"
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
