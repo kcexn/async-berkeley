@@ -20,23 +20,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake python3-all
 
-    - name: Install Python dependencies
-      run: pip install gcovr
-
-    - name: Set up CMake
-      uses: jwlawson/actions-setup-cmake@v2
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
       with:
-        cmake-version: '3.26'
-      continue-on-error: true
+        path: ~/.cache/pip
+        key: pip-${{ runner.os }}-${{ hashFiles('.github/workflows/tests.yml') }}
+        restore-keys: |
+          pip-${{ runner.os }}-
 
-    - name: Verify CMake installation
-      run: |
-        cmake --version
-        if [ $? -ne 0 ]; then
-          echo "CMake setup action failed, using system cmake"
-          sudo apt-get install -y cmake
-          cmake --version
-        fi
+    - name: Install Python dependencies
+      run: pip install gcovr==7.0
 
     - name: Create ccache directory
       run: mkdir -p ~/.ccache

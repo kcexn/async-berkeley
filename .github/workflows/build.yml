@@ -20,21 +20,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake
 
-    - name: Set up CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.26'
-      continue-on-error: true
-
-    - name: Verify CMake installation
-      run: |
-        cmake --version
-        if [ $? -ne 0 ]; then
-          echo "CMake setup action failed, using system cmake"
-          sudo apt-get install -y cmake
-          cmake --version
-        fi
-
     - name: Create ccache directory
       run: mkdir -p ~/.ccache
 
