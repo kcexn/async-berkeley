@@ -18,34 +18,65 @@ concurrency:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    outputs:
+      docs-changed: ${{ steps.check-changes.outputs.docs-changed }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Check for documentation changes
+      id: check-changes
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          # For PR, compare against target branch
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        else
+          # For push, compare against previous commit
+          BASE_SHA="HEAD~1"
+          HEAD_SHA="HEAD"
+        fi
+
+        # Check if documentation-relevant files changed
+        if git diff --name-only $BASE_SHA $HEAD_SHA | grep -E "(^src/|^docs/|^README\.md$|^DEVELOPER\.md$|^CMakeLists\.txt$|^cmake/EnableDocs\.cmake$)" > /dev/null; then
+          echo "docs-changed=true" >> $GITHUB_OUTPUT
+          echo "Documentation-relevant files changed, proceeding with build"
+        else
+          echo "docs-changed=false" >> $GITHUB_OUTPUT
+          echo "No documentation-relevant files changed, skipping build"
+        fi
 
     - name: Install dependencies
+      if: steps.check-changes.outputs.docs-changed == 'true'
       run: |
         sudo apt-get update
         sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake doxygen graphviz python3-all
 
     - name: Install Python dependencies
+      if: steps.check-changes.outputs.docs-changed == 'true'
       run: pip install gcovr
 
     - name: Configure CMake
+      if: steps.check-changes.outputs.docs-changed == 'true'
       run: cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
 
     - name: Build documentation
+      if: steps.check-changes.outputs.docs-changed == 'true'
       run: cmake --build --preset debug --target docs
 
     - name: Deploy docs to source
+      if: steps.check-changes.outputs.docs-changed == 'true'
       run: cmake --build --preset debug --target docs-deploy
 
     - name: Upload Pages artifact
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && steps.check-changes.outputs.docs-changed == 'true'
       uses: actions/upload-pages-artifact@v3
       with:
         path: docs/html
 
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.build-docs.outputs.docs-changed == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
