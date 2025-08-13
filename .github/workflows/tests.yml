@@ -88,9 +88,9 @@ jobs:
       run: cmake --build build --target coverage-xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 #v5
       with:
-        file: ./build/coverage/coverage.xml
+        files: "./build/coverage/coverage.xml"
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
