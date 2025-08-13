@@ -81,19 +81,19 @@ jobs:
     - name: Run tests
       run: ctest --test-dir build --output-on-failure
 
-    - name: Generate coverage report
-      run: cmake --build build --target coverage
-
     - name: Generate coverage XML
+      if: github.ref == 'refs/heads/main'
       run: cmake --build build --target coverage-xml
 
     - name: Upload coverage to Codacy
+      if: github.ref == 'refs/heads/main'
       uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 #v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
         coverage-reports: "./build/coverage/coverage.xml"
 
     - name: Upload coverage reports
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: coverage-reports
