@@ -14,7 +14,7 @@
  */
 
 /**
- * @file socket_buffer.hpp
+ * @file buffers/socket_buffer.hpp
  * @brief Defines a thread-safe, buffered socket interface.
  *
  * This file provides a set of classes for managing socket I/O buffers using
