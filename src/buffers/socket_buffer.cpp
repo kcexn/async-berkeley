@@ -16,36 +16,20 @@
 
 namespace iosched::buffers {
 
-socket_buffer_base::socket_buffer_base(native_socket_type sock,
+socket_buffer_base::socket_buffer_base(socket_handle_type sock,
                                        buffer_type rbuf, buffer_type wbuf)
-    : socket{sock}, read_buffer{std::move(rbuf)},
+    : socket{std::move(sock)}, read_buffer{std::move(rbuf)},
       write_buffer{std::move(wbuf)} {}
-
-socket_buffer_base::socket_buffer_base(const socket_buffer_base &other) {
-  std::lock_guard lock{other.mtx};
-
-  // NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
-  socket = other.socket;
-  read_buffer = other.read_buffer;
-  write_buffer = other.write_buffer;
-  // NOLINTEND(cppcoreguidelines-prefer-member-initializer)
-}
 
 socket_buffer_base::socket_buffer_base(socket_buffer_base &&other) noexcept
     : socket_buffer_base() {
   swap(*this, other);
 }
 
-auto socket_buffer_base::operator=(const socket_buffer_base &other)
-    -> socket_buffer_base & {
-  auto temp = socket_buffer_base{other};
-  swap(*this, temp);
-  return *this;
-}
-
 auto socket_buffer_base::operator=(socket_buffer_base &&other) noexcept
     -> socket_buffer_base & {
-  swap(*this, other);
+  if(this != &other)
+    swap(*this, other);
   return *this;
 }
 

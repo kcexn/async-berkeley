@@ -16,21 +16,21 @@
 #pragma once
 #ifndef IOSCHED_HPP
 #define IOSCHED_HPP
-#include <boost/predef.h>
 #include <boost/asio.hpp>
+#include <boost/predef.h>
 
 #if BOOST_OS_WINDOWS
 #include <winsock2.h>
 #endif
 
 namespace iosched {
-    using io_context = boost::asio::io_context;
+using io_context = boost::asio::io_context;
 #if BOOST_OS_WINDOWS
-    using native_socket_type = ::SOCKET;
-    inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
+using native_socket_type = ::SOCKET;
+inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 #else
-    using native_socket_type = int;
-    inline static constexpr native_socket_type INVALID_SOCKET = -1;
+using native_socket_type = int;
+inline static constexpr native_socket_type INVALID_SOCKET = -1;
 #endif
 } // namespace iosched
 #endif // IOSCHED_HPP

@@ -24,8 +24,8 @@
 #ifndef IOSCHED_SOCKET_BUFFER_HPP
 #define IOSCHED_SOCKET_BUFFER_HPP
 
-#include "../iosched.hpp"
 #include "../socket/socket_message.hpp"
+#include "../socket/socket_handle.hpp"
 
 #include <memory>
 #include <mutex>
@@ -39,18 +39,23 @@ namespace iosched::buffers {
 
 /**
  * @class socket_buffer_base
- * @brief Base class for socket buffers, managing the socket and I/O queues.
+ * @brief Base class for thread-safe socket buffers.
  *
- * This class holds the common state for a socket buffer, including the native
- * socket handle, separate read and write message queues, and a single mutex
- * to ensure thread-safe access to all shared resources. It is designed to be
- * used as a virtual base class to prevent the diamond problem in derived
- * classes that combine read and write functionality.
+ * This class manages the core components of a buffered socket interface: the
+ * socket handle itself, separate inbound (read) and outbound (write) message
+ * queues, and a mutex to protect all shared state.
+ *
+ * By using virtual inheritance, this class serves as a common base for read
+ * and write interfaces, which can then be combined into a full-duplex buffer
+ * without duplicating the base class members (avoiding the "diamond problem").
+ *
+ * All operations on derived classes that access the socket or buffers are
+ * expected to be thread-safe.
  */
 class socket_buffer_base {
 public:
-  /// @brief Platform-specific native socket handle type.
-  using native_socket_type = ::iosched::native_socket_type;
+  /// @brief Cross-platform socket handle type.
+  using socket_handle_type = ::iosched::socket::socket_handle;
   /// @brief The message type used for I/O operations.
   using socket_message = ::iosched::socket::socket_message;
   /// @brief The underlying container for the read and write buffers.
@@ -58,19 +63,13 @@ public:
 
   /**
    * @brief Constructs a socket buffer.
-   * @param sock The native socket handle to manage.
+   * @param sock The socket handle to manage.
    * @param rbuf The initial read buffer.
    * @param wbuf The initial write buffer.
    */
-  socket_buffer_base(native_socket_type sock = ::iosched::INVALID_SOCKET,
+  socket_buffer_base(socket_handle_type sock = {},
                      buffer_type rbuf = {}, buffer_type wbuf = {});
-  /**
-   * @brief Copy constructs a socket buffer.
-   * @param other The object to copy from.
-   * @note The other object's mutex is locked during the copy operation to
-   * ensure thread-safe access to its data.
-   */
-  socket_buffer_base(const socket_buffer_base &other);
+  socket_buffer_base(const socket_buffer_base &other) = delete;
   /**
    * @brief Move constructs a socket buffer.
    * @param other The object to move from.
@@ -78,14 +77,7 @@ public:
    * ensure thread-safe access to its data.
    */
   socket_buffer_base(socket_buffer_base &&other) noexcept;
-  /**
-   * @brief Copy assigns a socket buffer.
-   * @param other The object to copy from.
-   * @return A reference to this object.
-   * @note This operation is thread-safe, locking both this and the other
-   *       object's mutexes to prevent deadlocks.
-   */
-  auto operator=(const socket_buffer_base &other) -> socket_buffer_base &;
+  auto operator=(const socket_buffer_base &other) -> socket_buffer_base & = delete;
   /**
    * @brief Move assigns a socket buffer.
    * @param other The object to move from.
@@ -114,8 +106,8 @@ public:
 
 protected:
   // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
-  /// @brief The native socket handle.
-  native_socket_type socket;
+  /// @brief The socket handle.
+  socket_handle_type socket;
   /// @brief The buffer for incoming messages.
   buffer_type read_buffer;
   /// @brief The buffer for outgoing messages.
@@ -130,12 +122,18 @@ protected:
  * @brief Provides the read interface for a socket buffer.
  *
  * Inherits virtually from `socket_buffer_base` to provide read-only
- * operations on the shared socket and buffers.
+ * operations on the shared socket and buffers. This interface allows consumers
+ * to dequeue messages that have been received on the socket.
  */
 struct socket_read_buffer : public virtual socket_buffer_base {
   /**
-   * @brief Reads a message from the socket's read buffer.
-   * @return A shared pointer to the message, or nullptr if the buffer is empty.
+   * @brief Dequeues the next message from the socket's read buffer.
+   *
+   * This is a non-blocking operation. If the read buffer is empty, it
+   * returns immediately.
+   *
+   * @return A shared pointer to the oldest message in the read buffer, or
+   *         `nullptr` if the buffer is empty.
    */
   auto read() -> std::shared_ptr<socket_message>;
 };
@@ -145,12 +143,18 @@ struct socket_read_buffer : public virtual socket_buffer_base {
  * @brief Provides the write interface for a socket buffer.
  *
  * Inherits virtually from `socket_buffer_base` to provide write-only
- * operations on the shared socket and buffers.
+ * operations on the shared socket and buffers. This interface allows producers
+ * to enqueue messages to be sent over the socket.
  */
 struct socket_write_buffer : public virtual socket_buffer_base {
   /**
-   * @brief Writes a message to the socket's write buffer.
-   * @param msg The message to write.
+   * @brief Enqueues a message into the socket's write buffer to be sent.
+   *
+   * This operation moves the provided message into a thread-safe queue for
+   * asynchronous sending. The actual transmission is handled by a separate
+   * I/O processing component.
+   *
+   * @param msg The message to enqueue. The message is moved from.
    */
   auto write(socket_message msg) -> void;
 };
@@ -162,7 +166,11 @@ struct socket_write_buffer : public virtual socket_buffer_base {
  * This class combines the read and write interfaces into a single object
  * by inheriting from both `socket_read_buffer` and `socket_write_buffer`.
  * The virtual inheritance from `socket_buffer_base` ensures a single instance
- * of the base class state.
+ * of the base class state, preventing the "diamond problem".
+ *
+ * @see socket_read_buffer
+ * @see socket_write_buffer
+ * @see socket_buffer_base
  */
 struct socket_buffer : public socket_read_buffer, public socket_write_buffer {};
 
