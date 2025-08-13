@@ -268,8 +268,9 @@ doxygen --version
 # Configure debug build (includes documentation if enabled)
 cmake --preset debug
 
-# Enable documentation option
-cmake --build --preset debug -DIOSCHED_ENABLE_DOCS=ON
+# Documentation must be enabled during configure step, not build
+# Reconfigure with documentation enabled:
+# cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
 
 # Generate documentation
 cmake --build --preset debug --target docs
@@ -420,9 +421,9 @@ ctest --preset debug -R socket_handle_test
 ### Test Categories
 
 Current test suites:
-- **socket_handle_test**: Tests for RAII socket wrapper
-- **socket_message_test**: Tests for cross-platform socket messages
-- **socket_buffer_test**: Tests for custom stream buffer implementation
+- **socket_handle_test**: Tests for RAII socket wrapper (`iosched::socket::socket_handle`)
+- **socket_message_test**: Tests for cross-platform socket messages (`iosched::socket::socket_message`)
+- **socket_buffer_test**: Tests for custom stream buffer implementation (`iosched::buffers::socket_buffer`)
 
 ## Troubleshooting
 

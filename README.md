@@ -135,8 +135,8 @@ triggers.clear(sockfd);           // Remove socket completely
 - **`iosched::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
 - **`iosched::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
 - **`iosched::socket::socket_message`**: Cross-platform socket message abstraction with unified API
-- **`iosched::socket::ancillary_buffer`**: Thread-safe ancillary data buffers for control messages
-- **`iosched::socket::data_buffer`**: Platform-agnostic data buffer (WSABUF/iovec abstraction)
+- **`iosched::socket::socket_handle`**: Thread-safe RAII socket wrapper
+- **`iosched::buffers::socket_buffer`**: Socket buffer management with shared ownership
 
 ### Design Principles
 
@@ -144,7 +144,7 @@ triggers.clear(sockfd);           // Remove socket completely
 - **Policy-Based Templates**: Core classes templated for extensible polling backends (CRTP pattern)
 - **Thread Safety**: Mutex-protected operations with scoped locking for concurrent access
 - **Non-blocking by Design**: All socket operations use `MSG_DONTWAIT` flags
-- **RAII Resource Management**: Automatic cleanup with `std::shared_ptr<socket_message>` buffers
+- **RAII Resource Management**: Automatic cleanup with `std::shared_ptr<socket_buffer>` buffers
 - **Standard Library Integration**: Full compatibility with `std::iostream`, algorithms, and containers
 - **Memory Optimization**: Automatic vector shrinking when capacity > 8x size and > 256 elements
 - **Move-Only Semantics**: Non-copyable socket classes for clear resource ownership
