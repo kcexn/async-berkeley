@@ -70,9 +70,6 @@ inline auto close(native_socket_type socket) noexcept -> int {
 }
 #endif
 
-class socket_handle;
-auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
-
 /**
  * @class socket_handle
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
@@ -94,7 +91,7 @@ public:
   socket_handle() = default;
 
   socket_handle(const socket_handle &other) = delete;
-  auto operator=(const socket_handle &other) = delete;
+  auto operator=(const socket_handle &other) -> socket_handle & = delete;
 
   /**
    * @brief Move constructor.
