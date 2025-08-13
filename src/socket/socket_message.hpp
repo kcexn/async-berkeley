@@ -115,18 +115,10 @@ public:
   //GCOVR_EXCL_STOP
 
   /**
-   * @brief Constructs the buffer by copying data from a container.
-   * @param buffer The vector of chars to use as the buffer's content.
-   */
-  ancillary_buffer_impl(const ancillary_data &buffer) : data_{buffer} {
-    update_base();
-  }
-
-  /**
    * @brief Constructs the buffer by moving data from a container.
-   * @param buffer The vector of chars to move into the buffer.
+   * @param buffer The ancillary data to be moved into the buffer.
    */
-  ancillary_buffer_impl(ancillary_data &&buffer) : data_{std::move(buffer)} {
+  explicit ancillary_buffer_impl(ancillary_data buffer) : data_{std::move(buffer)} {
     update_base();
   }
 
