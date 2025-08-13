@@ -49,7 +49,6 @@ add_custom_target(coverage-xml
       --root ${CMAKE_SOURCE_DIR}
       --filter ${CMAKE_SOURCE_DIR}/src/
       --exclude-lines-by-pattern ".*= default.*"
-      --exclude-unreachable-branches
       --xml
       --output ${CMAKE_BINARY_DIR}/coverage/coverage.xml
       --print-summary
