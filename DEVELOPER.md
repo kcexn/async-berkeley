@@ -195,10 +195,9 @@ cmake --build .
 # Run tests
 ctest
 # or manually:
-cd tests
-./socket_handle_test
-./socket_message_test
-./socket_buffer_test
+./tests/socket_handle_test
+./tests/socket_message_test
+./tests/socket_buffer_test
 ```
 
 #### Build with Tests and Coverage
@@ -298,7 +297,7 @@ cmake --build . --target docs-deploy
 
 ### Documentation Output Locations
 
-- **HTML Documentation**: `build/debug/docs/html/index.html` (main documentation)
+- **HTML Documentation**: `build/docs/html/index.html` or `build/debug/docs/html/index.html` (main documentation)
 - **GitHub Pages**: `docs/html/index.html` (after running `docs-deploy` target)
 
 ### Documentation Features
@@ -375,8 +374,8 @@ cmake --build . --target coverage-xml  # XML report for CI
 
 ### Coverage Report Locations
 
-- **HTML Report**: `build/debug/coverage/index.html` (interactive, detailed)
-- **XML Report**: `build/debug/coverage/coverage.xml` (for CI/CD integration)
+- **HTML Report**: `build/coverage/index.html` or `build/debug/coverage/index.html` (interactive, detailed)
+- **XML Report**: `build/coverage/coverage.xml` or `build/debug/coverage/coverage.xml` (for CI/CD integration)
 
 ### Coverage Targets
 
