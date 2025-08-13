@@ -42,6 +42,10 @@ ctest --preset debug
 
 For comprehensive build instructions, dependency installation guides, code coverage setup, and troubleshooting, see [DEVELOPER.md](DEVELOPER.md).
 
+### Documentation
+
+API documentation is available at: [https://kcexn.github.io/iosched/](https://kcexn.github.io/iosched/)
+
 ## Usage
 
 ### Basic Socket Stream
