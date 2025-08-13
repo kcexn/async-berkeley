@@ -24,7 +24,10 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake doxygen graphviz
+        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake doxygen graphviz python3-all
+
+    - name: Install Python dependencies
+      run: pip install gcovr
 
     - name: Configure CMake
       run: cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON

@@ -18,15 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake
-
-    - name: Cache pip packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: pip-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          pip-${{ runner.os }}-
+        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake python3-all
 
     - name: Install Python dependencies
       run: pip install gcovr
