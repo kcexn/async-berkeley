@@ -282,7 +282,8 @@ struct wsabuf_base : public WSABUF {
  * Updates the `len` and `buf` members of the `WSABUF` base struct to
  * point to the data stored in the `ancillary_buffer_impl`.
  */
-template <> inline void detail::ancillary_buffer_impl<wsabuf_base>::update_base() {
+template <>
+inline void detail::ancillary_buffer_impl<wsabuf_base>::update_base() {
   this->len = static_cast<ULONG>(data_.size());
   this->buf = const_cast<char *>(data_.data());
 }
@@ -328,7 +329,8 @@ struct posix_base {};
  * This is a no-op because the ancillary data buffer is not part of a
  * larger struct that needs updating.
  */
-template <> inline void detail::ancillary_buffer_impl<posix_base>::update_base() {}
+template <>
+inline void detail::ancillary_buffer_impl<posix_base>::update_base() {}
 
 /// @brief A thread-safe buffer for ancillary data on POSIX systems.
 using ancillary_buffer = detail::ancillary_buffer_impl<posix_base>;

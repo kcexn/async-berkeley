@@ -14,6 +14,7 @@
  */
 
 #include "../src/buffers/socket_buffer.hpp"
+#include "../src/socket/socket_handle.hpp"
 #include <algorithm>
 #include <chrono>
 #include <gtest/gtest.h>
@@ -35,8 +36,8 @@ protected:
     return msg;
   }
 
-  static auto create_test_socket() -> iosched::native_socket_type {
-    return 123;
+  static auto create_test_socket() -> iosched::socket::socket_handle {
+    return iosched::socket::socket_handle{123};
   }
 };
 
@@ -56,7 +57,7 @@ protected:
 TEST_F(SocketBufferBaseTest, DefaultConstruction) {
   TestableSocketBufferBase base;
 
-  EXPECT_EQ(base.socket, iosched::INVALID_SOCKET);
+  EXPECT_FALSE(base.socket);
   EXPECT_TRUE(base.read_buffer.empty());
   EXPECT_TRUE(base.write_buffer.empty());
 }
@@ -72,83 +73,73 @@ TEST_F(SocketBufferBaseTest, ConstructionWithParameters) {
   read_buf.push(msg1);
   write_buf.push(msg2);
 
-  TestableSocketBufferBase base(test_socket, std::move(read_buf),
+  TestableSocketBufferBase base(std::move(test_socket), std::move(read_buf),
                                 std::move(write_buf));
 
-  EXPECT_EQ(base.socket, test_socket);
+  EXPECT_TRUE(base.socket);
   EXPECT_FALSE(base.read_buffer.empty());
   EXPECT_FALSE(base.write_buffer.empty());
   EXPECT_EQ(base.read_buffer.size(), 1);
   EXPECT_EQ(base.write_buffer.size(), 1);
 }
 
-TEST_F(SocketBufferBaseTest, CopyConstruction) {
-  auto test_socket = create_test_socket();
-  TestableSocketBufferBase original(test_socket);
-
-  auto msg = std::make_shared<socket_message>(create_test_socket_message());
-  original.read_buffer.push(msg);
-
-  TestableSocketBufferBase copy(original);
-
-  EXPECT_EQ(copy.socket, original.socket);
-  EXPECT_EQ(copy.read_buffer.size(), original.read_buffer.size());
-  EXPECT_EQ(copy.write_buffer.size(), original.write_buffer.size());
-}
+// Copy construction is deleted for socket_buffer_base
 
 TEST_F(SocketBufferBaseTest, MoveConstruction) {
   auto test_socket = create_test_socket();
-  TestableSocketBufferBase original(test_socket);
+  TestableSocketBufferBase original(std::move(test_socket));
 
   auto msg = std::make_shared<socket_message>(create_test_socket_message());
   original.read_buffer.push(msg);
-  original.socket = test_socket_value;
 
   TestableSocketBufferBase moved(std::move(original));
 
-  EXPECT_EQ(moved.socket, test_socket_value);
+  EXPECT_TRUE(moved.socket);
   EXPECT_FALSE(moved.read_buffer.empty());
 }
 
-TEST_F(SocketBufferBaseTest, CopyAssignment) {
-  auto test_socket1 = create_test_socket();
-  auto test_socket2 = 789;
-
-  TestableSocketBufferBase original(test_socket1);
-  TestableSocketBufferBase copy(test_socket2);
-
-  auto msg = std::make_shared<socket_message>(create_test_socket_message());
-  original.read_buffer.push(msg);
-
-  copy = original;
-
-  EXPECT_EQ(copy.socket, original.socket);
-  EXPECT_EQ(copy.read_buffer.size(), original.read_buffer.size());
-}
+// Copy assignment is deleted for socket_buffer_base
 
 TEST_F(SocketBufferBaseTest, MoveAssignment) {
   auto test_socket1 = create_test_socket();
-  auto test_socket2 = 789;
+  auto test_socket2 = iosched::socket::socket_handle{789};
 
-  TestableSocketBufferBase original(test_socket1);
-  TestableSocketBufferBase moved(test_socket2);
+  TestableSocketBufferBase original(std::move(test_socket1));
+  TestableSocketBufferBase moved(std::move(test_socket2));
 
   auto msg = std::make_shared<socket_message>(create_test_socket_message());
   original.read_buffer.push(msg);
-  original.socket = test_socket_value;
 
   moved = std::move(original);
 
-  EXPECT_EQ(moved.socket, test_socket_value);
+  EXPECT_TRUE(moved.socket);
   EXPECT_FALSE(moved.read_buffer.empty());
 }
 
-TEST_F(SocketBufferBaseTest, SwapOperation) {
-  auto test_socket1 = 111;
-  auto test_socket2 = 222;
+TEST_F(SocketBufferBaseTest, SelfMoveAssignment) {
+  auto test_socket = create_test_socket();
+  TestableSocketBufferBase buffer(std::move(test_socket));
 
-  TestableSocketBufferBase buf1(test_socket1);
-  TestableSocketBufferBase buf2(test_socket2);
+  auto msg = std::make_shared<socket_message>(create_test_socket_message());
+  buffer.read_buffer.push(msg);
+
+  bool original_socket_valid = static_cast<bool>(buffer.socket);
+  auto original_read_size = buffer.read_buffer.size();
+  auto original_write_size = buffer.write_buffer.size();
+
+  buffer = std::move(buffer);
+
+  EXPECT_EQ(static_cast<bool>(buffer.socket), original_socket_valid);
+  EXPECT_EQ(buffer.read_buffer.size(), original_read_size);
+  EXPECT_EQ(buffer.write_buffer.size(), original_write_size);
+}
+
+TEST_F(SocketBufferBaseTest, SwapOperation) {
+  auto test_socket1 = iosched::socket::socket_handle{111};
+  auto test_socket2 = iosched::socket::socket_handle{222};
+
+  TestableSocketBufferBase buf1(std::move(test_socket1));
+  TestableSocketBufferBase buf2(std::move(test_socket2));
 
   auto msg1 = std::make_shared<socket_message>(create_test_socket_message());
   auto msg2 = std::make_shared<socket_message>(create_test_socket_message());
@@ -158,49 +149,23 @@ TEST_F(SocketBufferBaseTest, SwapOperation) {
 
   swap(buf1, buf2);
 
-  EXPECT_EQ(buf1.socket, test_socket2);
-  EXPECT_EQ(buf2.socket, test_socket1);
+  EXPECT_TRUE(buf1.socket);
+  EXPECT_TRUE(buf2.socket);
   EXPECT_TRUE(buf1.read_buffer.empty());
   EXPECT_FALSE(buf1.write_buffer.empty());
   EXPECT_FALSE(buf2.read_buffer.empty());
   EXPECT_TRUE(buf2.write_buffer.empty());
 }
 
-TEST_F(SocketBufferBaseTest, ThreadSafeCopyConstruction) {
-  constexpr int num_threads = 10;
-  auto test_socket = create_test_socket();
-  TestableSocketBufferBase original(test_socket);
-
-  auto msg = std::make_shared<socket_message>(create_test_socket_message());
-  original.read_buffer.push(msg);
-
-  std::vector<std::thread> threads;
-  std::vector<std::unique_ptr<TestableSocketBufferBase>> copies(num_threads);
-
-  threads.reserve(num_threads);
-  for (int i = 0; i < num_threads; ++i) {
-    threads.emplace_back([&, i]() {
-      copies[i] = std::make_unique<TestableSocketBufferBase>(original);
-    });
-  }
-
-  for (auto &thread : threads) {
-    thread.join();
-  }
-
-  for (const auto &copy : copies) {
-    EXPECT_EQ(copy->socket, original.socket);
-    EXPECT_EQ(copy->read_buffer.size(), original.read_buffer.size());
-  }
-}
+// ThreadSafeCopyConstruction test removed since copy construction is deleted
 
 TEST_F(SocketBufferBaseTest, ThreadSafeSwap) {
   constexpr int num_threads = 50;
-  auto test_socket1 = 333;
-  auto test_socket2 = 444;
+  auto test_socket1 = iosched::socket::socket_handle{333};
+  auto test_socket2 = iosched::socket::socket_handle{444};
 
-  TestableSocketBufferBase buf1(test_socket1);
-  TestableSocketBufferBase buf2(test_socket2);
+  TestableSocketBufferBase buf1(std::move(test_socket1));
+  TestableSocketBufferBase buf2(std::move(test_socket2));
 
   std::vector<std::thread> threads;
 
@@ -213,8 +178,9 @@ TEST_F(SocketBufferBaseTest, ThreadSafeSwap) {
     thread.join();
   }
 
-  EXPECT_TRUE((buf1.socket == test_socket1 && buf2.socket == test_socket2) ||
-              (buf1.socket == test_socket2 && buf2.socket == test_socket1));
+  // Both sockets should still be valid after the swaps
+  EXPECT_TRUE(buf1.socket);
+  EXPECT_TRUE(buf2.socket);
 }
 
 class SocketReadBufferTest : public SocketBufferTest {
@@ -397,6 +363,9 @@ class SocketBufferIntegrationTest : public SocketBufferTest {
 protected:
   class TestableSocketBuffer : public socket_buffer {
   public:
+    TestableSocketBuffer() = default;
+    TestableSocketBuffer(socket_buffer_base::socket_handle_type sock)
+        : socket_buffer_base(std::move(sock)) {}
     using socket_buffer_base::read_buffer;
     using socket_buffer_base::socket;
     using socket_buffer_base::write_buffer;
@@ -433,10 +402,8 @@ protected:
 };
 
 TEST_F(SocketBufferIntegrationTest, FullDuplexOperation) {
-  TestableSocketBuffer buffer;
-
   auto test_socket = create_test_socket();
-  buffer.socket = test_socket;
+  TestableSocketBuffer buffer(std::move(test_socket));
 
   auto write_msg = create_test_socket_message();
   write_msg.flags = 100;
@@ -447,7 +414,7 @@ TEST_F(SocketBufferIntegrationTest, FullDuplexOperation) {
   read_msg->flags = 200;
   buffer.read_buffer.push(read_msg);
 
-  EXPECT_EQ(buffer.socket, test_socket);
+  EXPECT_TRUE(buffer.socket);
   EXPECT_FALSE(buffer.write_buffer.empty());
   EXPECT_FALSE(buffer.read_buffer.empty());
 
