@@ -34,42 +34,16 @@
 #pragma once
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
-#include <boost/predef.h>
+#include "socket.hpp"
 
+#include <compare>
 #include <mutex>
-
-#if BOOST_OS_WINDOWS
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
 
 /**
  * @namespace iosched::socket
  * @brief Provides cross-platform abstractions for socket-level I/O.
- *
- * This namespace contains a set of tools for building and manipulating
- * socket messages and buffers, ensuring that code can be written once and
- * compiled on both Windows and POSIX-compliant systems without modification.
  */
 namespace iosched::socket {
-
-#if BOOST_OS_WINDOWS
-using native_socket_type = ::SOCKET;
-inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
-inline auto close(native_socket_type socket) noexcept -> int {
-  return ::closesocket(socket);
-}
-#else
-using native_socket_type = int;
-inline static constexpr native_socket_type INVALID_SOCKET = -1;
-inline auto close(native_socket_type socket) noexcept -> int {
-  return ::close(socket);
-}
-#endif
-
 /**
  * @class socket_handle
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
@@ -125,7 +99,7 @@ public:
    * @param domain The communication domain (e.g., `AF_INET`).
    * @param type The socket type (e.g., `SOCK_STREAM`).
    * @param protocol The protocol (e.g., `IPPROTO_TCP`).
-   * @throw std::system_error if socket creation fails.
+   * @throws std::system_error if socket creation fails.
    */
   explicit socket_handle(int domain, int type, int protocol);
 
@@ -180,9 +154,18 @@ public:
   auto operator!=(const socket_handle &other) const noexcept -> bool;
 
 private:
+  /**
+   * @brief Closes the managed socket if it is valid.
+   */
   auto close() noexcept -> void;
 
+  /**
+   * @brief The native socket handle managed by this object.
+   */
   native_socket_type socket_{INVALID_SOCKET};
+  /**
+   * @brief A mutex to synchronize access to the socket handle.
+   */
   mutable std::mutex mtx_;
 };
 
