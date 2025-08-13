@@ -69,7 +69,10 @@ public:
    */
   socket_buffer_base(socket_handle_type sock = {},
                      buffer_type rbuf = {}, buffer_type wbuf = {});
+
   socket_buffer_base(const socket_buffer_base &other) = delete;
+  auto operator=(const socket_buffer_base &other) -> socket_buffer_base & = delete;
+
   /**
    * @brief Move constructs a socket buffer.
    * @param other The object to move from.
@@ -77,7 +80,6 @@ public:
    * ensure thread-safe access to its data.
    */
   socket_buffer_base(socket_buffer_base &&other) noexcept;
-  auto operator=(const socket_buffer_base &other) -> socket_buffer_base & = delete;
   /**
    * @brief Move assigns a socket buffer.
    * @param other The object to move from.
