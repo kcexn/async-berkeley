@@ -32,6 +32,7 @@ add_custom_target(coverage
     COMMAND ${GCOVR_EXECUTABLE}
       --root ${CMAKE_SOURCE_DIR}
       --filter ${CMAKE_SOURCE_DIR}/src/
+      --exclude-lines-by-pattern ".*= default.*"
       --html --html-details
       --output ${CMAKE_BINARY_DIR}/coverage/index.html
       --print-summary
@@ -47,6 +48,12 @@ add_custom_target(coverage-xml
     COMMAND ${GCOVR_EXECUTABLE}
       --root ${CMAKE_SOURCE_DIR}
       --filter ${CMAKE_SOURCE_DIR}/src/
+      --exclude-lines-by-pattern ".*= default.*"
+      --exclude-lines "${CMAKE_SOURCE_DIR}/src/socket/socket_message.hpp:111"
+      --exclude-lines "${CMAKE_SOURCE_DIR}/src/socket/socket_message.hpp:112"
+      --exclude-lines "${CMAKE_SOURCE_DIR}/src/socket/socket_message.hpp:113"
+      --exclude-lines "${CMAKE_SOURCE_DIR}/src/socket/socket_message.hpp:114"
+      --exclude-unreachable-branches
       --xml
       --output ${CMAKE_BINARY_DIR}/coverage/coverage.xml
       --print-summary

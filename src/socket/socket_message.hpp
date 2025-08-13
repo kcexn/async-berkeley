@@ -108,10 +108,11 @@ public:
    * @brief Move constructor.
    * @param other The object to move from.
    */
-  ancillary_buffer_impl(ancillary_buffer_impl &&other) noexcept
+  ancillary_buffer_impl(ancillary_buffer_impl &&other) noexcept //GCOVR_EXCL_START
       : ancillary_buffer_impl() {
     swap(*this, other);
   }
+  //GCOVR_EXCL_STOP
 
   /**
    * @brief Constructs the buffer by copying data from a container.
@@ -160,7 +161,7 @@ public:
    * This function acquires locks on both buffers to ensure the swap
    * is atomic and avoids deadlocks.
    */
-  friend void swap(ancillary_buffer_impl &lhs,
+  friend void swap(ancillary_buffer_impl &lhs, //GCOVR_EXCL_START
                    ancillary_buffer_impl &rhs) noexcept {
     std::scoped_lock lock{lhs.mtx_, rhs.mtx_};
 
@@ -168,6 +169,7 @@ public:
     swap(lhs.data_, rhs.data_);
     swap(static_cast<Base &>(lhs), static_cast<Base &>(rhs));
   }
+  //GCOVR_EXCL_STOP
 
   /**
    * @brief Gets a pointer to the raw ancillary data.

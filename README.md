@@ -51,7 +51,7 @@ API documentation is available at: [https://kcexn.github.io/iosched/](https://kc
 ### Basic Socket Stream
 
 ```cpp
-#include "src/streams.hpp"
+#include "streams.hpp"
 #include <iostream>
 
 // Create a TCP socket stream
@@ -76,7 +76,7 @@ if (buffer && !sock.err()) {
 ### Cross-Platform Socket Messages
 
 ```cpp
-#include "src/socket.hpp"
+#include "socket/socket_message.hpp"
 
 // Create a unified socket message for cross-platform I/O
 iosched::socket::socket_message msg;
@@ -98,7 +98,7 @@ msg.ancillary = iosched::socket::ancillary_buffer(ancillary_data);
 ### Event Polling
 
 ```cpp
-#include "src/io.hpp"
+#include "io.hpp"
 #include <chrono>
 
 // Self-contained trigger with embedded poller
@@ -159,7 +159,7 @@ triggers.clear(sockfd);           // Remove socket completely
 The project uses comprehensive static analysis with clang-tidy:
 
 ```bash
-#Run clang - tidy on the entire codebase
+# Run clang-tidy on the entire codebase
 clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 ```
 
