@@ -21,6 +21,12 @@
 #pragma once
 #ifndef IO
 #define IO
+
+/**
+ * @brief The main namespace for the iosched library.
+ *
+ * This namespace contains the core components for I/O scheduling.
+ */
 namespace iosched {
 namespace {
 template <class T> static bool shrink_to_fit(std::vector<T> &vec) {

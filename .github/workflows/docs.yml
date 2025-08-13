@@ -1,0 +1,57 @@
+name: Build and Deploy Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake doxygen graphviz python3-all
+
+    - name: Install Python dependencies
+      run: pip install gcovr
+
+    - name: Configure CMake
+      run: cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
+
+    - name: Build documentation
+      run: cmake --build --preset debug --target docs
+
+    - name: Deploy docs to source
+      run: cmake --build --preset debug --target docs-deploy
+
+    - name: Upload Pages artifact
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs
+
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build-docs
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
