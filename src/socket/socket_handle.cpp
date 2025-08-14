@@ -38,11 +38,6 @@ socket_handle::socket_handle(int domain, int type, int protocol)
 
 socket_handle::~socket_handle() { close(); }
 
-socket_handle::operator native_socket_type() const noexcept {
-  std::lock_guard lock{mtx_};
-  return socket_;
-}
-
 socket_handle::operator bool() const noexcept {
   std::lock_guard lock{mtx_};
   return socket_ != INVALID_SOCKET;
@@ -54,9 +49,20 @@ auto socket_handle::operator<=>(const socket_handle &other) const noexcept
   return socket_ <=> other.socket_;
 }
 
-auto socket_handle::operator!=(const socket_handle &other) const noexcept
+auto socket_handle::operator==(const socket_handle &other) const noexcept
     -> bool {
-  return (*this <=> other) != 0;
+  return (*this <=> other) == 0;
+}
+
+auto socket_handle::operator<=>(native_socket_type other) const noexcept
+    -> std::strong_ordering {
+  std::lock_guard lock{mtx_};
+  return socket_ <=> other;
+}
+
+auto socket_handle::operator==(native_socket_type other) const noexcept
+    -> bool {
+  return (*this <=> other) == 0;
 }
 
 auto socket_handle::close() noexcept -> void {

@@ -17,13 +17,20 @@
 #define IOSCHED_SOCKET_DIALOG_HPP
 #include "../socket/socket_handle.hpp"
 
-namespace iosched::dialog {
+#include <bitset>
 
-class socket_dialog {
+namespace iosched::dialog {
+using socket_handle = ::iosched::socket::socket_handle;
+using socket_address = ::iosched::socket::socket_address;
+
+class socket_dialog : public socket_handle {
 
 public:
 
 private:
+  socket_address local_address_{}, remote_address_{};
+  bool passive_{false};
+  std::bitset<2> mode_{0b11};
 };
 
 } // namespace iosched::dialog

@@ -50,4 +50,24 @@ inline static constexpr native_socket_type INVALID_SOCKET = -1;
 inline auto close(native_socket_type socket) noexcept -> int {
   return ::close(socket);
 }
+
+/**
+ * @typedef sockaddr_storage_type
+ * @brief Alias for the `sockaddr_storage` structure on POSIX systems.
+ *
+ * This type is used to store socket address information in a generic way,
+ * large enough to accommodate all supported socket address types.
+ */
+using sockaddr_storage_type = struct sockaddr_storage;
+
+/**
+ * @typedef socket_size_type
+ * @brief Alias for the type used to represent socket-related sizes on POSIX
+ * systems.
+ *
+ * This type is typically `socklen_t` and is used for lengths of socket address
+ * structures and other size parameters in POSIX socket functions.
+ */
+using socklen_type = socklen_t;
+
 #endif // IOSCHED_POSIX_SOCKET_HPP

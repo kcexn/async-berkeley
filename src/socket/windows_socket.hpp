@@ -50,4 +50,22 @@ inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 inline auto close(native_socket_type socket) noexcept -> int {
   return ::closesocket(socket);
 }
+
+/**
+ * @typedef sockaddr_storage_type
+ * @brief Alias for the `SOCKADDR_STORAGE` structure on Windows systems.
+ *
+ * This type is used to store socket address information in a generic way,
+ * large enough to accommodate all supported socket address types.
+ */
+using sockaddr_storage_type = ::SOCKADDR_STORAGE;
+
+/**
+ * @typedef socket_size_type
+ * @brief Alias for the type used to represent socket-related sizes on Windows.
+ *
+ * This type is typically used for lengths of socket address structures and
+ * other size parameters in Winsock functions.
+ */
+using socklen_type = int;
 #endif // IOSCHED_WINDOWS_SOCKET_HPP

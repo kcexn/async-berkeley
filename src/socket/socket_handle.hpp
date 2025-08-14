@@ -34,6 +34,7 @@
 #pragma once
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
+#include "locked_socket_ptr.hpp"
 #include "socket.hpp"
 
 #include <mutex>
@@ -103,19 +104,22 @@ public:
   explicit socket_handle(int domain, int type, int protocol);
 
   /**
+   * @brief Factory method to get a locked pointer to the native socket.
+   *
+   * Returns a locked pointer that provides thread-safe access to the
+   * native socket. The lock is held for the lifetime of the returned object.
+   * @return A locked pointer to the native socket.
+   */
+  [[nodiscard]] auto get() -> locked_socket_ptr {
+    return {std::unique_lock<std::mutex>(mtx_), socket_};
+  }
+
+  /**
    * @brief Destructor.
    *
    * Closes the managed socket if it is valid.
    */
   ~socket_handle();
-
-  /**
-   * @brief Gets the underlying native socket handle.
-   *
-   * This operation is thread-safe.
-   * @return The native socket handle.
-   */
-  [[nodiscard]] explicit operator native_socket_type() const noexcept;
 
   /**
    * @brief Swaps the contents of two `socket_handle` objects.
@@ -144,13 +148,34 @@ public:
       -> std::strong_ordering;
 
   /**
-   * @brief Compares two `socket_handle` objects for inequality.
+   * @brief Compares two `socket_handle` objects for equality.
    *
    * This operation is thread-safe.
    * @param other The `socket_handle` to compare against.
-   * @return `true` if the socket handles are not equal, `false` otherwise.
+   * @return `true` if the socket handles are equal, `false` otherwise.
    */
-  auto operator!=(const socket_handle &other) const noexcept -> bool;
+  auto operator==(const socket_handle &other) const noexcept -> bool;
+
+  /**
+   * @brief Compares the `socket_handle` with a native socket handle for
+   * ordering.
+   *
+   * This operation is thread-safe.
+   * @param other The native socket handle to compare against.
+   * @return A `std::strong_ordering` value.
+   */
+  auto
+  operator<=>(native_socket_type other) const noexcept -> std::strong_ordering;
+
+  /**
+   * @brief Compares the `socket_handle` with a native socket handle for
+   * equality.
+   *
+   * This operation is thread-safe.
+   * @param other The native socket handle to compare against.
+   * @return `true` if the socket handles are equal, `false` otherwise.
+   */
+  auto operator==(native_socket_type other) const noexcept -> bool;
 
 private:
   /**
@@ -162,6 +187,7 @@ private:
    * @brief The native socket handle managed by this object.
    */
   native_socket_type socket_{INVALID_SOCKET};
+
   /**
    * @brief A mutex to synchronize access to the socket handle.
    */

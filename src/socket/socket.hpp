@@ -26,6 +26,8 @@
 #define IOSCHED_SOCKET_HPP
 #include <boost/predef.h>
 
+#include <cstdint>
+
 #if BOOST_OS_WINDOWS
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -47,6 +49,32 @@ namespace iosched::socket {
 #else
 #include "posix_socket.hpp" // IWYU pragma: export
 #endif
+
+/**
+ * @struct socket_address
+ * @brief Represents a generic socket address.
+ *
+ * This structure provides a platform-independent way to store socket address
+ * information, including the address data and its size. It uses
+ * `sockaddr_storage_type` for the address data and `socklen_type` for the size,
+ * which are platform-specific aliases.
+ */
+struct socket_address {
+  sockaddr_storage_type data{};
+  socklen_type size{};
+};
+
+/**
+ * @enum socket_mode
+ * @brief Defines modes for socket operations, used as flags in a bitset.
+ *
+ * This enumeration specifies different operational modes for a socket,
+ * such as reading or writing. These modes are designed to be combined
+ * as flags within a bitset to represent the current state or desired
+ * operations of a socket.
+ */
+enum struct socket_mode : std::uint8_t { read, write };
+
 } // namespace iosched::socket
 
 #endif // IOSCHED_SOCKET_HPP

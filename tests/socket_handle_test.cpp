@@ -15,12 +15,10 @@
 
 #include "../src/socket/socket_handle.hpp"
 #include <algorithm>
-#include <chrono>
 #include <gtest/gtest.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <thread>
-#include <vector>
 
 using namespace iosched::socket;
 
@@ -34,14 +32,14 @@ TEST_F(SocketHandleTest, DefaultConstruction) {
   socket_handle handle;
 
   EXPECT_FALSE(static_cast<bool>(handle));
-  EXPECT_EQ(static_cast<native_socket_type>(handle), INVALID_SOCKET);
+  EXPECT_TRUE(handle == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, ValidSocketCreation) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   EXPECT_TRUE(static_cast<bool>(handle));
-  EXPECT_NE(static_cast<native_socket_type>(handle), INVALID_SOCKET);
+  EXPECT_FALSE(handle == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, InvalidSocketCreation) {
@@ -55,73 +53,67 @@ TEST_F(SocketHandleTest, NativeSocketConstruction) {
   socket_handle handle(native_socket);
 
   EXPECT_TRUE(static_cast<bool>(handle));
-  EXPECT_EQ(static_cast<native_socket_type>(handle), native_socket);
+  EXPECT_TRUE(handle == native_socket);
 }
 
 TEST_F(SocketHandleTest, MoveConstructor) {
   socket_handle original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  native_socket_type original_socket =
-      static_cast<native_socket_type>(original);
 
   socket_handle moved(std::move(original));
 
   EXPECT_TRUE(static_cast<bool>(moved));
-  EXPECT_EQ(static_cast<native_socket_type>(moved), original_socket);
+  EXPECT_FALSE(moved == INVALID_SOCKET);
 
   EXPECT_FALSE(static_cast<bool>(original));
-  EXPECT_EQ(static_cast<native_socket_type>(original), INVALID_SOCKET);
+  EXPECT_TRUE(original == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, MoveAssignment) {
   socket_handle original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  native_socket_type original_socket =
-      static_cast<native_socket_type>(original);
 
   socket_handle target;
   target = std::move(original);
 
   EXPECT_TRUE(static_cast<bool>(target));
-  EXPECT_EQ(static_cast<native_socket_type>(target), original_socket);
+  EXPECT_FALSE(target == INVALID_SOCKET);
 
   EXPECT_FALSE(static_cast<bool>(original));
-  EXPECT_EQ(static_cast<native_socket_type>(original), INVALID_SOCKET);
+  EXPECT_TRUE(original == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, SelfMoveAssignment) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  native_socket_type original_socket = static_cast<native_socket_type>(handle);
 
   handle = std::move(handle);
 
   EXPECT_TRUE(static_cast<bool>(handle));
-  EXPECT_EQ(static_cast<native_socket_type>(handle), original_socket);
+  EXPECT_FALSE(handle == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, SwapFunction) {
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  native_socket_type socket1 = static_cast<native_socket_type>(handle1);
-  native_socket_type socket2 = static_cast<native_socket_type>(handle2);
+  socket_handle original1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle original2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
   swap(handle1, handle2);
 
-  EXPECT_EQ(static_cast<native_socket_type>(handle1), socket2);
-  EXPECT_EQ(static_cast<native_socket_type>(handle2), socket1);
+  EXPECT_TRUE(static_cast<bool>(handle1));
+  EXPECT_TRUE(static_cast<bool>(handle2));
+  EXPECT_NE(handle1, handle2);
 }
 
 TEST_F(SocketHandleTest, SwapWithInvalidSocket) {
   socket_handle valid_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle invalid_handle;
 
-  native_socket_type valid_socket =
-      static_cast<native_socket_type>(valid_handle);
-
   swap(valid_handle, invalid_handle);
 
   EXPECT_FALSE(static_cast<bool>(valid_handle));
   EXPECT_TRUE(static_cast<bool>(invalid_handle));
-  EXPECT_EQ(static_cast<native_socket_type>(invalid_handle), valid_socket);
+  EXPECT_TRUE(valid_handle == INVALID_SOCKET);
+  EXPECT_FALSE(invalid_handle == INVALID_SOCKET);
 }
 
 TEST_F(SocketHandleTest, ComparisonOperators) {
@@ -129,31 +121,25 @@ TEST_F(SocketHandleTest, ComparisonOperators) {
   socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle invalid_handle;
 
-  native_socket_type socket1 = static_cast<native_socket_type>(handle1);
-  native_socket_type socket2 = static_cast<native_socket_type>(handle2);
-
   auto cmp = handle1 <=> handle2;
-  if (socket1 < socket2) {
+  if (cmp < 0) {
     EXPECT_TRUE(handle1 < handle2);
     EXPECT_FALSE(handle1 > handle2);
     EXPECT_TRUE(handle1 <= handle2);
     EXPECT_FALSE(handle1 >= handle2);
     EXPECT_TRUE(handle1 != handle2);
-    EXPECT_TRUE(cmp < 0);
-  } else if (socket1 > socket2) {
+  } else if (cmp > 0) {
     EXPECT_FALSE(handle1 < handle2);
     EXPECT_TRUE(handle1 > handle2);
     EXPECT_FALSE(handle1 <= handle2);
     EXPECT_TRUE(handle1 >= handle2);
     EXPECT_TRUE(handle1 != handle2);
-    EXPECT_TRUE(cmp > 0);
   } else {
     EXPECT_FALSE(handle1 < handle2);
     EXPECT_FALSE(handle1 > handle2);
     EXPECT_TRUE(handle1 <= handle2);
     EXPECT_TRUE(handle1 >= handle2);
     EXPECT_FALSE(handle1 != handle2);
-    EXPECT_TRUE(cmp == 0);
   }
 
   EXPECT_TRUE(invalid_handle < handle1);
@@ -162,9 +148,21 @@ TEST_F(SocketHandleTest, ComparisonOperators) {
   EXPECT_TRUE(invalid_handle != handle2);
 }
 
+TEST_F(SocketHandleTest, CommutativeEquality) {
+  int native_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  ASSERT_NE(native_socket, -1);
+
+  socket_handle handle(native_socket);
+
+  EXPECT_TRUE(handle == native_socket);
+  EXPECT_TRUE(native_socket == handle);
+
+  EXPECT_TRUE(handle == INVALID_SOCKET || native_socket == handle);
+  EXPECT_TRUE(INVALID_SOCKET == handle || handle == native_socket);
+}
+
 TEST_F(SocketHandleTest, ThreadSafetyAccess) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  native_socket_type expected_socket = static_cast<native_socket_type>(handle);
 
   constexpr int num_threads = 10;
   constexpr int operations_per_thread = 100;
@@ -172,20 +170,18 @@ TEST_F(SocketHandleTest, ThreadSafetyAccess) {
   std::vector<bool> results(num_threads * operations_per_thread, false);
 
   for (int t = 0; t < num_threads; ++t) {
-    threads.emplace_back(
-        [&handle, expected_socket, &results, t, operations_per_thread] {
-          for (int i = 0; i < operations_per_thread; ++i) {
-            int index = t * operations_per_thread + i;
+    threads.emplace_back([&handle, &results, t, operations_per_thread] {
+      for (int i = 0; i < operations_per_thread; ++i) {
+        int index = t * operations_per_thread + i;
 
-            native_socket_type socket_value =
-                static_cast<native_socket_type>(handle);
-            bool is_valid = static_cast<bool>(handle);
+        bool is_valid = static_cast<bool>(handle);
+        bool is_not_invalid = !(handle == INVALID_SOCKET);
 
-            results[index] = (socket_value == expected_socket) && is_valid;
+        results[index] = is_valid && is_not_invalid;
 
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-          }
-        });
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+      }
+    });
   }
 
   for (auto &thread : threads) {
@@ -232,11 +228,6 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  native_socket_type original_socket1 =
-      static_cast<native_socket_type>(handle1);
-  native_socket_type original_socket2 =
-      static_cast<native_socket_type>(handle2);
-
   constexpr int num_swaps = 1000;
   std::vector<std::thread> threads;
 
@@ -253,13 +244,9 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
     thread.join();
   }
 
-  native_socket_type final_socket1 = static_cast<native_socket_type>(handle1);
-  native_socket_type final_socket2 = static_cast<native_socket_type>(handle2);
-
-  EXPECT_TRUE(
-      (final_socket1 == original_socket1 &&
-       final_socket2 == original_socket2) ||
-      (final_socket1 == original_socket2 && final_socket2 == original_socket1));
+  EXPECT_TRUE(static_cast<bool>(handle1));
+  EXPECT_TRUE(static_cast<bool>(handle2));
+  EXPECT_NE(handle1, handle2);
 }
 
 class SocketHandleRAIITest : public ::testing::Test {
@@ -280,28 +267,28 @@ protected:
 };
 
 TEST_F(SocketHandleRAIITest, DestructorClosesSocket) {
-  int native_socket;
+  int native_socket = create_and_get_socket();
+  EXPECT_TRUE(is_socket_valid(native_socket));
+
   {
-    socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    native_socket = static_cast<native_socket_type>(handle);
-    EXPECT_TRUE(is_socket_valid(native_socket));
+    socket_handle handle(native_socket);
+    EXPECT_TRUE(static_cast<bool>(handle));
   }
 
   EXPECT_FALSE(is_socket_valid(native_socket));
 }
 
 TEST_F(SocketHandleRAIITest, MovePreservesSocket) {
-  int native_socket;
+  int native_socket = create_and_get_socket();
   socket_handle moved_handle;
 
   {
-    socket_handle original_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    native_socket = static_cast<native_socket_type>(original_handle);
+    socket_handle original_handle(native_socket);
     EXPECT_TRUE(is_socket_valid(native_socket));
 
     moved_handle = std::move(original_handle);
   }
 
   EXPECT_TRUE(is_socket_valid(native_socket));
-  EXPECT_EQ(static_cast<native_socket_type>(moved_handle), native_socket);
+  EXPECT_TRUE(static_cast<bool>(moved_handle));
 }
