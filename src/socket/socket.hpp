@@ -51,20 +51,6 @@ namespace iosched::socket {
 #endif
 
 /**
- * @struct socket_address
- * @brief Represents a generic socket address.
- *
- * This structure provides a platform-independent way to store socket address
- * information, including the address data and its size. It uses
- * `sockaddr_storage_type` for the address data and `socklen_type` for the size,
- * which are platform-specific aliases.
- */
-struct socket_address {
-  sockaddr_storage_type data{};
-  socklen_type size{};
-};
-
-/**
  * @enum socket_mode
  * @brief Defines modes for socket operations, used as flags in a bitset.
  *

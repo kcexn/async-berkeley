@@ -52,6 +52,16 @@ inline auto close(native_socket_type socket) noexcept -> int {
 }
 
 /**
+ * @typedef sockaddr_type
+ * @brief Alias for the generic socket address structure on Windows systems.
+ *
+ * This type is an alias for `SOCKADDR`, which serves as the base
+ * structure for all other socket address types (e.g., `SOCKADDR_IN`). It is
+ * primarily used for type-casting when passing addresses to Winsock functions.
+ */
+using sockaddr_type = ::SOCKADDR;
+
+/**
  * @typedef sockaddr_storage_type
  * @brief Alias for the `SOCKADDR_STORAGE` structure on Windows systems.
  *

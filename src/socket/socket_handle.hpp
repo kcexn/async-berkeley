@@ -119,7 +119,7 @@ public:
    *
    * Closes the managed socket if it is valid.
    */
-  ~socket_handle();
+  virtual ~socket_handle();
 
   /**
    * @brief Swaps the contents of two `socket_handle` objects.

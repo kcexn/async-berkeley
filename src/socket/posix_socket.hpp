@@ -52,6 +52,16 @@ inline auto close(native_socket_type socket) noexcept -> int {
 }
 
 /**
+ * @typedef sockaddr_type
+ * @brief Alias for the generic socket address structure on POSIX systems.
+ *
+ * This type is an alias for `struct sockaddr`, which serves as the base
+ * structure for all other socket address types (e.g., `sockaddr_in`). It is
+ * primarily used for type-casting when passing addresses to socket functions.
+ */
+using sockaddr_type = struct sockaddr;
+
+/**
  * @typedef sockaddr_storage_type
  * @brief Alias for the `sockaddr_storage` structure on POSIX systems.
  *

@@ -3,6 +3,7 @@ set(TEST_NAMES
   socket_buffer_test
   socket_handle_test
   locked_socket_ptr_test
+  socket_address_test
 )
 
 include(GoogleTest)
