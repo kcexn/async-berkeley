@@ -36,7 +36,6 @@
 #define IOSCHED_SOCKET_HANDLE_HPP
 #include "socket.hpp"
 
-#include <compare>
 #include <mutex>
 
 /**

@@ -9,7 +9,6 @@
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_FLAGS": "-DBOOST_ASIO_NO_DEPRECATED -DBOOST_ASIO_NO_TS_EXECUTORS -DBOOST_ASIO_NO_EXTENSIONS",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "IOSCHED_ENABLE_TESTS": true,
                 "IOSCHED_ENABLE_COVERAGE": true
@@ -23,7 +22,6 @@
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS": "-DBOOST_ASIO_NO_DEPRECATED -DBOOST_ASIO_NO_TS_EXECUTORS -DBOOST_ASIO_NO_EXTENSIONS",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true
             }
         },
@@ -35,7 +33,7 @@
             "binaryDir": "${sourceDir}/build/benchmark",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS": "-O3 -DBOOST_ASIO_NO_DEPRECATED -DBOOST_ASIO_NO_TS_EXECUTORS -DBOOST_ASIO_NO_EXTENSIONS -DNDEBUG -march=native -mtune=native -flto -fno-strict-aliasing",
+                "CMAKE_CXX_FLAGS": "-O3 -DNDEBUG -march=native -mtune=native -flto -fno-strict-aliasing",
                 "CMAKE_EXE_LINKER_FLAGS": "-flto",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "IOSCHED_ENABLE_TESTS": "ON"

@@ -15,12 +15,11 @@
 
 /**
  * @file socket.hpp
- * @brief Provides core cross-platform socket definitions and functions.
+ * @brief Dispatches platform-specific socket definitions and functions.
  *
- * This file contains fundamental type aliases and functions for handling
- * platform-specific socket operations in a generic way. It ensures that
- * socket code can be written once and compiled on both Windows and
- * POSIX-compliant systems.
+ * This file includes either `windows_socket.hpp` or `posix_socket.hpp`
+ * based on the operating system, providing a unified interface for
+ * socket operations.
  */
 #pragma once
 #ifndef IOSCHED_SOCKET_HPP
@@ -43,66 +42,11 @@
  * away platform-specific socket details, allowing for portable network code.
  */
 namespace iosched::socket {
-
 #if BOOST_OS_WINDOWS
-/**
- * @typedef native_socket_type
- * @brief Cross-platform alias for the native socket handle.
- *
- * This type is an alias for the underlying socket descriptor used by the
- * operating system. It is `::SOCKET` on Windows and `int` on POSIX systems.
- */
-using native_socket_type = ::SOCKET;
-
-/**
- * @brief Represents an invalid socket descriptor.
- *
- * This constant holds the value of an invalid socket for the target platform.
- * It is `INVALID_SOCKET` (from Winsock) on Windows and `-1` on POSIX systems.
- */
-inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
-
-/**
- * @brief Closes a socket descriptor in a platform-independent manner.
- * @param socket The native socket handle to close.
- * @return `0` on success, or an error code on failure.
- *
- * This function wraps the native socket closing function (`::closesocket` on
- * Windows, `::close` on POSIX).
- */
-inline auto close(native_socket_type socket) noexcept -> int {
-  return ::closesocket(socket);
-}
+#include "windows_socket.hpp" // IWYU pragma: export
 #else
-/**
- * @typedef native_socket_type
- * @brief Cross-platform alias for the native socket handle.
- *
- * This type is an alias for the underlying socket descriptor used by the
- * operating system. It is `::SOCKET` on Windows and `int` on POSIX systems.
- */
-using native_socket_type = int;
-
-/**
- * @brief Represents an invalid socket descriptor.
- *
- * This constant holds the value of an invalid socket for the target platform.
- * It is `INVALID_SOCKET` (from Winsock) on Windows and `-1` on POSIX systems.
- */
-inline static constexpr native_socket_type INVALID_SOCKET = -1;
-
-/**
- * @brief Closes a socket descriptor in a platform-independent manner.
- * @param socket The native socket handle to close.
- * @return `0` on success, or an error code on failure.
- *
- * This function wraps the native socket closing function (`::closesocket` on
- * Windows, `::close` on POSIX).
- */
-inline auto close(native_socket_type socket) noexcept -> int {
-  return ::close(socket);
-}
+#include "posix_socket.hpp" // IWYU pragma: export
 #endif
-
 } // namespace iosched::socket
+
 #endif // IOSCHED_SOCKET_HPP
