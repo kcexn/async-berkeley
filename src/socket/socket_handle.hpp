@@ -115,7 +115,7 @@ struct socket_handle_state {
    * This operation is thread-safe.
    * @return `true` if the socket handle is valid, `false` otherwise.
    */
-  [[nodiscard]] virtual explicit operator bool() const noexcept;
+  [[nodiscard]] explicit operator bool() const noexcept;
 
   /**
    * @brief Compares two `socket_handle_state` objects for ordering.
@@ -178,10 +178,10 @@ struct socket_handle_state {
 class socket_handle : public socket_handle_state {
 
 public:
-  using socket_handle_state::socket_handle_state;
-  using socket_handle_state::operator<=>;
-  using socket_handle_state::operator==;
   using Base = socket_handle_state;
+  using Base::Base;
+  using Base::operator<=>;
+  using Base::operator==;
 
   /// @brief Default constructor. Initializes an invalid socket handle.
   socket_handle() = default;
