@@ -32,7 +32,6 @@
  * - `socket_handle`: A thread-safe, cross-platform socket handle.
  */
 #pragma once
-#include <compare>
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
 #include "socket.hpp"
