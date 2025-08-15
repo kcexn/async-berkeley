@@ -32,11 +32,12 @@
  * - `socket_handle`: A thread-safe, cross-platform socket handle.
  */
 #pragma once
+#include <compare>
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
-#include "locked_socket_ptr.hpp"
 #include "socket.hpp"
 
+#include <atomic>
 #include <mutex>
 
 /**
@@ -44,90 +45,69 @@
  * @brief Provides cross-platform abstractions for socket-level I/O.
  */
 namespace iosched::socket {
+
 /**
- * @class socket_handle
- * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
+ * @struct socket_handle_state
+ * @brief Holds the state for a socket handle.
  *
- * This class provides the core functionality for socket lifetime management. It
- * ensures that a valid socket is automatically closed when it goes out of
- * scope. To prevent resource mismanagement, it is move-only and cannot be
- * copied. Access to the underlying handle is synchronized via a mutex, making
- * it safe for use in multi-threaded contexts.
+ * This struct contains the native socket handle and provides constructors
+ * for initializing it. It is used as a base class for `socket_handle` to
+ * separate state from the RAII and locking logic.
  */
-class socket_handle {
-
-public:
+struct socket_handle_state {
   /**
-   * @brief Default constructor.
+   * @brief The native socket handle.
    *
-   * Initializes an empty handle that does not own a socket.
+   * Initialized to `INVALID_SOCKET` by default.
    */
-  socket_handle() = default;
+  std::atomic<native_socket_type> socket{INVALID_SOCKET};
 
-  socket_handle(const socket_handle &other) = delete;
-  auto operator=(const socket_handle &other) -> socket_handle & = delete;
-
+  /// @brief Default constructor. Initializes the socket to an invalid state.
+  socket_handle_state() = default;
+  /**
+   * @brief Copy constructor.
+   * @param other The object to copy from.
+   */
+  socket_handle_state(const socket_handle_state &other);
+  /**
+   * @brief Copy assignment operator.
+   * @param other The object to copy from.
+   * @return A reference to this object.
+   */
+  auto operator=(const socket_handle_state &other) -> socket_handle_state &;
   /**
    * @brief Move constructor.
-   *
-   * Takes ownership of the socket from another `socket_handle`.
-   * @param other The `socket_handle` to move from.
+   * @param other The object to move from.
    */
-  socket_handle(socket_handle &&other) noexcept;
-
+  socket_handle_state(socket_handle_state &&other) noexcept;
   /**
    * @brief Move assignment operator.
-   *
-   * Takes ownership of the socket from another `socket_handle`.
-   * @param other The `socket_handle` to move from.
-   * @return A reference to this `socket_handle`.
+   * @param other The object to move from.
+   * @return A reference to this object.
    */
-  auto operator=(socket_handle &&other) noexcept -> socket_handle &;
+  auto operator=(socket_handle_state &&other) noexcept -> socket_handle_state &;
 
   /**
-   * @brief Constructs a `socket_handle` from a native socket.
-   *
-   * Takes ownership of an existing native socket handle.
-   * @param handle The native socket handle to manage.
+   * @brief Constructs a state object from an existing native socket handle.
+   * @param handle The native socket handle to store.
    */
-  explicit socket_handle(native_socket_type handle) noexcept
-      : socket_{handle} {}
-
+  explicit socket_handle_state(native_socket_type handle) noexcept;
   /**
-   * @brief Creates a new socket and wraps it in a `socket_handle`.
-   *
+   * @brief Constructs a state object by creating a new socket.
    * @param domain The communication domain (e.g., `AF_INET`).
    * @param type The socket type (e.g., `SOCK_STREAM`).
    * @param protocol The protocol (e.g., `IPPROTO_TCP`).
    * @throws std::system_error if socket creation fails.
    */
-  explicit socket_handle(int domain, int type, int protocol);
+  socket_handle_state(int domain, int type, int protocol);
 
   /**
-   * @brief Factory method to get a locked pointer to the native socket.
-   *
-   * Returns a locked pointer that provides thread-safe access to the
-   * native socket. The lock is held for the lifetime of the returned object.
-   * @return A locked pointer to the native socket.
+   * @brief Swaps the contents of two `socket_handle_state` objects.
+   * @param lhs The first object.
+   * @param rhs The second object.
    */
-  [[nodiscard]] auto get() -> locked_socket_ptr {
-    return {std::unique_lock<std::mutex>(mtx_), socket_};
-  }
-
-  /**
-   * @brief Destructor.
-   *
-   * Closes the managed socket if it is valid.
-   */
-  virtual ~socket_handle();
-
-  /**
-   * @brief Swaps the contents of two `socket_handle` objects.
-   *
-   * @param lhs The first `socket_handle`.
-   * @param rhs The second `socket_handle`.
-   */
-  friend auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
+  friend auto swap(socket_handle_state &lhs,
+                   socket_handle_state &rhs) noexcept -> void;
 
   /**
    * @brief Checks if the handle owns a valid socket.
@@ -135,26 +115,26 @@ public:
    * This operation is thread-safe.
    * @return `true` if the socket handle is valid, `false` otherwise.
    */
-  [[nodiscard]] explicit operator bool() const noexcept;
+  [[nodiscard]] virtual explicit operator bool() const noexcept;
 
   /**
-   * @brief Compares two `socket_handle` objects for ordering.
+   * @brief Compares two `socket_handle_state` objects for ordering.
    *
    * This operation is thread-safe.
-   * @param other The `socket_handle` to compare against.
+   * @param other The `socket_handle_state` to compare against.
    * @return A `std::strong_ordering` value.
    */
-  auto operator<=>(const socket_handle &other) const noexcept
+  auto operator<=>(const socket_handle_state &other) const noexcept
       -> std::strong_ordering;
 
   /**
-   * @brief Compares two `socket_handle` objects for equality.
+   * @brief Compares two `socket_handle_state` objects for equality.
    *
    * This operation is thread-safe.
-   * @param other The `socket_handle` to compare against.
+   * @param other The `socket_handle_state` to compare against.
    * @return `true` if the socket handles are equal, `false` otherwise.
    */
-  auto operator==(const socket_handle &other) const noexcept -> bool;
+  auto operator==(const socket_handle_state &other) const noexcept -> bool;
 
   /**
    * @brief Compares the `socket_handle` with a native socket handle for
@@ -177,16 +157,104 @@ public:
    */
   auto operator==(native_socket_type other) const noexcept -> bool;
 
+  /**
+   * @brief Virtual destructor.
+   *
+   * Ensures that derived classes are properly destroyed.
+   */
+  virtual ~socket_handle_state() = default;
+};
+
+/**
+ * @class socket_handle
+ * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
+ *
+ * This class provides the core functionality for socket lifetime management. It
+ * ensures that a valid socket is automatically closed when it goes out of
+ * scope. To prevent resource mismanagement, it is move-only and cannot be
+ * copied. Access to the underlying handle is synchronized via a mutex, making
+ * it safe for use in multi-threaded contexts.
+ */
+class socket_handle : public socket_handle_state {
+
+public:
+  using socket_handle_state::socket_handle_state;
+  using socket_handle_state::operator<=>;
+  using socket_handle_state::operator==;
+  using Base = socket_handle_state;
+
+  /// @brief Default constructor. Initializes an invalid socket handle.
+  socket_handle() = default;
+
+  /**
+   * @brief Copy constructor is deleted.
+   *
+   * `socket_handle` is a unique resource-owning type and cannot be copied.
+   */
+  socket_handle(const socket_handle &other) = delete;
+  /**
+   * @brief Copy assignment operator is deleted.
+   *
+   * `socket_handle` is a unique resource-owning type and cannot be copied.
+   */
+  auto operator=(const socket_handle &other) -> socket_handle & = delete;
+
+  /**
+   * @brief Move constructor.
+   *
+   * Takes ownership of the socket from another `socket_handle`.
+   * @param other The `socket_handle` to move from.
+   */
+  socket_handle(socket_handle &&other) noexcept;
+
+  /**
+   * @brief Move assignment operator.
+   *
+   * Takes ownership of the socket from another `socket_handle`.
+   * @param other The `socket_handle` to move from.
+   * @return A reference to this `socket_handle`.
+   */
+  auto operator=(socket_handle &&other) noexcept -> socket_handle &;
+
+  /**
+   * @brief Swaps the contents of two `socket_handle` objects.
+   *
+   * @param lhs The first `socket_handle`.
+   * @param rhs The second `socket_handle`.
+   */
+  friend auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
+
+  /**
+   * @brief Compares two `socket_handle` objects for ordering.
+   *
+   * This operation is thread-safe.
+   * @param other The `socket_handle` to compare against.
+   * @return A `std::strong_ordering` value.
+   */
+  auto operator<=>(const socket_handle &other) const noexcept
+      -> std::strong_ordering;
+
+  /**
+   * @brief Compares two `socket_handle` objects for equality.
+   *
+   * This operation is thread-safe.
+   * @param other The `socket_handle` to compare against.
+   * @return `true` if the socket handles are equal, `false` otherwise.
+   */
+  auto operator==(const socket_handle &other) const noexcept -> bool;
+
+  /**
+   * @brief Destructor.
+   *
+   * Closes the managed socket if it is valid.
+   */
+  virtual ~socket_handle();
+
 private:
   /**
    * @brief Closes the managed socket if it is valid.
    */
   auto close() noexcept -> void;
-
-  /**
-   * @brief The native socket handle managed by this object.
-   */
-  native_socket_type socket_{INVALID_SOCKET};
 
   /**
    * @brief A mutex to synchronize access to the socket handle.

@@ -22,11 +22,178 @@
 
 using namespace iosched::socket;
 
+class SocketHandleStateTest : public ::testing::Test {
+protected:
+  void SetUp() override {}
+  void TearDown() override {}
+};
+
 class SocketHandleTest : public ::testing::Test {
 protected:
   void SetUp() override {}
   void TearDown() override {}
 };
+
+TEST_F(SocketHandleStateTest, DefaultConstruction) {
+  socket_handle_state state;
+
+  EXPECT_FALSE(static_cast<bool>(state));
+  EXPECT_TRUE(state == INVALID_SOCKET);
+}
+
+TEST_F(SocketHandleStateTest, ValidSocketCreation) {
+  socket_handle_state state(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  EXPECT_TRUE(static_cast<bool>(state));
+  EXPECT_FALSE(state == INVALID_SOCKET);
+}
+
+TEST_F(SocketHandleStateTest, InvalidSocketCreation) {
+  EXPECT_THROW({ socket_handle_state state(-1, -1, -1); }, std::system_error);
+}
+
+TEST_F(SocketHandleStateTest, NativeSocketConstruction) {
+  int native_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  ASSERT_NE(native_socket, -1);
+
+  socket_handle_state state(native_socket);
+
+  EXPECT_TRUE(static_cast<bool>(state));
+  EXPECT_TRUE(state == native_socket);
+
+  // Clean up manually since socket_handle_state doesn't close sockets
+  ::close(native_socket);
+}
+
+TEST_F(SocketHandleStateTest, CopyConstructor) {
+  socket_handle_state original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = original.socket.load();
+
+  socket_handle_state copied(original);
+
+  EXPECT_TRUE(static_cast<bool>(copied));
+  EXPECT_TRUE(copied == original_socket);
+  EXPECT_TRUE(original == copied);
+
+  // Clean up manually
+  ::close(original_socket);
+}
+
+TEST_F(SocketHandleStateTest, CopyAssignment) {
+  socket_handle_state original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = original.socket.load();
+
+  socket_handle_state target;
+  target = original;
+
+  EXPECT_TRUE(static_cast<bool>(target));
+  EXPECT_TRUE(target == original_socket);
+  EXPECT_TRUE(original == target);
+
+  // Clean up manually
+  ::close(original_socket);
+}
+
+TEST_F(SocketHandleStateTest, MoveConstructor) {
+  socket_handle_state original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = original.socket.load();
+
+  socket_handle_state moved(std::move(original));
+
+  EXPECT_TRUE(static_cast<bool>(moved));
+  EXPECT_TRUE(moved == original_socket);
+  EXPECT_FALSE(static_cast<bool>(original));
+  EXPECT_TRUE(original == INVALID_SOCKET);
+
+  // Clean up manually
+  ::close(original_socket);
+}
+
+TEST_F(SocketHandleStateTest, MoveAssignment) {
+  socket_handle_state original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = original.socket.load();
+
+  socket_handle_state target;
+  target = std::move(original);
+
+  EXPECT_TRUE(static_cast<bool>(target));
+  EXPECT_TRUE(target == original_socket);
+  EXPECT_FALSE(static_cast<bool>(original));
+  EXPECT_TRUE(original == INVALID_SOCKET);
+
+  // Clean up manually
+  ::close(original_socket);
+}
+
+TEST_F(SocketHandleStateTest, SwapFunction) {
+  socket_handle_state state1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle_state state2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+  auto socket1 = state1.socket.load();
+  auto socket2 = state2.socket.load();
+
+  swap(state1, state2);
+
+  EXPECT_TRUE(state1 == socket2);
+  EXPECT_TRUE(state2 == socket1);
+
+  // Clean up manually
+  ::close(socket1);
+  ::close(socket2);
+}
+
+TEST_F(SocketHandleStateTest, ComparisonOperators) {
+  socket_handle_state state1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle_state state2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle_state invalid_state;
+
+  auto cmp = state1 <=> state2;
+  if (cmp < 0) {
+    EXPECT_TRUE(state1 < state2);
+    EXPECT_FALSE(state1 > state2);
+    EXPECT_TRUE(state1 <= state2);
+    EXPECT_FALSE(state1 >= state2);
+    EXPECT_TRUE(state1 != state2);
+  } else if (cmp > 0) {
+    EXPECT_FALSE(state1 < state2);
+    EXPECT_TRUE(state1 > state2);
+    EXPECT_FALSE(state1 <= state2);
+    EXPECT_TRUE(state1 >= state2);
+    EXPECT_TRUE(state1 != state2);
+  } else {
+    EXPECT_FALSE(state1 < state2);
+    EXPECT_FALSE(state1 > state2);
+    EXPECT_TRUE(state1 <= state2);
+    EXPECT_TRUE(state1 >= state2);
+    EXPECT_FALSE(state1 != state2);
+  }
+
+  EXPECT_TRUE(invalid_state < state1);
+  EXPECT_TRUE(invalid_state < state2);
+  EXPECT_TRUE(invalid_state != state1);
+  EXPECT_TRUE(invalid_state != state2);
+
+  // Clean up manually
+  ::close(state1.socket.load());
+  ::close(state2.socket.load());
+}
+
+TEST_F(SocketHandleStateTest, AtomicOperations) {
+  socket_handle_state state(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = state.socket.load();
+
+  // Test atomic load/store operations
+  EXPECT_EQ(state.socket.load(), original_socket);
+
+  // Test atomic exchange
+  auto exchanged = state.socket.exchange(INVALID_SOCKET);
+  EXPECT_EQ(exchanged, original_socket);
+  EXPECT_EQ(state.socket.load(), INVALID_SOCKET);
+  EXPECT_FALSE(static_cast<bool>(state));
+
+  // Clean up manually
+  ::close(original_socket);
+}
 
 TEST_F(SocketHandleTest, DefaultConstruction) {
   socket_handle handle;
@@ -83,11 +250,14 @@ TEST_F(SocketHandleTest, MoveAssignment) {
 
 TEST_F(SocketHandleTest, SelfMoveAssignment) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto original_socket = handle.socket.load();
 
   handle = std::move(handle);
 
   EXPECT_TRUE(static_cast<bool>(handle));
   EXPECT_FALSE(handle == INVALID_SOCKET);
+  // Self-move should preserve the original socket
+  EXPECT_EQ(handle.socket.load(), original_socket);
 }
 
 TEST_F(SocketHandleTest, SwapFunction) {
@@ -157,6 +327,9 @@ TEST_F(SocketHandleTest, CommutativeEquality) {
   EXPECT_TRUE(handle == native_socket);
   EXPECT_TRUE(native_socket == handle);
 
+  // Test atomic consistency with comparison
+  EXPECT_TRUE(handle.socket.load() == native_socket);
+
   EXPECT_TRUE(handle == INVALID_SOCKET || native_socket == handle);
   EXPECT_TRUE(INVALID_SOCKET == handle || handle == native_socket);
 }
@@ -176,8 +349,11 @@ TEST_F(SocketHandleTest, ThreadSafetyAccess) {
 
         bool is_valid = static_cast<bool>(handle);
         bool is_not_invalid = !(handle == INVALID_SOCKET);
+        // Test atomic access to socket member
+        bool atomic_consistent =
+            (handle.socket.load() != INVALID_SOCKET) == is_valid;
 
-        results[index] = is_valid && is_not_invalid;
+        results[index] = is_valid && is_not_invalid && atomic_consistent;
 
         std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
@@ -228,6 +404,10 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+  // Store original socket values to verify they remain valid
+  auto original1 = handle1.socket.load();
+  auto original2 = handle2.socket.load();
+
   constexpr int num_swaps = 1000;
   std::vector<std::thread> threads;
 
@@ -247,6 +427,12 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
   EXPECT_TRUE(static_cast<bool>(handle1));
   EXPECT_TRUE(static_cast<bool>(handle2));
   EXPECT_NE(handle1, handle2);
+
+  // Verify one of the original sockets is in each handle
+  auto current1 = handle1.socket.load();
+  auto current2 = handle2.socket.load();
+  EXPECT_TRUE((current1 == original1 && current2 == original2) ||
+              (current1 == original2 && current2 == original1));
 }
 
 class SocketHandleRAIITest : public ::testing::Test {
@@ -278,17 +464,37 @@ TEST_F(SocketHandleRAIITest, DestructorClosesSocket) {
   EXPECT_FALSE(is_socket_valid(native_socket));
 }
 
-TEST_F(SocketHandleRAIITest, MovePreservesSocket) {
-  int native_socket = create_and_get_socket();
-  socket_handle moved_handle;
+TEST_F(SocketHandleTest, InheritanceFromSocketHandleState) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  {
-    socket_handle original_handle(native_socket);
-    EXPECT_TRUE(is_socket_valid(native_socket));
+  // Test that socket_handle can be used as socket_handle_state
+  socket_handle_state *state_ptr = &handle;
 
-    moved_handle = std::move(original_handle);
-  }
+  EXPECT_TRUE(static_cast<bool>(*state_ptr));
+  EXPECT_FALSE(*state_ptr == INVALID_SOCKET);
+}
 
-  EXPECT_TRUE(is_socket_valid(native_socket));
-  EXPECT_TRUE(static_cast<bool>(moved_handle));
+TEST_F(SocketHandleTest, AtomicSocketAccess) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  // Test direct atomic access to socket member
+  auto socket_value = handle.socket.load();
+  EXPECT_NE(socket_value, INVALID_SOCKET);
+
+  // Test atomic operations are consistent with bool operator
+  EXPECT_EQ(static_cast<bool>(handle), socket_value != INVALID_SOCKET);
+}
+
+TEST_F(SocketHandleTest, BaseClassOperationsWork) {
+  socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  // Test that base class comparison operators work through inheritance
+  auto socket1 = handle1.socket.load();
+  auto socket2 = handle2.socket.load();
+
+  EXPECT_TRUE(handle1 == socket1);
+  EXPECT_TRUE(handle2 == socket2);
+  EXPECT_TRUE(socket1 == handle1);
+  EXPECT_TRUE(socket2 == handle2);
 }
