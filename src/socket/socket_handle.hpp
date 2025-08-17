@@ -232,10 +232,10 @@ private:
 
 /**
  * @brief Binds a socket to a local address.
+ * @relates socket_handle
  *
- * This function is a customization of the `iosched::bind` CPO for a
- * `socket_handle`. It associates the socket with the address specified by
- * `addr`.
+ * Binds the specified socket handle to a local address. This function
+ * associates the socket with the address specified by `addr`.
  *
  * @param socket The `socket_handle` to be bound.
  * @param addr A pointer to a `sockaddr_type` structure containing the address

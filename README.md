@@ -28,14 +28,18 @@ A high-performance C++20 I/O scheduling library providing cross-platform asynchr
 ### Build and Test
 
 ```bash
-#Clone the repository
+# Clone the repository
 git clone https://github.com/kcexn/iosched.git
 cd iosched
 
-#Quick build with tests
+# Quick build with tests
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
+
+# Alternative presets:
+# cmake --preset release     # Optimized build
+# cmake --preset benchmark   # High-performance build with -O3 -march=native
 ```
 
 ### Detailed Build Instructions
@@ -45,6 +49,13 @@ For comprehensive build instructions, dependency installation guides, code cover
 ### Documentation
 
 API documentation is available at: [https://kcexn.github.io/iosched/](https://kcexn.github.io/iosched/)
+
+To build documentation locally:
+```bash
+cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
+cmake --build --preset debug --target docs
+# View at build/debug/docs/html/index.html
+```
 
 ## Usage
 
@@ -163,7 +174,7 @@ The project uses comprehensive static analysis with clang-tidy:
 clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 ```
 
-Configured rules include `bugprone-*`, `cert-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, and `readability-*` checks.
+Configured rules include `bugprone-*`, `cert-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, and `readability-*` checks (excludes `readability-braces-around-statements`, `readability-magic-numbers`, and `readability-implicit-bool-conversion` for flexibility).
 
 ## License
 
