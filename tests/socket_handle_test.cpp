@@ -14,6 +14,7 @@
  */
 
 #include "../src/socket/socket_handle.hpp"
+#include "../src/operations.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -572,4 +573,17 @@ TEST_F(SocketHandleTest, StressTestConcurrentOperations) {
   // Verify handles are still valid
   EXPECT_TRUE(static_cast<bool>(handle1));
   EXPECT_TRUE(static_cast<bool>(handle2));
+}
+
+TEST_F(SocketHandleTest, BindTagInvoke) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = 0;
+
+  int result = iosched::bind(handle, reinterpret_cast<const sockaddr_type*>(&addr), sizeof(addr));
+
+  EXPECT_EQ(result, 0);
 }

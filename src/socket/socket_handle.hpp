@@ -36,6 +36,7 @@
 #pragma once
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
+#include "../iosched.hpp"
 #include "socket.hpp"
 
 #include <atomic>
@@ -228,6 +229,22 @@ private:
    */
   mutable std::mutex mtx_;
 };
+
+/**
+ * @brief Binds a socket to a local address.
+ *
+ * This function is a customization of the `iosched::bind` CPO for a
+ * `socket_handle`. It associates the socket with the address specified by
+ * `addr`.
+ *
+ * @param socket The `socket_handle` to be bound.
+ * @param addr A pointer to a `sockaddr_type` structure containing the address
+ * to bind to.
+ * @param len The length of the `addr` structure.
+ * @return 0 on success, or -1 on error, with `errno` set appropriately.
+ */
+auto tag_invoke(::iosched::bind_t, const socket_handle &socket,
+                const sockaddr_type *addr, socklen_type len) -> int;
 
 } // namespace iosched::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP

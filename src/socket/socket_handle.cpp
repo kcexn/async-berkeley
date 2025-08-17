@@ -107,4 +107,9 @@ auto socket_handle::close() noexcept -> void {
   }
 }
 
+auto tag_invoke(::iosched::bind_t tag, const socket_handle &socket,
+                const sockaddr_type *addr, socklen_type len) -> int {
+  return ::bind(static_cast<native_socket_type>(socket), addr, len);
+}
+
 } // namespace iosched::socket
