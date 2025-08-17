@@ -109,8 +109,9 @@ public:
    * Takes ownership of the provided native handle.
    *
    * @param handle The native socket handle to wrap.
+   * @throws std::system_error if the handle is not a valid socket.
    */
-  explicit socket_handle(native_socket_type handle) noexcept;
+  explicit socket_handle(native_socket_type handle);
 
   /**
    * @brief Constructs a `socket_handle` by creating a new socket.

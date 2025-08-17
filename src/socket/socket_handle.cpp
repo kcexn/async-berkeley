@@ -29,8 +29,20 @@ auto socket_handle::operator=(socket_handle &&other) noexcept
   return *this;
 }
 
-socket_handle::socket_handle(native_socket_type handle) noexcept
-    : socket_{handle} {}
+static auto is_valid_socket(native_socket_type handle) -> bool {
+  if (handle == INVALID_SOCKET)
+    return false;
+
+  int type = 0;
+  socklen_type len = sizeof(type);
+
+  return ::getsockopt(handle, SOL_SOCKET, SO_TYPE, &type, &len) == 0;
+}
+socket_handle::socket_handle(native_socket_type handle) : socket_{handle} {
+  if (!is_valid_socket(handle))
+    throw std::system_error(EBADF, std::generic_category(),
+                            IOSCHED_ERROR_MESSAGE("Invalid socket handle."));
+}
 
 socket_handle::socket_handle(int domain, int type, int protocol)
     : socket_{::socket(domain, type, protocol)} {
