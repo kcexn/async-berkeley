@@ -34,11 +34,11 @@
  *   socket APIs.
  */
 #pragma once
-#include "socket_address.hpp"
-#ifndef IOSCHED_SOCKET_HANDLE_HPP
-#define IOSCHED_SOCKET_HANDLE_HPP
+#ifndef IO_SOCKET_HANDLE_HPP
+#define IO_SOCKET_HANDLE_HPP
 #include "../io.hpp"
 #include "socket.hpp"
+#include "socket_address.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -451,4 +451,4 @@ auto tag_invoke([[maybe_unused]] ::io::fcntl_t tag, const socket_handle &socket,
 // - recvfrom
 
 } // namespace io::socket
-#endif // IOSCHED_SOCKET_HANDLE_HPP
+#endif // IO_SOCKET_HANDLE_HPP
