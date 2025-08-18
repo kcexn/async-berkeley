@@ -66,6 +66,9 @@ socket_handle::operator native_socket_type() const noexcept {
 }
 
 auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void {
+  if(&lhs == &rhs)
+    return;
+
   std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
 
   using std::swap;

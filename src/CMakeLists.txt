@@ -1,6 +1,7 @@
 add_library(iosched
   socket/socket_handle.cpp
   socket/socket_address.cpp
+  socket/socket_message.cpp
 )
 
 target_include_directories(iosched

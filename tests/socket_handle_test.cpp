@@ -134,6 +134,21 @@ TEST_F(SocketHandleTest, SwapWithInvalidSocket) {
   EXPECT_FALSE(invalid_handle == INVALID_SOCKET);
 }
 
+TEST_F(SocketHandleTest, SwapWithSelf) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  // Store the original socket for comparison
+  auto original_socket = static_cast<native_socket_type>(handle);
+
+  // Self swap should not corrupt data and should not hang
+  swap(handle, handle);
+
+  // Handle should remain valid and unchanged
+  EXPECT_TRUE(static_cast<bool>(handle));
+  EXPECT_FALSE(handle == INVALID_SOCKET);
+  EXPECT_EQ(static_cast<native_socket_type>(handle), original_socket);
+}
+
 TEST_F(SocketHandleTest, ComparisonOperators) {
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);

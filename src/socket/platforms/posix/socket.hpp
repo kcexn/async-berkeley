@@ -60,6 +60,11 @@ inline static constexpr native_socket_type INVALID_SOCKET = -1;
 inline static constexpr int SOCKET_ERROR = -1;
 
 /**
+ * @brief socket buffer type
+ */
+using socket_buffer_type = struct iovec;
+
+/**
  * @brief socket message type
  */
 using socket_message_type = struct msghdr;

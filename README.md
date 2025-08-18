@@ -1,20 +1,21 @@
-#io
+# iosched
 
 [![Build](https://github.com/kcexn/iosched/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/build.yml)
 [![Tests](https://github.com/kcexn/iosched/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/tests.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-A modern C++20 socket library providing cross-platform socket operations with tag-dispatched customization points, RAII resource management, and thread-safe design patterns.
+A modern C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, and streaming interfaces. Built with advanced C++ patterns including tag-dispatched customization points, RAII resource management, and thread-safe design patterns.
 
 ## Features
 
 - **Tag-Dispatched Operations**: Type-safe, extensible socket operations using the `tag_invoke` customization point pattern
 - **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations with platform-specific implementations
 - **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage and mutex-protected operations
+- **Advanced Message Handling**: Thread-safe `socket_message` class for scatter-gather I/O and ancillary data
 - **Move-Only Semantics**: Clear resource ownership preventing double-free errors and resource leaks
-- **Comprehensive Socket Operations**: Full set of socket operations (bind, listen, connect, accept, send/recv, etc.) through customization points
-- **Exception Safety**: Robust error handling with automatic resource cleanup
+- **Comprehensive Socket Operations**: Full set of socket operations (bind, listen, connect, accept, sendmsg, recvmsg, etc.) through customization points
+- **Exception Safety**: Robust error handling with automatic resource cleanup and strong exception guarantees
 - **Modern C++20 Design**: Extensive use of concepts, three-way comparison, and contemporary C++ patterns
 
 ## Quick Start
@@ -135,6 +136,39 @@ if (result == 0) {
 }
 ```
 
+### Advanced Message I/O
+
+```cpp
+#include "io.hpp"
+#include "socket/socket_handle.hpp"
+#include "socket/socket_message.hpp"
+#include <netinet/in.h>
+
+// Create socket and connect
+io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+// ... connection setup ...
+
+// Create a socket message for scatter-gather I/O
+io::socket::socket_message msg;
+
+// Add multiple data buffers
+std::string header = "HTTP/1.1 200 OK\r\n";
+std::string content = "Hello, World!";
+msg.add_buffer(header.data(), header.size());
+msg.add_buffer(content.data(), content.size());
+
+// Send using scatter-gather I/O
+auto bytes_sent = io::sendmsg(client_socket, msg.native(), MSG_NOSIGNAL);
+if (bytes_sent > 0) {
+    std::cout << "Sent " << bytes_sent << " bytes\n";
+}
+
+// Receive into message buffer
+io::socket::socket_message recv_msg;
+recv_msg.reserve_buffer(1024);  // Pre-allocate receive buffer
+auto bytes_received = io::recvmsg(client_socket, recv_msg.native(), 0);
+```
+
 ### Socket Address Management
 
 ```cpp
@@ -203,7 +237,8 @@ try {
 
 - **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage and mutex-protected operations
 - **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
-- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, etc.) with multiple overloads using the `tag_invoke` pattern
+- **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns
+- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with multiple overloads using the `tag_invoke` pattern
 - **Cross-Platform Abstraction**: Platform-specific implementations in `src/socket/platforms/` with unified interfaces
 - **Error Handling**: Structured exception handling with `std::system_error` for high-level operations and return codes for low-level operations
 
@@ -217,10 +252,18 @@ try {
 - **Exception Safety**: Robust error handling with proper cleanup guaranteed in all failure scenarios
 - **Modern C++20**: Extensive use of three-way comparison, concepts, and contemporary language features
 
+### Performance Characteristics
+
+- **Zero-Copy Operations**: Scatter-gather I/O support minimizes memory copying for high-performance applications
+- **Lock-Free Reads**: Socket handle state queries use atomic operations for minimal overhead
+- **Efficient Threading**: Mixed threading model with mutex protection only where necessary
+- **Platform Optimization**: Native platform APIs used directly with minimal abstraction overhead
+- **Memory Management**: Move-only semantics and RAII prevent unnecessary allocations and copies
+
 ### Dependencies
 
 - **GoogleTest**: Auto-fetched via CMake FetchContent for unit testing
-- **Boost.Predef**: Used for cross-platform compiler and OS detection
+- **Boost.Predef**: Used for cross-platform compiler and OS detection (header-only)
 
 ### Code Quality
 
@@ -232,6 +275,13 @@ clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 ```
 
 Configured rules include `bugprone-*`, `cert-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, and `readability-*` checks (excludes `readability-braces-around-statements`, `readability-magic-numbers`, and `readability-implicit-bool-conversion` for flexibility).
+
+### Thread Safety
+
+- **Socket Handles**: Full thread safety with atomic reads and mutex-protected modifications
+- **Socket Messages**: Thread-safe access to message data and buffers
+- **Socket Addresses**: Thread-safe copy/move operations with proper synchronization
+- **Tag-Invoke Operations**: Concurrent operation dispatch with no shared mutable state
 
 ## License
 

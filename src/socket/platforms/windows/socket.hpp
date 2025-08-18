@@ -60,6 +60,11 @@ inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
 
 /**
+ * @brief socket buffer type
+ */
+using socket_buffer_type = ::WSABUF;
+
+/**
  * @brief socket message type
  */
 using socket_message_type = ::WSAMSG;
