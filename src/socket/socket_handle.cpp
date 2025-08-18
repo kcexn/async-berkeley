@@ -112,6 +112,12 @@ auto tag_invoke([[maybe_unused]] ::io::bind_t tag, const socket_handle &socket,
   return ::bind(static_cast<native_socket_type>(socket), addr, len);
 }
 
+auto tag_invoke([[maybe_unused]] ::io::bind_t tag, const socket_handle &socket,
+                const socket_address &addr) -> int {
+  return ::bind(static_cast<native_socket_type>(socket), addr.data(),
+                *addr.size());
+}
+
 auto tag_invoke([[maybe_unused]] ::io::listen_t tag,
                 const socket_handle &socket, int backlog) -> int {
   return ::listen(static_cast<native_socket_type>(socket), backlog);
@@ -123,10 +129,25 @@ auto tag_invoke([[maybe_unused]] ::io::connect_t tag,
   return ::connect(static_cast<native_socket_type>(socket), addr, len);
 }
 
+auto tag_invoke([[maybe_unused]] ::io::connect_t tag,
+                const socket_handle &socket,
+                const socket_address &addr) -> int {
+  return ::connect(static_cast<native_socket_type>(socket), addr.data(),
+                   *addr.size());
+}
+
 auto tag_invoke([[maybe_unused]] ::io::accept_t tag,
                 const socket_handle &socket, sockaddr_type *addr,
                 socklen_type *len) -> native_socket_type {
   return ::accept(static_cast<native_socket_type>(socket), addr, len);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::accept_t tag,
+                const socket_handle &socket, socket_address addr)
+    -> std::tuple<socket_handle, socket_address> {
+  socket_handle handle{::accept(static_cast<native_socket_type>(socket),
+                                addr.data(), addr.size())};
+  return std::make_tuple(std::move(handle), addr);
 }
 
 auto tag_invoke([[maybe_unused]] ::io::sendmsg_t tag,

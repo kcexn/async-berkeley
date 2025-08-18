@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 using namespace io::socket;
 
@@ -303,4 +304,184 @@ TEST_F(SocketAddressTest, EqualityOperatorZeroSize) {
 
   EXPECT_TRUE(addr1 == addr2);
   EXPECT_TRUE(addr2 == addr1);
+}
+
+TEST_F(SocketAddressTest, DefaultConstruction) {
+  socket_address addr;
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_storage));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_storage); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, CapacityCheck) {
+  socket_address addr;
+
+  // Should have enough space for any socket address type
+  EXPECT_GE(sizeof(sockaddr_storage), sizeof(sockaddr_in));
+  EXPECT_GE(sizeof(sockaddr_storage), sizeof(sockaddr_in6));
+
+  // Test that we can store maximum size addresses
+  *addr.size() = sizeof(sockaddr_storage);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_storage));
+}
+
+TEST_F(SocketAddressTest, MaximumSizeConstruction) {
+  // Test with maximum possible size
+  sockaddr_storage max_storage{};
+  socket_address addr(reinterpret_cast<const sockaddr *>(&max_storage),
+                      sizeof(sockaddr_storage));
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_storage));
+}
+
+TEST_F(SocketAddressTest, InequalityOperator) {
+  socket_address addr1(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                       ipv4_size_);
+  socket_address addr2(reinterpret_cast<const sockaddr *>(&ipv6_addr_),
+                       ipv6_size_);
+
+  // Test != operator explicitly
+  EXPECT_TRUE(addr1 != addr2);
+  EXPECT_TRUE(addr2 != addr1);
+
+  // Test with same address
+  socket_address addr3(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                       ipv4_size_);
+  EXPECT_FALSE(addr1 != addr3);
+  EXPECT_FALSE(addr3 != addr1);
+}
+
+TEST_F(SocketAddressTest, EmptyAddressComparisons) {
+  socket_address empty1;
+  socket_address empty2;
+
+  // Empty addresses should be equal
+  EXPECT_TRUE(empty1 == empty2);
+  EXPECT_FALSE(empty1 != empty2);
+
+  // Empty vs non-empty should be different
+  socket_address non_empty(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                           ipv4_size_);
+  EXPECT_FALSE(empty1 == non_empty);
+  EXPECT_TRUE(empty1 != non_empty);
+}
+
+#ifdef AF_UNIX
+TEST_F(SocketAddressTest, UnixDomainSocket) {
+  sockaddr_un unix_addr{};
+  unix_addr.sun_family = AF_UNIX;
+  std::strcpy(unix_addr.sun_path, "/tmp/test.sock");
+
+  socket_address addr(reinterpret_cast<const sockaddr *>(&unix_addr),
+                      sizeof(unix_addr));
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(unix_addr));
+
+  const auto *stored_unix = reinterpret_cast<const sockaddr_un *>(addr.data());
+  EXPECT_EQ(stored_unix->sun_family, AF_UNIX);
+  EXPECT_STREQ(stored_unix->sun_path, "/tmp/test.sock");
+}
+#endif
+
+TEST_F(SocketAddressTest, ModificationThroughPointers) {
+  socket_address addr;
+
+  // Set size manually for accept-like operations
+  *addr.size() = sizeof(sockaddr_in);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in));
+
+  // Modify address data directly
+  auto *sockaddr_ptr = reinterpret_cast<sockaddr_in *>(addr.data());
+  sockaddr_ptr->sin_family = AF_INET;
+  sockaddr_ptr->sin_port = htons(12345);
+  sockaddr_ptr->sin_addr.s_addr = htonl(INADDR_ANY);
+
+  // Verify modifications
+  const auto *const_sockaddr =
+      reinterpret_cast<const sockaddr_in *>(addr.data());
+  EXPECT_EQ(const_sockaddr->sin_family, AF_INET);
+  EXPECT_EQ(const_sockaddr->sin_port, htons(12345));
+  EXPECT_EQ(const_sockaddr->sin_addr.s_addr, htonl(INADDR_ANY));
+}
+
+TEST_F(SocketAddressTest, ConstObjectAccess) {
+  const socket_address const_addr(
+      reinterpret_cast<const sockaddr *>(&ipv4_addr_), ipv4_size_);
+
+  // Const data access should return const pointer
+  const auto *const_data = const_addr.data();
+  EXPECT_NE(const_data, nullptr);
+
+  // Const size access should return const pointer
+  const auto *const_size = const_addr.size();
+  EXPECT_NE(const_size, nullptr);
+  EXPECT_EQ(*const_size, ipv4_size_);
+}
+
+TEST_F(SocketAddressTest, IPv4SpecificValidation) {
+  socket_address addr(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                      ipv4_size_);
+
+  const auto *sockaddr_ptr = reinterpret_cast<const sockaddr_in *>(addr.data());
+
+  // Validate specific IPv4 properties
+  EXPECT_EQ(sockaddr_ptr->sin_family, AF_INET);
+  EXPECT_EQ(ntohs(sockaddr_ptr->sin_port), 8080);
+  EXPECT_EQ(ntohl(sockaddr_ptr->sin_addr.s_addr), INADDR_LOOPBACK);
+}
+
+TEST_F(SocketAddressTest, IPv6SpecificValidation) {
+  socket_address addr(reinterpret_cast<const sockaddr *>(&ipv6_addr_),
+                      ipv6_size_);
+
+  const auto *sockaddr_ptr =
+      reinterpret_cast<const sockaddr_in6 *>(addr.data());
+
+  // Validate specific IPv6 properties
+  EXPECT_EQ(sockaddr_ptr->sin6_family, AF_INET6);
+  EXPECT_EQ(ntohs(sockaddr_ptr->sin6_port), 9090);
+  EXPECT_EQ(std::memcmp(&sockaddr_ptr->sin6_addr, &in6addr_loopback,
+                        sizeof(in6addr_loopback)),
+            0);
+}
+
+TEST_F(SocketAddressTest, AddressFamilyComparison) {
+  socket_address ipv4_addr1(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                            ipv4_size_);
+  socket_address ipv4_addr2(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                            ipv4_size_);
+  socket_address ipv6_addr1(reinterpret_cast<const sockaddr *>(&ipv6_addr_),
+                            ipv6_size_);
+
+  // Same family and data should be equal
+  EXPECT_TRUE(ipv4_addr1 == ipv4_addr2);
+
+  // Different families should not be equal
+  EXPECT_FALSE(ipv4_addr1 == ipv6_addr1);
+  EXPECT_TRUE(ipv4_addr1 != ipv6_addr1);
+}
+
+TEST_F(SocketAddressTest, PartialSizeComparison) {
+  // Test with partial address size
+  socklen_t partial_size = sizeof(sockaddr_in) / 2;
+  socket_address partial_addr(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                              partial_size);
+  socket_address full_addr(reinterpret_cast<const sockaddr *>(&ipv4_addr_),
+                           ipv4_size_);
+
+  EXPECT_EQ(*partial_addr.size(), partial_size);
+  EXPECT_NE(*partial_addr.size(), *full_addr.size());
+  EXPECT_FALSE(partial_addr == full_addr);
+  EXPECT_TRUE(partial_addr != full_addr);
 }

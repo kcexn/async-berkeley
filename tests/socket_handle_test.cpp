@@ -14,6 +14,7 @@
  */
 
 #include "../src/io.hpp"
+#include "../src/socket/socket_address.hpp"
 #include "../src/socket/socket_handle.hpp"
 #include <algorithm>
 #include <array>
@@ -598,6 +599,39 @@ TEST_F(SocketHandleTest, BindTagInvoke) {
   EXPECT_EQ(result, 0);
 }
 
+TEST_F(SocketHandleTest, BindTagInvokeWithSocketAddress) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = 0;
+
+  socket_address socket_addr(reinterpret_cast<const sockaddr_type *>(&addr),
+                             sizeof(addr));
+
+  int result = ::io::bind(handle, socket_addr);
+
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(SocketHandleTest, BindTagInvokeWithSocketAddressInvalidSocket) {
+  socket_handle invalid_handle;
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = 0;
+
+  socket_address socket_addr(reinterpret_cast<const sockaddr_type *>(&addr),
+                             sizeof(addr));
+
+  int result = ::io::bind(invalid_handle, socket_addr);
+
+  EXPECT_EQ(result, -1);
+  EXPECT_EQ(errno, EBADF);
+}
+
 TEST_F(SocketHandleTest, ListenTagInvoke) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -740,6 +774,106 @@ TEST_F(SocketHandleTest, ConnectTagInvokeInvalidSocket) {
   EXPECT_EQ(errno, EBADF);
 }
 
+TEST_F(SocketHandleTest,
+       ConnectTagInvokeWithSocketAddressSuccessfulConnection) {
+  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in server_addr{};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(server_socket,
+                       reinterpret_cast<const sockaddr_type *>(&server_addr),
+                       sizeof(server_addr)),
+            0);
+  ASSERT_EQ(::io::listen(server_socket, 5), 0);
+
+  socklen_t addr_len = sizeof(server_addr);
+  ASSERT_EQ(::io::getsockname(server_socket,
+                              reinterpret_cast<sockaddr_type *>(&server_addr),
+                              &addr_len),
+            0);
+
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  socket_address connect_addr(
+      reinterpret_cast<const sockaddr_type *>(&server_addr),
+      sizeof(server_addr));
+
+  std::thread server_thread([&server_socket] {
+    sockaddr_in client_addr{};
+    socklen_t client_addr_len = sizeof(client_addr);
+    native_socket_type accepted_socket = ::io::accept(
+        server_socket, reinterpret_cast<sockaddr_type *>(&client_addr),
+        &client_addr_len);
+    if (accepted_socket != -1) {
+      ::close(accepted_socket);
+    }
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  int result = ::io::connect(client_socket, connect_addr);
+
+  server_thread.join();
+
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(SocketHandleTest, ConnectTagInvokeWithSocketAddressConnectionRefused) {
+  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = htons(1);
+
+  socket_address connect_addr(reinterpret_cast<const sockaddr_type *>(&addr),
+                              sizeof(addr));
+
+  int result = ::io::connect(client_socket, connect_addr);
+
+  EXPECT_EQ(result, -1);
+  EXPECT_EQ(errno, ECONNREFUSED);
+}
+
+TEST_F(SocketHandleTest, ConnectTagInvokeWithSocketAddressInvalidSocket) {
+  socket_handle invalid_socket;
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  addr.sin_port = htons(80);
+
+  socket_address connect_addr(reinterpret_cast<const sockaddr_type *>(&addr),
+                              sizeof(addr));
+
+  int result = ::io::connect(invalid_socket, connect_addr);
+
+  EXPECT_EQ(result, -1);
+  EXPECT_EQ(errno, EBADF);
+}
+
+TEST_F(SocketHandleTest, ConnectTagInvokeWithSocketAddressInvalidAddress) {
+  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(0x00000000);
+  addr.sin_port = htons(0);
+
+  socket_address connect_addr(reinterpret_cast<const sockaddr_type *>(&addr),
+                              sizeof(addr));
+
+  int result = ::io::connect(client_socket, connect_addr);
+
+  EXPECT_EQ(result, -1);
+  EXPECT_TRUE(errno == EADDRNOTAVAIL || errno == ENETUNREACH ||
+              errno == ECONNREFUSED);
+}
+
 TEST_F(SocketHandleTest, AcceptTagInvokeSuccessfulAccept) {
   socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -813,6 +947,114 @@ TEST_F(SocketHandleTest, AcceptTagInvokeNotListening) {
 
   EXPECT_EQ(result, -1);
   EXPECT_EQ(errno, EINVAL);
+}
+
+TEST_F(SocketHandleTest, AcceptTagInvokeWithSocketAddressSuccessfulAccept) {
+  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in server_addr{};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(server_socket,
+                       reinterpret_cast<const sockaddr_type *>(&server_addr),
+                       sizeof(server_addr)),
+            0);
+  ASSERT_EQ(::io::listen(server_socket, 5), 0);
+
+  socklen_t addr_len = sizeof(server_addr);
+  ASSERT_EQ(::io::getsockname(server_socket,
+                              reinterpret_cast<sockaddr_type *>(&server_addr),
+                              &addr_len),
+            0);
+
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  std::thread client_thread([&server_addr] {
+    socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    ::io::connect(client_socket,
+                  reinterpret_cast<const sockaddr_type *>(&server_addr),
+                  sizeof(server_addr));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  auto [accepted_handle, client_addr] = ::io::accept(server_socket);
+
+  client_thread.join();
+
+  EXPECT_TRUE(static_cast<bool>(accepted_handle));
+  EXPECT_NE(static_cast<native_socket_type>(accepted_handle), -1);
+
+  const auto *addr_ptr =
+      reinterpret_cast<const sockaddr_in *>(client_addr.data());
+  EXPECT_EQ(addr_ptr->sin_family, AF_INET);
+  EXPECT_GT(*client_addr.size(), 0);
+}
+
+TEST_F(SocketHandleTest, AcceptTagInvokeWithSocketAddressInvalidSocket) {
+  socket_handle invalid_socket;
+
+  EXPECT_THROW(::io::accept(invalid_socket), std::system_error);
+}
+
+TEST_F(SocketHandleTest, AcceptTagInvokeWithSocketAddressNotListening) {
+  socket_handle socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  EXPECT_THROW(::io::accept(socket), std::system_error);
+}
+
+TEST_F(SocketHandleTest, AcceptTagInvokeWithSocketAddressWithProvidedAddress) {
+  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in server_addr{};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(server_socket,
+                       reinterpret_cast<const sockaddr_type *>(&server_addr),
+                       sizeof(server_addr)),
+            0);
+  ASSERT_EQ(::io::listen(server_socket, 5), 0);
+
+  socklen_t addr_len = sizeof(server_addr);
+  ASSERT_EQ(::io::getsockname(server_socket,
+                              reinterpret_cast<sockaddr_type *>(&server_addr),
+                              &addr_len),
+            0);
+
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  std::thread client_thread([&server_addr] {
+    socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    ::io::connect(client_socket,
+                  reinterpret_cast<const sockaddr_type *>(&server_addr),
+                  sizeof(server_addr));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  sockaddr_storage initial_storage{};
+  socket_address provided_addr(
+      reinterpret_cast<const sockaddr_type *>(&initial_storage),
+      sizeof(initial_storage));
+
+  auto [accepted_handle, client_addr] =
+      ::io::accept(server_socket, provided_addr);
+
+  client_thread.join();
+
+  EXPECT_TRUE(static_cast<bool>(accepted_handle));
+  EXPECT_NE(static_cast<native_socket_type>(accepted_handle), -1);
+
+  const auto *addr_ptr =
+      reinterpret_cast<const sockaddr_in *>(client_addr.data());
+  EXPECT_EQ(addr_ptr->sin_family, AF_INET);
+  EXPECT_GT(*client_addr.size(), 0);
 }
 
 TEST_F(SocketHandleTest, SendmsgTagInvokeBasicSend) {

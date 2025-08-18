@@ -34,6 +34,7 @@
  *   socket APIs.
  */
 #pragma once
+#include "socket_address.hpp"
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
 #include "../io.hpp"
@@ -253,6 +254,20 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int;
 
 /**
+ * @brief Binds a socket to a local address.
+ * @relates socket_handle
+ *
+ * Binds the specified socket handle to a local address. This function
+ * associates the socket with the address specified by `addr`.
+ *
+ * @param socket The `socket_handle` to be bound.
+ * @param addr The `socket_address` to bind to.
+ * @return 0 on success, or -1 on error, with `errno` set appropriately.
+ */
+auto tag_invoke(::io::bind_t, const socket_handle &socket,
+                const socket_address &addr) -> int;
+
+/**
  * @brief Sets a socket to listen for incoming connections.
  * @relates socket_handle
  *
@@ -268,27 +283,67 @@ auto tag_invoke(::io::listen_t, const socket_handle &socket,
 
 /**
  * @brief Connects a socket to a remote address.
- * @param socket The socket to connect.
- * @param addr The address to connect to.
- * @param len The length of the address.
- * @return 0 on success, -1 on error.
  * @relates socket_handle
+ *
+ * Establishes a connection on a socket.
+ *
+ * @param socket The `socket_handle` to connect.
+ * @param addr A pointer to a `sockaddr_type` structure containing the address
+ * to connect to.
+ * @param len The length of the `addr` structure.
+ * @return 0 on success, or -1 on error, with `errno` set appropriately.
  */
 auto tag_invoke(::io::connect_t, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int;
 
 /**
- * @brief Accepts an incoming connection on a listening socket.
- * @param socket The listening socket.
- * @param addr A pointer to a sockaddr structure to receive the client's
- * address.
- * @param len A pointer to a socklen_t to receive the length of the client's
- * address.
- * @return The file descriptor of the accepted socket, or -1 on error.
+ * @brief Connects a socket to a remote address.
  * @relates socket_handle
+ *
+ * Establishes a connection on a socket.
+ *
+ * @param socket The `socket_handle` to connect.
+ * @param addr The `socket_address` to connect to.
+ * @return 0 on success, or -1 on error, with `errno` set appropriately.
+ */
+auto tag_invoke(::io::connect_t, const socket_handle &socket,
+                const socket_address &addr) -> int;
+
+/**
+ * @brief Accepts an incoming connection on a listening socket.
+ * @relates socket_handle
+ *
+ * Extracts the first connection request on the queue of pending connections for
+ * the listening socket.
+ *
+ * @param socket The listening `socket_handle`.
+ * @param addr A pointer to a `sockaddr_type` structure that will be filled
+ * with the address of the connecting socket.
+ * @param len A pointer to a `socklen_type` that will be filled with the
+ * length of the address.
+ * @return The native socket for the accepted socket, or -1 on error, with
+ * `errno` set appropriately.
  */
 auto tag_invoke(::io::accept_t, const socket_handle &socket,
                 sockaddr_type *addr, socklen_type *len) -> native_socket_type;
+
+/**
+ * @brief Accepts an incoming connection on a listening socket.
+ * @relates socket_handle
+ *
+ * Extracts the first connection request on the queue of pending connections for
+ * the listening socket.
+ *
+ * @param socket The listening `socket_handle`.
+ * @param addr An optional `socket_address` to be populated with the address of
+ * the connecting socket.
+ * @return A `std::tuple` containing a `socket_handle` for the accepted
+ * socket and a `socket_address` for the connecting socket.
+ * @throws std::system_error on failure.
+ */
+auto tag_invoke(::io::accept_t, const socket_handle &socket,
+                socket_address addr = {})
+    -> std::tuple<socket_handle, socket_address>;
 
 /**
  * @brief Sends a message through a socket using a message structure.
