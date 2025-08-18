@@ -107,14 +107,71 @@ auto socket_handle::close() noexcept -> void {
   }
 }
 
-auto tag_invoke(::io::bind_t tag, const socket_handle &socket,
+auto tag_invoke([[maybe_unused]] ::io::bind_t tag, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int {
   return ::bind(static_cast<native_socket_type>(socket), addr, len);
 }
 
-auto tag_invoke(::io::listen_t tag, const socket_handle &socket,
-                int backlog) -> int {
+auto tag_invoke([[maybe_unused]] ::io::listen_t tag,
+                const socket_handle &socket, int backlog) -> int {
   return ::listen(static_cast<native_socket_type>(socket), backlog);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::connect_t tag,
+                const socket_handle &socket, const sockaddr_type *addr,
+                socklen_type len) -> int {
+  return ::connect(static_cast<native_socket_type>(socket), addr, len);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::accept_t tag,
+                const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> native_socket_type {
+  return ::accept(static_cast<native_socket_type>(socket), addr, len);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::sendmsg_t tag,
+                const socket_handle &socket, const socket_message_type *msg,
+                int flags) -> std::streamsize {
+  return ::io::socket::sendmsg(static_cast<native_socket_type>(socket), msg,
+                               flags);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::recvmsg_t tag,
+                const socket_handle &socket, socket_message_type *msg,
+                int flags) -> std::streamsize {
+  return ::io::socket::recvmsg(static_cast<native_socket_type>(socket), msg,
+                               flags);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::getsockopt_t tag,
+                const socket_handle &socket, int level, int optname,
+                void *optval, socklen_type *optlen) -> int {
+  return ::getsockopt(static_cast<native_socket_type>(socket), level, optname,
+                      optval, optlen);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::setsockopt_t tag,
+                const socket_handle &socket, int level, int optname,
+                const void *optval, socklen_type optlen) -> int {
+  return ::setsockopt(static_cast<native_socket_type>(socket), level, optname,
+                      optval, optlen);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::getsockname_t tag,
+                const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> int {
+  return ::getsockname(static_cast<native_socket_type>(socket), addr, len);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::getpeername_t tag,
+                const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> int {
+  return ::getpeername(static_cast<native_socket_type>(socket), addr, len);
+}
+
+auto tag_invoke([[maybe_unused]] ::io::shutdown_t tag,
+                const socket_handle &socket, int how) -> int {
+  return ::shutdown(static_cast<native_socket_type>(socket), how);
 }
 
 } // namespace io::socket

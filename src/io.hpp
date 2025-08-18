@@ -20,8 +20,18 @@
 #pragma once
 #ifndef IO_HPP
 #define IO_HPP
-#include "detail/bind.hpp" // IWYU pragma: export
-#include "detail/listen.hpp" // IWYU pragma: export
+#include "detail/accept.hpp"      // IWYU pragma: export
+#include "detail/bind.hpp"        // IWYU pragma: export
+#include "detail/connect.hpp"     // IWYU pragma: export
+#include "detail/fcntl.hpp"       // IWYU pragma: export
+#include "detail/getpeername.hpp" // IWYU pragma: export
+#include "detail/getsockname.hpp" // IWYU pragma: export
+#include "detail/getsockopt.hpp"  // IWYU pragma: export
+#include "detail/listen.hpp"      // IWYU pragma: export
+#include "detail/recvmsg.hpp"     // IWYU pragma: export
+#include "detail/sendmsg.hpp"     // IWYU pragma: export
+#include "detail/setsockopt.hpp"  // IWYU pragma: export
+#include "detail/shutdown.hpp"    // IWYU pragma: export
 
 /**
  * @brief The main namespace for the iosched library.
@@ -63,5 +73,88 @@ inline constexpr detail::bind_fn bind{};
  * @endcode
  */
 inline constexpr detail::listen_fn listen{};
+
+/**
+ * @brief A customization point object that connects a socket to an address.
+ *
+ * This CPO finds a suitable implementation for connecting a socket via
+ * `tag_invoke`.
+ */
+inline constexpr detail::connect_fn connect{};
+
+/**
+ * @brief A customization point object that accepts an incoming connection.
+ *
+ * This CPO finds a suitable implementation for accepting a connection via
+ * `tag_invoke`.
+ */
+inline constexpr detail::accept_fn accept{};
+
+/**
+ * @brief A customization point object that sends a message on a socket.
+ *
+ * This CPO finds a suitable implementation for sending a message via
+ * `tag_invoke`.
+ */
+inline constexpr detail::sendmsg_fn sendmsg{};
+
+/**
+ * @brief A customization point object that receives a message from a socket.
+ *
+ * This CPO finds a suitable implementation for receiving a message via
+ * `tag_invoke`.
+ */
+inline constexpr detail::recvmsg_fn recvmsg{};
+
+/**
+ * @brief A customization point object that gets a socket option.
+ *
+ * This CPO finds a suitable implementation for getting a socket option via
+ * `tag_invoke`.
+ */
+inline constexpr detail::getsockopt_fn getsockopt{};
+
+/**
+ * @brief A customization point object that sets a socket option.
+ *
+ * This CPO finds a suitable implementation for setting a socket option via
+ * `tag_invoke`.
+ */
+inline constexpr detail::setsockopt_fn setsockopt{};
+
+/**
+ * @brief A customization point object that gets the local address of a socket.
+ *
+ * This CPO finds a suitable implementation for getting the local address of a
+ * socket via `tag_invoke`.
+ */
+inline constexpr detail::getsockname_fn getsockname{};
+
+/**
+ * @brief A customization point object that gets the peer address of a connected
+ * socket.
+ *
+ * This CPO finds a suitable implementation for getting the peer address of a
+ * socket via `tag_invoke`.
+ */
+inline constexpr detail::getpeername_fn getpeername{};
+
+/**
+ * @brief A customization point object that shuts down all or part of a
+ * connection on a socket.
+ *
+ * This CPO finds a suitable implementation for shutting down a socket via
+ * `tag_invoke`.
+ */
+inline constexpr detail::shutdown_fn shutdown{};
+
+/**
+ * @brief A customization point object that performs a file control operation on
+ * a socket.
+ *
+ * This CPO finds a suitable implementation for performing a file control
+ * operation on a socket via `tag_invoke`.
+ */
+inline constexpr detail::fcntl_fn fcntl{};
 } // namespace io
-#endif // IO_TAGS_HPP
+#endif // IO_HPP

@@ -23,6 +23,9 @@
 #pragma once
 #ifndef IO_SOCKET_POSIX_HPP
 #define IO_SOCKET_POSIX_HPP
+#include <ios>
+
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -57,6 +60,11 @@ inline static constexpr native_socket_type INVALID_SOCKET = -1;
 inline static constexpr int SOCKET_ERROR = -1;
 
 /**
+ * @brief socket message type
+ */
+using socket_message_type = struct msghdr;
+
+/**
  * @brief Closes a socket descriptor on POSIX systems.
  * @param socket The native socket handle to close.
  * @return `0` on success, or an error code on failure.
@@ -65,6 +73,57 @@ inline static constexpr int SOCKET_ERROR = -1;
  */
 inline auto close(native_socket_type socket) noexcept -> int {
   return ::close(socket);
+}
+
+/**
+ * @brief Provides a C++ wrapper for the POSIX fcntl function.
+ *
+ * This function is an inline wrapper around the standard POSIX `fcntl` system
+ * call. It forwards the provided arguments directly to the underlying `::fcntl`
+ * function.
+ *
+ * @param socket The native socket descriptor.
+ * @param cmd The fcntl command to execute.
+ * @param ...args The arguments for the specified command.
+ * @return The result of the underlying `::fcntl` call. Typically, this is
+ *         a value >= 0 on success and -1 on error, with `errno` set
+ *         appropriately.
+ */
+template <typename... Args>
+inline auto fcntl(native_socket_type socket, int cmd,
+                  Args &&...args) noexcept -> int {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+  return ::fcntl(socket, cmd, std::forward<Args>(args)...);
+}
+
+/**
+ * @brief Sends a message on a socket.
+ * @param socket The native socket handle.
+ * @param msg A pointer to the `msghdr` structure containing the message to
+ * send.
+ * @param flags A bitwise OR of flags to modify the send behavior.
+ * @return The number of bytes sent on success, or `SOCKET_ERROR` on failure.
+ *
+ * This function wraps the native `::sendmsg` function.
+ */
+inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
+                    int flags) noexcept -> std::streamsize {
+  return ::sendmsg(socket, msg, flags);
+}
+
+/**
+ * @brief Receives a message from a socket.
+ * @param socket The native socket handle.
+ * @param msg A pointer to the `msghdr` structure to store the received message.
+ * @param flags A bitwise OR of flags to modify the receive behavior.
+ * @return The number of bytes received on success, or `SOCKET_ERROR` on
+ * failure.
+ *
+ * This function wraps the native `::recvmsg` function.
+ */
+inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
+                    int flags) noexcept -> std::streamsize {
+  return ::recvmsg(socket, msg, flags);
 }
 
 /**

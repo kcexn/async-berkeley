@@ -1,22 +1,21 @@
-# io
+#io
 
 [![Build](https://github.com/kcexn/iosched/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/build.yml)
 [![Tests](https://github.com/kcexn/iosched/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/tests.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-A high-performance C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, and streaming interfaces with standard library integration.
+A modern C++20 socket library providing cross-platform socket operations with tag-dispatched customization points, RAII resource management, and thread-safe design patterns.
 
 ## Features
 
-- **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations
-- **Custom Socket Buffers**: `std::streambuf` implementation with 32KB minimum buffers and dynamic resizing
-- **Event Polling**: Template-based polling system using Linux `poll(2)` with O(log n) binary search optimization
-- **Stream Interface**: Full C++ `iostream` compatibility for socket operations
-- **Thread-Safe Operations**: Mutex-protected ancillary data buffers with RAII management
-- **Non-blocking I/O**: Asynchronous socket operations using `MSG_DONTWAIT` flags
-- **Memory Efficient**: RAII-based resource management with automatic vector shrinking
-- **Policy-Based Design**: Template architecture for extensible polling and trigger systems
+- **Tag-Dispatched Operations**: Type-safe, extensible socket operations using the `tag_invoke` customization point pattern
+- **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations with platform-specific implementations
+- **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage and mutex-protected operations
+- **Move-Only Semantics**: Clear resource ownership preventing double-free errors and resource leaks
+- **Comprehensive Socket Operations**: Full set of socket operations (bind, listen, connect, accept, send/recv, etc.) through customization points
+- **Exception Safety**: Robust error handling with automatic resource cleanup
+- **Modern C++20 Design**: Extensive use of concepts, three-way comparison, and contemporary C++ patterns
 
 ## Quick Start
 
@@ -28,18 +27,18 @@ A high-performance C++20 I/O scheduling library providing cross-platform asynchr
 ### Build and Test
 
 ```bash
-# Clone the repository
+#Clone the repository
 git clone https://github.com/kcexn/iosched.git
 cd iosched
 
-# Quick build with tests
+#Quick build with tests
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
 
-# Alternative presets:
-# cmake --preset release     # Optimized build
-# cmake --preset benchmark   # High-performance build with -O3 -march=native
+#Alternative presets:
+#cmake-- preset release #Optimized build
+#cmake-- preset benchmark #High - performance build with - O3 - march = native
 ```
 
 ### Detailed Build Instructions
@@ -54,111 +53,128 @@ To build documentation locally:
 ```bash
 cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
 cmake --build --preset debug --target docs
-# View at build/debug/docs/html/index.html
+#View at build / debug / docs / html / index.html
 ```
 
 ## Usage
 
-### Basic Socket Stream
-
-```cpp
-#include "streams.hpp"
-#include <iostream>
-
-// Create a TCP socket stream
-iosched::streams::sockstream sock(AF_INET, SOCK_STREAM, 0);
-
-// Connect to server
-struct sockaddr_in addr = {};
-addr.sin_family = AF_INET;
-addr.sin_port = htons(8080);
-inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
-
-auto buffer = sock.connectto((struct sockaddr*)&addr, sizeof(addr));
-if (buffer && !sock.err()) {
-  sock << "Hello, server!" << std::endl;
-
-  std::string response;
-  std::getline(sock, response);
-  std::cout << "Received: " << response << std::endl;
-}
-```
-
-### Cross-Platform Socket Messages
-
-```cpp
-#include "socket/socket_message.hpp"
-
-// Create a unified socket message for cross-platform I/O
-iosched::socket::socket_message msg;
-
-// Set up main data buffer (works on both Windows and POSIX)
-std::vector<char> data(1024);
-msg.data.data() = data.data();
-msg.data.size() = data.size();
-
-// Add ancillary data (thread-safe)
-std::vector<char> ancillary_data(64);
-msg.ancillary = iosched::socket::ancillary_buffer(ancillary_data);
-
-// The message structure adapts automatically to platform:
-// - Windows: Uses WSABUF structures with WinSock2
-// - POSIX: Uses iovec structures with standard sockets
-```
-
-### Event Polling
+### Basic Socket Operations
 
 ```cpp
 #include "io.hpp"
-#include <chrono>
+#include "socket/socket_handle.hpp"
+#include <netinet/in.h>
 
-// Self-contained trigger with embedded poller
-iosched::trigger triggers;
+// Create a RAII socket handle
+io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-// Add socket to polling (binary search insertion for O(log n))
-int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-triggers.set(sockfd, POLLIN | POLLOUT);
+// Bind to address using tag-dispatched operation
+sockaddr_in addr{};
+addr.sin_family = AF_INET;
+addr.sin_addr.s_addr = INADDR_ANY;
+addr.sin_port = 0;  // Let system choose port
 
-// Poll for events with timeout
-auto count = triggers.wait(std::chrono::milliseconds(1000));
-if (count > 0) {
-  for (const auto &event : triggers.events()) {
-    if (event.revents & POLLIN) {
-      // Handle readable socket
-    }
-    if (event.revents & POLLOUT) {
-      // Handle writable socket
-    }
-  }
+io::bind(server_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
+
+// Start listening
+io::listen(server_socket, 5);
+
+// Accept incoming connections
+sockaddr_in client_addr{};
+socklen_t client_len = sizeof(client_addr);
+auto client_fd = io::accept(server_socket,
+                           reinterpret_cast<sockaddr*>(&client_addr),
+                           &client_len);
+
+if (client_fd != -1) {
+  // Handle client connection
+  io::socket::socket_handle client_socket(client_fd);
+  // Socket automatically closed when handle goes out of scope
 }
+```
 
-// Clear specific events or remove socket entirely
-triggers.clear(sockfd, POLLOUT);  // Remove write interest
-triggers.clear(sockfd);           // Remove socket completely
+### Client Socket Connection
+
+```cpp
+#include "io.hpp"
+#include "socket/socket_handle.hpp"
+#include <netinet/in.h>
+
+// Create client socket
+io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+// Connect to server
+sockaddr_in server_addr{};
+server_addr.sin_family = AF_INET;
+server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+server_addr.sin_port = htons(8080);
+
+int result = io::connect(client_socket,
+                        reinterpret_cast<const sockaddr*>(&server_addr),
+                        sizeof(server_addr));
+
+if (result == 0) {
+  // Connected successfully - send/receive data
+  const char *message = "Hello, server!";
+
+  struct iovec iov {};
+  iov.iov_base = const_cast<char *>(message);
+  iov.iov_len = strlen(message);
+
+  struct msghdr msg {};
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+
+  io::sendmsg(client_socket, &msg, 0);
+}
+```
+
+### Socket Address Management
+
+```cpp
+#include "socket/socket_address.hpp"
+#include <netinet/in.h>
+
+// Create a socket address wrapper
+sockaddr_in native_addr{};
+native_addr.sin_family = AF_INET;
+native_addr.sin_addr.s_addr = INADDR_ANY;
+native_addr.sin_port = htons(8080);
+
+// Wrap in platform-independent socket_address
+io::socket::socket_address addr(
+    reinterpret_cast<const sockaddr*>(&native_addr),
+    sizeof(native_addr)
+);
+
+// Use with socket operations
+io::socket::socket_handle socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+io::bind(socket, addr.data(), addr.size());
+
+// Copy and move semantics work as expected
+auto addr_copy = addr;  // Deep copy
+auto addr_moved = std::move(addr);  // Move operation
 ```
 
 ## Architecture
 
 ### Core Components
 
-- **`iosched::buffers::sockbuf`**: Custom `std::streambuf` with dynamic 32KB+ buffers, handles TCP/UDP
-- **`iosched::basic_poller<T>`**: Template-based event polling using Linux `poll(2)`
-- **`iosched::basic_trigger<T>`**: Event trigger management with O(log n) binary search on sorted handle lists
-- **`iosched::streams::sockstream`**: Full `std::iostream` wrapper with stream operators
-- **`iosched::socket::socket_message`**: Cross-platform socket message abstraction with unified API
-- **`iosched::socket::socket_handle`**: Thread-safe RAII socket wrapper
-- **`iosched::buffers::socket_buffer`**: Socket buffer management with shared ownership
+- **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage and mutex-protected operations
+- **`io::socket::socket_address`**: Platform-independent socket address abstraction with copy/move semantics
+- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, etc.) using the `tag_invoke` pattern
+- **Cross-Platform Abstraction**: Platform-specific implementations in `src/socket/platforms/` with unified interfaces
+- **Error Handling**: Structured exception handling with `std::system_error` and platform-specific error codes
 
 ### Design Principles
 
-- **Cross-Platform Compatibility**: Unified API abstracts Windows WinSock2 and POSIX socket differences
-- **Policy-Based Templates**: Core classes templated for extensible polling backends (CRTP pattern)
-- **Thread Safety**: Mutex-protected operations with scoped locking for concurrent access
-- **Non-blocking by Design**: All socket operations use `MSG_DONTWAIT` flags
-- **RAII Resource Management**: Automatic cleanup with `std::shared_ptr<socket_buffer>` buffers
-- **Standard Library Integration**: Full compatibility with `std::iostream`, algorithms, and containers
-- **Memory Optimization**: Automatic vector shrinking when capacity > 8x size and > 256 elements
-- **Move-Only Semantics**: Non-copyable socket classes for clear resource ownership
+- **Tag-Dispatched Customization**: Type-safe, extensible operations using `tag_invoke` pattern for compile-time dispatch
+- **Cross-Platform Compatibility**: Unified API with platform-specific implementations using conditional compilation
+- **RAII Resource Management**: Automatic socket cleanup with exception-safe constructors and destructors
+- **Thread Safety**: Atomic socket storage with mutex protection for modification operations
+- **Move-Only Semantics**: Clear resource ownership preventing accidental copies and resource leaks
+- **Exception Safety**: Robust error handling with proper cleanup guaranteed in all failure scenarios
+- **Modern C++20**: Extensive use of three-way comparison, concepts, and contemporary language features
 
 ### Dependencies
 
@@ -170,7 +186,7 @@ triggers.clear(sockfd);           // Remove socket completely
 The project uses comprehensive static analysis with clang-tidy:
 
 ```bash
-# Run clang-tidy on the entire codebase
+#Run clang - tidy on the entire codebase
 clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 ```
 

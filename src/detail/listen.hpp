@@ -14,12 +14,12 @@
  */
 
 #pragma once
-#ifndef IOSCHED_LISTEN_HPP
-#define IOSCHED_LISTEN_HPP
+#ifndef IO_LISTEN_HPP
+#define IO_LISTEN_HPP
 #include <utility>
 
 /**
- * @brief The main namespace for the iosched library.
+ * @brief The main namespace for the io library.
  */
 namespace io {
 /**
@@ -67,4 +67,4 @@ struct listen_fn {
 };
 } // namespace detail
 } // namespace io
-#endif // IOSCHED_LISTEN_HPP
+#endif // IO_LISTEN_HPP

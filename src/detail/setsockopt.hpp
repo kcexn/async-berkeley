@@ -7,15 +7,15 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is a "AS IS" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
 #pragma once
-#ifndef IO_BIND_HPP
-#define IO_BIND_HPP
+#ifndef IO_SETSOCKOPT_HPP
+#define IO_SETSOCKOPT_HPP
 #include <utility>
 
 /**
@@ -23,15 +23,15 @@
  */
 namespace io {
 /**
- * @brief A tag type used for the `bind` customization point object (CPO).
+ * @brief A tag type used for the `setsockopt` customization point object (CPO).
  *
  * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `bind` CPO. It is not meant to be used directly by users.
+ * `setsockopt` CPO. It is not meant to be used directly by users.
  *
- * @see io::bind
+ * @see io::setsockopt
  * @see tag_invoke
  */
-struct bind_t {};
+struct setsockopt_t {};
 
 /**
  * @brief Implementation details for the `io` library.
@@ -40,30 +40,32 @@ struct bind_t {};
  */
 namespace detail {
 /**
- * @brief A function object that provides the `bind` customization point.
- * @details This struct acts as a customization point for binding sockets. It
- * doesn't perform the bind itself, but dispatches to a user-provided
- * implementation via `tag_invoke`. To customize `bind` for a type, provide an
- * overload of `tag_invoke` with `io::bind_t` as the first argument.
+ * @brief A function object that provides the `setsockopt` customization point.
+ * @details This struct acts as a customization point for setting socket
+ * options. It doesn't perform the setsockopt itself, but dispatches to a
+ * user-provided implementation via `tag_invoke`. To customize `setsockopt` for
+ * a type, provide an overload of `tag_invoke` with `io::setsockopt_t` as the
+ * first argument.
  */
-struct bind_fn {
+struct setsockopt_fn {
   /**
-   * @brief Calls the `bind` customization point.
+   * @brief Calls the `setsockopt` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::bind_t{}`, followed by the
+   * argument to `tag_invoke` is `::io::setsockopt_t{}`, followed by the
    * arguments passed to this function.
    *
    * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `bind` implementation.
+   * @param args The arguments to pass to the `setsockopt` implementation.
    * @return The value returned by the `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const
-      -> decltype(tag_invoke(::io::bind_t{}, std::forward<Args>(args)...)) {
-    return tag_invoke(::io::bind_t{}, std::forward<Args>(args)...);
+      -> decltype(tag_invoke(::io::setsockopt_t{},
+                             std::forward<Args>(args)...)) {
+    return tag_invoke(::io::setsockopt_t{}, std::forward<Args>(args)...);
   }
 };
 } // namespace detail
 } // namespace io
-#endif // IO_BIND_HPP
+#endif // IO_SETSOCKOPT_HPP

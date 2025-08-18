@@ -266,22 +266,134 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
 auto tag_invoke(::io::listen_t, const socket_handle &socket,
                 int backlog) -> int;
 
-// TODO: Implement free-standing functions in the berkeley sockets API *starred*
-// functions are a priority:
-// - connect*
-// - accept*
+/**
+ * @brief Connects a socket to a remote address.
+ * @param socket The socket to connect.
+ * @param addr The address to connect to.
+ * @param len The length of the address.
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::connect_t, const socket_handle &socket,
+                const sockaddr_type *addr, socklen_type len) -> int;
+
+/**
+ * @brief Accepts an incoming connection on a listening socket.
+ * @param socket The listening socket.
+ * @param addr A pointer to a sockaddr structure to receive the client's
+ * address.
+ * @param len A pointer to a socklen_t to receive the length of the client's
+ * address.
+ * @return The file descriptor of the accepted socket, or -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::accept_t, const socket_handle &socket,
+                sockaddr_type *addr, socklen_type *len) -> native_socket_type;
+
+/**
+ * @brief Sends a message through a socket using a message structure.
+ * @param socket The socket to send the message on.
+ * @param msg A pointer to the msghdr structure containing the message to
+ * send.
+ * @param flags A bitmask of flags to control the send operation.
+ * @return The number of bytes sent on success, or -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
+                const socket_message_type *msg, int flags) -> std::streamsize;
+
+/**
+ * @brief Receives a message from a socket using a message structure.
+ * @param socket The socket to receive the message from.
+ * @param msg A pointer to the msghdr structure to store the received
+ * message.
+ * @param flags A bitmask of flags to control the receive operation.
+ * @return The number of bytes received on success, or -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::recvmsg_t, const socket_handle &socket,
+                socket_message_type *msg, int flags) -> std::streamsize;
+
+/**
+ * @brief Gets a socket option value.
+ * @param socket The socket to get the option from.
+ * @param level The protocol level at which the option resides.
+ * @param optname The option name.
+ * @param optval A pointer to the buffer to receive the option value.
+ * @param optlen A pointer to the length of the buffer.
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::getsockopt_t, const socket_handle &socket, int level,
+                int optname, void *optval, socklen_type *optlen) -> int;
+
+/**
+ * @brief Sets a socket option value.
+ * @param socket The socket to set the option on.
+ * @param level The protocol level at which the option resides.
+ * @param optname The option name.
+ * @param optval A pointer to the buffer containing the option value.
+ * @param optlen The length of the buffer.
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::setsockopt_t, const socket_handle &socket, int level,
+                int optname, const void *optval, socklen_type optlen) -> int;
+
+/**
+ * @brief Gets the address bound to a socket.
+ * @param socket The socket to get the address from.
+ * @param addr A pointer to a sockaddr structure to receive the address.
+ * @param len A pointer to a socklen_t to receive the length of the address.
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::getsockname_t, const socket_handle &socket,
+                sockaddr_type *addr, socklen_type *len) -> int;
+
+/**
+ * @brief Gets the address of the peer connected to a socket.
+ * @param socket The socket to get the peer address from.
+ * @param addr A pointer to a sockaddr structure to receive the peer's
+ * address.
+ * @param len A pointer to a socklen_t to receive the length of the peer's
+ * address.
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::getpeername_t, const socket_handle &socket,
+                sockaddr_type *addr, socklen_type *len) -> int;
+
+/**
+ * @brief Shuts down part of a socket connection.
+ * @param socket The socket to shut down.
+ * @param how An integer indicating how to shut down the connection (e.g.,
+ * SHUT_RD, SHUT_WR, SHUT_RDWR).
+ * @return 0 on success, -1 on error.
+ * @relates socket_handle
+ */
+auto tag_invoke(::io::shutdown_t, const socket_handle &socket, int how) -> int;
+
+/**
+ * @brief Performs file control operations on a socket.
+ * @param socket The socket to perform the operation on.
+ * @param operation The operation to perform.
+ * @param args Additional arguments for the operation.
+ * @return The result of the operation, or -1 on error.
+ * @relates socket_handle
+ */
+template <typename... Args>
+auto tag_invoke([[maybe_unused]] ::io::fcntl_t tag, const socket_handle &socket,
+                int cmd, Args &&...args) -> int {
+  return ::io::socket::fcntl(static_cast<native_socket_type>(socket), cmd,
+                             std::forward<Args>(args)...);
+}
+
+// TODO: Implement free-standing functions in the berkeley sockets APIs
 // - send
 // - sendto
-// - sendmsg*
 // - recv
 // - recvfrom
-// - recvmsg*
-// - getsockopt*
-// - setsockopt*
-// - getsockname*
-// - getpeername*
-// - shutdown*
-// - fcntl*
 
 } // namespace io::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP
