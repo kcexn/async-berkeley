@@ -88,6 +88,8 @@ public:
    * Transfers ownership of the socket from another `socket_handle`. After the
    * move, `other` is left in an invalid state.
    *
+   * This operation is thread-safe
+   *
    * @param other The `socket_handle` to move from.
    */
   socket_handle(socket_handle &&other) noexcept;
@@ -98,6 +100,8 @@ public:
    * Transfers ownership of the socket from another `socket_handle`. If this
    * handle already owns a socket, it is closed before the new socket is
    * acquired. After the move, `other` is left in an invalid state.
+   *
+   * This operation is thread-safe
    *
    * @param other The `socket_handle` to move from.
    * @return A reference to this `socket_handle`.
@@ -136,6 +140,8 @@ public:
 
   /**
    * @brief Swaps the contents of two `socket_handle` objects.
+   *
+   * This operation is thread-safe
    *
    * @param lhs The first `socket_handle`.
    * @param rhs The second `socket_handle`.
@@ -203,7 +209,7 @@ public:
    *
    * Closes the managed socket if it is valid, ensuring RAII compliance.
    */
-  virtual ~socket_handle();
+  ~socket_handle();
 
 private:
   /**
@@ -260,7 +266,8 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
 auto tag_invoke(::io::listen_t, const socket_handle &socket,
                 int backlog) -> int;
 
-// TODO: Implement free-standing functions in the berkeley sockets API *starred* functions are a priority:
+// TODO: Implement free-standing functions in the berkeley sockets API *starred*
+// functions are a priority:
 // - connect*
 // - accept*
 // - send
