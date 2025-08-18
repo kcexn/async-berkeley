@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
-#include "../error/error_handling.hpp"
+#include "../error.hpp"
 
 #include <system_error>
 
@@ -22,7 +22,7 @@ static auto throw_system_error(const char *message) -> void {
   throw std::system_error(errno, std::generic_category(), message);
 }
 
-namespace iosched::socket {
+namespace io::socket {
 
 static auto is_valid_socket(native_socket_type handle) -> bool {
   if (handle == INVALID_SOCKET)
@@ -34,10 +34,10 @@ static auto is_valid_socket(native_socket_type handle) -> bool {
   return ::getsockopt(handle, SOL_SOCKET, SO_TYPE, &type, &len) == 0;
 }
 
-} // namespace iosched::socket
+} // namespace io::socket
 
 // socket_handle implementation
-namespace iosched::socket {
+namespace io::socket {
 
 socket_handle::socket_handle(socket_handle &&other) noexcept : socket_handle() {
   swap(*this, other);
@@ -52,13 +52,13 @@ auto socket_handle::operator=(socket_handle &&other) noexcept
 
 socket_handle::socket_handle(native_socket_type handle) : socket_{handle} {
   if (!is_valid_socket(handle))
-    throw_system_error(IOSCHED_ERROR_MESSAGE("Invalid socket handle."));
+    throw_system_error(IO_ERROR_MESSAGE("Invalid socket handle."));
 }
 
 socket_handle::socket_handle(int domain, int type, int protocol)
     : socket_{::socket(domain, type, protocol)} {
   if (socket_ == INVALID_SOCKET)
-    throw_system_error(IOSCHED_ERROR_MESSAGE("Failed to create socket."));
+    throw_system_error(IO_ERROR_MESSAGE("Failed to create socket."));
 }
 
 socket_handle::operator native_socket_type() const noexcept {
@@ -102,14 +102,14 @@ socket_handle::~socket_handle() { close(); }
 auto socket_handle::close() noexcept -> void {
   std::lock_guard lock{mtx_};
   if (socket_ != INVALID_SOCKET) {
-    ::iosched::socket::close(socket_);
+    ::io::socket::close(socket_);
     socket_ = INVALID_SOCKET;
   }
 }
 
-auto tag_invoke(::iosched::bind_t tag, const socket_handle &socket,
+auto tag_invoke(::io::bind_t tag, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int {
   return ::bind(static_cast<native_socket_type>(socket), addr, len);
 }
 
-} // namespace iosched::socket
+} // namespace io::socket

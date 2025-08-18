@@ -14,7 +14,6 @@
  */
 
 #include "../src/socket/socket_handle.hpp"
-#include "../src/operations.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -25,7 +24,7 @@
 #include <unistd.h>
 #include <vector>
 
-using namespace iosched::socket;
+using namespace io::socket;
 
 class SocketHandleTest : public ::testing::Test {
 protected:
@@ -583,7 +582,7 @@ TEST_F(SocketHandleTest, BindTagInvoke) {
   addr.sin_addr.s_addr = INADDR_ANY;
   addr.sin_port = 0;
 
-  int result = iosched::bind(handle, reinterpret_cast<const sockaddr_type*>(&addr), sizeof(addr));
+  int result = ::io::bind(handle, reinterpret_cast<const sockaddr_type*>(&addr), sizeof(addr));
 
   EXPECT_EQ(result, 0);
 }

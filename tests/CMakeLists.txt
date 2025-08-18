@@ -1,10 +1,9 @@
+include(GoogleTest)
+
 set(TEST_NAMES
-  socket_message_test
   socket_handle_test
   socket_address_test
 )
-
-include(GoogleTest)
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
   add_executable(

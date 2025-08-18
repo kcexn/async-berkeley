@@ -14,7 +14,7 @@
  */
 
 /**
- * @file error_handling.hpp
+ * @file error.hpp
  * @brief Defines macros for creating compile-time error messages.
  *
  * This header provides a set of utility macros to generate formatted error
@@ -23,19 +23,19 @@
  */
 
 #pragma once
-#ifndef IOSCHED_ERROR_HANDLING_HPP
-#define IOSCHED_ERROR_HANDLING_HPP
+#ifndef IO_ERROR_HPP
+#define IO_ERROR_HPP
 
 /**
- * @def IOSCHED_STRINGIFY(x)
+ * @def IO_STRINGIFY(x)
  * @brief Converts a macro argument to a string literal.
  * @param x The argument to stringify.
  * @hideinitializer
  */
-#define IOSCHED_STRINGIFY(x) #x
+#define IO_STRINGIFY(x) #x
 
 /**
- * @def IOSCHED_TOSTRING(x)
+ * @def IO_TOSTRING(x)
  * @brief Helper macro to convert the result of a macro expansion to a string.
  *
  * This is necessary to correctly stringify macros like `__LINE__`, which
@@ -43,10 +43,10 @@
  * @param x The macro to expand and stringify.
  * @hideinitializer
  */
-#define IOSCHED_TOSTRING(x) IOSCHED_STRINGIFY(x)
+#define IO_TOSTRING(x) IO_STRINGIFY(x)
 
 /**
- * @def IOSCHED_ERROR_MESSAGE(msg)
+ * @def IO_ERROR_MESSAGE(msg)
  * @brief Constructs a formatted error message with file and line number.
  *
  * The resulting string literal is in the format `"file:line:message"`.
@@ -67,5 +67,5 @@
  * // /path/to/your/file.cpp:123:Something went wrong!
  * @endcode
  */
-#define IOSCHED_ERROR_MESSAGE(msg) (__FILE__ ":" IOSCHED_TOSTRING(__LINE__) ":" msg)
-#endif // IOSCHED_ERROR_HANDLING_HPP
+#define IO_ERROR_MESSAGE(msg) (__FILE__ ":" IO_TOSTRING(__LINE__) ":" msg)
+#endif // IO_ERROR_HPP

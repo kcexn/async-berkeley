@@ -14,15 +14,26 @@
  */
 
 /**
- * @file posix_socket.hpp
+ * @file socket.hpp
  * @brief Provides core POSIX-specific socket definitions and functions.
  *
  * This file contains fundamental type aliases and functions for handling
  * socket operations specifically on POSIX systems.
  */
 #pragma once
-#ifndef IOSCHED_POSIX_SOCKET_HPP
-#define IOSCHED_POSIX_SOCKET_HPP
+#ifndef IO_SOCKET_POSIX_HPP
+#define IO_SOCKET_POSIX_HPP
+#include <sys/socket.h>
+#include <unistd.h>
+
+/**
+ * @namespace io::socket
+ * @brief Provides cross-platform abstractions for socket-level I/O.
+ *
+ * This namespace contains fundamental types and functions for abstracting
+ * away platform-specific socket details, allowing for portable network code.
+ */
+namespace io::socket {
 /**
  * @typedef native_socket_type
  * @brief Alias for the native socket handle on POSIX systems.
@@ -79,5 +90,6 @@ using sockaddr_storage_type = struct sockaddr_storage;
  * structures and other size parameters in POSIX socket functions.
  */
 using socklen_type = socklen_t;
+} // namespace io::socket
 
-#endif // IOSCHED_POSIX_SOCKET_HPP
+#endif // IO_SOCKET_POSIX_HPP

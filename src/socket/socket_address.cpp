@@ -17,7 +17,7 @@
 
 #include <cstring>
 
-namespace iosched::socket {
+namespace io::socket {
 
 socket_address::socket_address(const sockaddr_type *addr,
                                socklen_type size) noexcept
@@ -47,4 +47,4 @@ auto socket_address::operator==(const socket_address &other) const noexcept
     return false;
   return std::memcmp(&storage_, &other.storage_, size_) == 0;
 }
-} // namespace iosched::socket
+} // namespace io::socket

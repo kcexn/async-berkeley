@@ -26,30 +26,19 @@
 #define IOSCHED_SOCKET_HPP
 #include <boost/predef.h>
 
+#if BOOST_OS_WINDOWS
+#include "platforms/windows/socket.hpp" // IWYU pragma: export
+#else
+#include "platforms/posix/socket.hpp" // IWYU pragma: export
+#endif
+
 #include <cstdint>
 
-#if BOOST_OS_WINDOWS
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
 /**
- * @namespace iosched::socket
+ * @namespace io::socket
  * @brief Provides cross-platform abstractions for socket-level I/O.
- *
- * This namespace contains fundamental types and functions for abstracting
- * away platform-specific socket details, allowing for portable network code.
  */
-namespace iosched::socket {
-#if BOOST_OS_WINDOWS
-#include "windows_socket.hpp" // IWYU pragma: export
-#else
-#include "posix_socket.hpp" // IWYU pragma: export
-#endif
-
+namespace io::socket {
 /**
  * @enum socket_mode
  * @brief Defines modes for socket operations, used as flags in a bitset.
@@ -60,7 +49,6 @@ namespace iosched::socket {
  * operations of a socket.
  */
 enum struct socket_mode : std::uint8_t { read, write };
-
-} // namespace iosched::socket
+} // namespace io::socket
 
 #endif // IOSCHED_SOCKET_HPP

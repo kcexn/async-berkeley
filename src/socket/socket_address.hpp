@@ -23,10 +23,10 @@
 #include "socket.hpp"
 
 /**
- * @namespace iosched::socket
+ * @namespace io::socket
  * @brief Provides cross-platform abstractions for socket-level I/O.
  */
-namespace iosched::socket {
+namespace io::socket {
 /**
  * @class socket_address
  * @brief Represents a generic socket address.
@@ -111,6 +111,6 @@ private:
   socklen_type size_{};
 };
 
-} // namespace iosched::socket
+} // namespace io::socket
 
 #endif // IOSCHED_SOCKET_ADDRESS_HPP

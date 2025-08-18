@@ -19,7 +19,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace iosched::socket;
+using namespace io::socket;
 
 class SocketAddressTest : public ::testing::Test {
 protected:

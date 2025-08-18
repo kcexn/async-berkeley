@@ -39,7 +39,7 @@ add_custom_target(coverage
       ${CMAKE_BINARY_DIR}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating code coverage report with gcovr"
-    DEPENDS socket_message_test socket_handle_test socket_address_test
+    DEPENDS ${TEST_NAMES}
 )
 
 # Create coverage-xml target for CI/CD integration
@@ -55,7 +55,7 @@ add_custom_target(coverage-xml
       ${CMAKE_BINARY_DIR}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating code coverage XML report with gcovr"
-    DEPENDS socket_message_test socket_handle_test socket_address_test
+    DEPENDS ${TEST_NAMES}
 )
 
 message(STATUS "Code coverage enabled. Use 'cmake --build . --target coverage' to generate reports.")

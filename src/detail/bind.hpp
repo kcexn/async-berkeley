@@ -16,22 +16,36 @@
 #pragma once
 #ifndef IOSCHED_BIND_HPP
 #define IOSCHED_BIND_HPP
-#include "../iosched.hpp"
-
 #include <utility>
 
 /**
- * @brief Implementation details for the `iosched` library.
+ * @brief The main namespace for the iosched library.
+ */
+namespace io {
+/**
+ * @brief A tag type used for the `bind` customization point object (CPO).
+ *
+ * This type is used to dispatch to the correct `tag_invoke` overload for the
+ * `bind` CPO. It is not meant to be used directly by users.
+ *
+ * @see io::bind
+ * @see tag_invoke
+ */
+struct bind_t {};
+
+/**
+ * @brief Implementation details for the `io` library.
  * @details This namespace contains types and functions that are not part of the
  * public API. They are subject to change without notice.
  */
-namespace iosched::detail {
-
-/// @brief A function object that provides the `bind` customization point.
-/// @details This struct acts as a customization point for binding sockets. It
-/// doesn't perform the bind itself, but dispatches to a user-provided
-/// implementation via `tag_invoke`. To customize `bind` for a type, provide an
-/// overload of `tag_invoke` with `iosched::bind_t` as the first argument.
+namespace detail {
+/**
+ * @brief A function object that provides the `bind` customization point.
+ * @details This struct acts as a customization point for binding sockets. It
+ * doesn't perform the bind itself, but dispatches to a user-provided
+ * implementation via `tag_invoke`. To customize `bind` for a type, provide an
+ * overload of `tag_invoke` with `iosched::bind_t` as the first argument.
+ */
 struct bind_fn {
   /**
    * @brief Calls the `bind` customization point.
@@ -46,12 +60,10 @@ struct bind_fn {
    */
   template <typename... Args>
   auto operator()(Args &&...args) const
-      -> decltype(tag_invoke(::iosched::bind_t{},
-                             std::forward<Args>(args)...)) {
-    return tag_invoke(::iosched::bind_t{}, std::forward<Args>(args)...);
+      -> decltype(tag_invoke(::io::bind_t{}, std::forward<Args>(args)...)) {
+    return tag_invoke(::io::bind_t{}, std::forward<Args>(args)...);
   }
 };
-
-} // namespace iosched::detail
-
-#endif // IOSCHED_BIND_HPP
+} // namespace detail
+} // namespace io
+#endif // IO_BIND_HPP

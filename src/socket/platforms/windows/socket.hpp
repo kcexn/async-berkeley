@@ -14,15 +14,25 @@
  */
 
 /**
- * @file windows_socket.hpp
+ * @file socket.hpp
  * @brief Provides core Windows-specific socket definitions and functions.
  *
  * This file contains fundamental type aliases and functions for handling
  * socket operations specifically on Windows systems.
  */
 #pragma once
-#ifndef IOSCHED_WINDOWS_SOCKET_HPP
-#define IOSCHED_WINDOWS_SOCKET_HPP
+#ifndef IO_SOCKET_WINDOWS_HPP
+#define IO_SOCKET_WINDOWS_HPP
+#include <winsock2.h>
+#include <ws2tcpip.h>
+/**
+ * @namespace io::socket
+ * @brief Provides cross-platform abstractions for socket-level I/O.
+ *
+ * This namespace contains fundamental types and functions for abstracting
+ * away platform-specific socket details, allowing for portable network code.
+ */
+namespace io::socket {
 /**
  * @typedef native_socket_type
  * @brief Alias for the native socket handle on Windows systems.
@@ -78,4 +88,6 @@ using sockaddr_storage_type = ::SOCKADDR_STORAGE;
  * other size parameters in Winsock functions.
  */
 using socklen_type = int;
-#endif // IOSCHED_WINDOWS_SOCKET_HPP
+} // namespace io::socket
+
+#endif // IO_SOCKET_WINDOWS_HPP

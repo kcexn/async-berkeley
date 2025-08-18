@@ -36,17 +36,17 @@
 #pragma once
 #ifndef IOSCHED_SOCKET_HANDLE_HPP
 #define IOSCHED_SOCKET_HANDLE_HPP
-#include "../iosched.hpp"
+#include "../io.hpp"
 #include "socket.hpp"
 
 #include <atomic>
 #include <mutex>
 
 /**
- * @namespace iosched::socket
+ * @namespace io::socket
  * @brief Contains components for cross-platform socket programming.
  */
-namespace iosched::socket {
+namespace io::socket {
 /**
  * @class socket_handle
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
@@ -243,8 +243,8 @@ private:
  * @param len The length of the `addr` structure.
  * @return 0 on success, or -1 on error, with `errno` set appropriately.
  */
-auto tag_invoke(::iosched::bind_t, const socket_handle &socket,
+auto tag_invoke(::io::bind_t, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int;
 
-} // namespace iosched::socket
+} // namespace io::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP
