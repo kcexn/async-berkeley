@@ -485,3 +485,126 @@ TEST_F(SocketAddressTest, PartialSizeComparison) {
   EXPECT_FALSE(partial_addr == full_addr);
   EXPECT_TRUE(partial_addr != full_addr);
 }
+
+TEST_F(SocketAddressTest, SizeConstructorIPv4) {
+  socket_address addr(sizeof(sockaddr_in));
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_in); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, SizeConstructorIPv6) {
+  socket_address addr(sizeof(sockaddr_in6));
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in6));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_in6); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, SizeConstructorZero) {
+  socket_address addr(0);
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), 0);
+}
+
+TEST_F(SocketAddressTest, SizeConstructorMaximum) {
+  socket_address addr(sizeof(sockaddr_storage));
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_storage));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_storage); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, MakeSocketAddressIPv4WithoutAddress) {
+  auto addr = make_address<sockaddr_in>();
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_in); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, MakeSocketAddressIPv4WithAddress) {
+  auto addr = make_address(&ipv4_addr_);
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in));
+
+  // Verify the data was copied correctly
+  const auto *stored_addr = reinterpret_cast<const sockaddr_in *>(addr.data());
+  EXPECT_EQ(stored_addr->sin_family, AF_INET);
+  EXPECT_EQ(stored_addr->sin_port, htons(8080));
+  EXPECT_EQ(stored_addr->sin_addr.s_addr, htonl(INADDR_LOOPBACK));
+}
+
+TEST_F(SocketAddressTest, MakeSocketAddressIPv6WithoutAddress) {
+  auto addr = make_address<sockaddr_in6>();
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in6));
+
+  // Storage should be zero-initialized
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_in6); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}
+
+TEST_F(SocketAddressTest, MakeSocketAddressIPv6WithAddress) {
+  auto addr = make_address(&ipv6_addr_);
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in6));
+
+  // Verify the data was copied correctly
+  const auto *stored_addr = reinterpret_cast<const sockaddr_in6 *>(addr.data());
+  EXPECT_EQ(stored_addr->sin6_family, AF_INET6);
+  EXPECT_EQ(stored_addr->sin6_port, htons(9090));
+  EXPECT_EQ(std::memcmp(&stored_addr->sin6_addr, &in6addr_loopback,
+                        sizeof(in6addr_loopback)),
+            0);
+}
+
+TEST_F(SocketAddressTest, MakeSocketAddressNullPointer) {
+  const sockaddr_in *null_addr = nullptr;
+  auto addr = make_address(null_addr);
+
+  EXPECT_NE(addr.data(), nullptr);
+  EXPECT_NE(addr.size(), nullptr);
+  EXPECT_EQ(*addr.size(), sizeof(sockaddr_in));
+
+  // Storage should be zero-initialized when nullptr is passed
+  const auto *storage = reinterpret_cast<const char *>(addr.data());
+  for (size_t i = 0; i < sizeof(sockaddr_in); ++i) {
+    EXPECT_EQ(storage[i], 0);
+  }
+}

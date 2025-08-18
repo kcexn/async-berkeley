@@ -142,17 +142,13 @@ if (result == 0) {
 #include <netinet/in.h>
 
 // Create a socket address wrapper
-sockaddr_in native_addr{};
+struct sockaddr_in native_addr{};
 native_addr.sin_family = AF_INET;
 native_addr.sin_addr.s_addr = INADDR_ANY;
 native_addr.sin_port = htons(8080);
 
 // Wrap in platform-independent socket_address
-io::socket::socket_address addr(
-    reinterpret_cast<const sockaddr*>(&native_addr),
-    sizeof(native_addr)
-);
-
+auto addr = io::socket::make_address(&native_addr);
 // Use with socket operations
 io::socket::socket_handle socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 io::bind(socket, addr.data(), *addr.size());
@@ -175,13 +171,12 @@ The library provides high-level operations that return managed objects for easie
 io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 // Bind using socket_address helper
-sockaddr_in bind_addr{};
-bind_addr.sin_family = AF_INET;
-bind_addr.sin_addr.s_addr = INADDR_ANY;
-bind_addr.sin_port = 0;
+auto server_addr = io::socket::make_address<struct sockaddr_in>();
+auto *bind_addr = reinterpret_cast<struct sockaddr_in*>(server_addr.data());
+bind_addr->sin_family = AF_INET;
+bind_addr->sin_addr.s_addr = INADDR_ANY;
+bind_addr->sin_port = 80;
 
-io::socket::socket_address server_addr(
-    reinterpret_cast<const sockaddr*>(&bind_addr), sizeof(bind_addr));
 io::bind(server_socket, server_addr);
 
 io::listen(server_socket, 5);

@@ -44,9 +44,10 @@ public:
   /**
    * @brief Constructs an empty socket address.
    *
-   * The internal storage is zero-initialized and the size is set to zero.
-   * To use this with functions that populate an address (e.g., `::accept`),
-   * the size must be manually set to the capacity of the storage.
+   * The internal storage is zero-initialized, and the size is set to the
+   * full capacity of the address storage. This prepares the object to be
+   * populated by functions that require a buffer for the address, such as
+   * `::accept()` or `::recvfrom()`.
    */
   socket_address() = default;
 
@@ -61,6 +62,18 @@ public:
 
   /** @brief Default move assignment operator. */
   auto operator=(socket_address &&other) noexcept -> socket_address & = default;
+
+  /**
+   * @brief Constructs a socket address with a specific size.
+   *
+   * This constructor initializes the socket address to be ready to hold a
+   * socket address of the specified size. The internal storage is
+   * zero-initialized, and the size is set to the provided value. This is useful
+   * when you know the exact size needed for a particular address family.
+   *
+   * @param size The size in bytes for the socket address structure.
+   */
+  explicit socket_address(socklen_type size) noexcept;
 
   /**
    * @brief Constructs a socket_address from a native socket address structure.
@@ -141,6 +154,37 @@ private:
   sockaddr_storage_type storage_{};
   socklen_type size_{sizeof(storage_)};
 };
+
+/**
+ * @brief Creates a `socket_address` object, optionally initialized from a
+ * native address.
+ * @relates socket_address
+ *
+ * This function is a helper to construct a `socket_address` instance.
+ * If `addr` is provided, the `socket_address` is initialized with the given
+ * native address and its size. Otherwise, it creates a `socket_address` with an
+ * appropriate size for `SockAddr` but without initial address data.
+ * It performs a compile-time assertion to guarantee that `SockAddr` can fit
+ * within `sockaddr_storage_type`.
+ *
+ * @tparam SockAddr The native socket address structure type (e.g.,
+ * `sockaddr_in`, `sockaddr_in6`).
+ * @param addr Optional pointer to a native socket address structure to
+ * initialize from. If `nullptr`, an empty `socket_address` of appropriate size
+ * is created.
+ * @return A `socket_address` object, either initialized from `addr` or with the
+ * size of `SockAddr`.
+ */
+template <typename SockAddr>
+auto make_address(const SockAddr *addr = nullptr) noexcept -> socket_address {
+  static_assert(sizeof(SockAddr) <= sizeof(sockaddr_storage_type),
+                "SockAddr must fit into sockaddr_storage_type.");
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  return addr ? socket_address{reinterpret_cast<const sockaddr_type *>(addr),
+                               sizeof(SockAddr)}
+              : socket_address{sizeof(SockAddr)};
+}
 
 } // namespace io::socket
 
