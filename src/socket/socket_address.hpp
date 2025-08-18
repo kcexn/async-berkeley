@@ -18,8 +18,8 @@
  * @brief Provides a platform-independent socket address abstraction.
  */
 #pragma once
-#ifndef IOSCHED_SOCKET_ADDRESS_HPP
-#define IOSCHED_SOCKET_ADDRESS_HPP
+#ifndef IO_SOCKET_ADDRESS_HPP
+#define IO_SOCKET_ADDRESS_HPP
 #include "socket.hpp"
 
 /**
@@ -113,4 +113,4 @@ private:
 
 } // namespace io::socket
 
-#endif // IOSCHED_SOCKET_ADDRESS_HPP
+#endif // IO_SOCKET_ADDRESS_HPP
