@@ -112,7 +112,8 @@ auto tag_invoke(::io::bind_t tag, const socket_handle &socket,
   return ::bind(static_cast<native_socket_type>(socket), addr, len);
 }
 
-auto tag_invoke(::io::listen_t tag, const socket_handle &socket, int backlog) -> int {
+auto tag_invoke(::io::listen_t tag, const socket_handle &socket,
+                int backlog) -> int {
   return ::listen(static_cast<native_socket_type>(socket), backlog);
 }
 

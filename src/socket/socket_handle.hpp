@@ -257,7 +257,8 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
  * @param backlog The maximum number of pending connections.
  * @return 0 on success, or -1 on error, with `errno` set appropriately.
  */
-auto tag_invoke(::io::listen_t, const socket_handle &socket, int backlog) -> int;
+auto tag_invoke(::io::listen_t, const socket_handle &socket,
+                int backlog) -> int;
 
 } // namespace io::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP
