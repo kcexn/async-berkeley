@@ -27,18 +27,18 @@ A modern C++20 socket library providing cross-platform socket operations with ta
 ### Build and Test
 
 ```bash
-#Clone the repository
+# Clone the repository
 git clone https://github.com/kcexn/iosched.git
 cd iosched
 
-#Quick build with tests
+# Quick build with tests
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
 
-#Alternative presets:
-#cmake-- preset release #Optimized build
-#cmake-- preset benchmark #High - performance build with - O3 - march = native
+# Alternative presets:
+cmake --preset release     # Optimized build
+cmake --preset benchmark   # High-performance build with -O3 -march=native
 ```
 
 ### Detailed Build Instructions
@@ -52,8 +52,9 @@ API documentation is available at: [https://kcexn.github.io/iosched/](https://kc
 To build documentation locally:
 ```bash
 cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
-cmake --build --preset debug --target docs
-#View at build / debug / docs / html / index.html
+cmake --build --preset debug --target docs         # Generate docs
+cmake --build --preset debug --target docs-deploy  # Deploy to docs/html/ for GitHub Pages
+# View at build/debug/docs/html/index.html or docs/html/index.html
 ```
 
 ## Usage
@@ -79,7 +80,7 @@ io::bind(server_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
 // Start listening
 io::listen(server_socket, 5);
 
-// Accept incoming connections
+// Accept incoming connections (low-level API)
 sockaddr_in client_addr{};
 socklen_t client_len = sizeof(client_addr);
 auto client_fd = io::accept(server_socket,
@@ -91,6 +92,11 @@ if (client_fd != -1) {
   io::socket::socket_handle client_socket(client_fd);
   // Socket automatically closed when handle goes out of scope
 }
+
+// Alternative: Higher-level API returning socket_handle and socket_address
+auto [client_socket, client_address] = io::accept(server_socket);
+// Both client_socket and client_address are automatically managed
+// Access client address: client_address.data() and *client_address.size()
 ```
 
 ### Client Socket Connection
@@ -149,11 +155,51 @@ io::socket::socket_address addr(
 
 // Use with socket operations
 io::socket::socket_handle socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-io::bind(socket, addr.data(), addr.size());
+io::bind(socket, addr.data(), *addr.size());
 
 // Copy and move semantics work as expected
 auto addr_copy = addr;  // Deep copy
 auto addr_moved = std::move(addr);  // Move operation
+```
+
+### High-Level Socket Operations
+
+The library provides high-level operations that return managed objects for easier resource management:
+
+```cpp
+#include "io.hpp"
+#include "socket/socket_handle.hpp"
+#include "socket/socket_address.hpp"
+
+// Server setup
+io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+// Bind using socket_address helper
+sockaddr_in bind_addr{};
+bind_addr.sin_family = AF_INET;
+bind_addr.sin_addr.s_addr = INADDR_ANY;
+bind_addr.sin_port = 0;
+
+io::socket::socket_address server_addr(
+    reinterpret_cast<const sockaddr*>(&bind_addr), sizeof(bind_addr));
+io::bind(server_socket, server_addr);
+
+io::listen(server_socket, 5);
+
+// Accept using high-level API that returns managed objects
+try {
+    auto [client_socket, client_addr] = io::accept(server_socket);
+
+    // client_socket is a fully managed socket_handle
+    // client_addr is a socket_address with the client's address information
+
+    const auto* addr_info = reinterpret_cast<const sockaddr_in*>(client_addr.data());
+    std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std::endl;
+
+    // Both objects are automatically cleaned up when they go out of scope
+} catch (const std::system_error& e) {
+    std::cerr << "Accept failed: " << e.what() << std::endl;
+}
 ```
 
 ## Architecture
@@ -161,10 +207,10 @@ auto addr_moved = std::move(addr);  // Move operation
 ### Core Components
 
 - **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage and mutex-protected operations
-- **`io::socket::socket_address`**: Platform-independent socket address abstraction with copy/move semantics
-- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, etc.) using the `tag_invoke` pattern
+- **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
+- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, etc.) with multiple overloads using the `tag_invoke` pattern
 - **Cross-Platform Abstraction**: Platform-specific implementations in `src/socket/platforms/` with unified interfaces
-- **Error Handling**: Structured exception handling with `std::system_error` and platform-specific error codes
+- **Error Handling**: Structured exception handling with `std::system_error` for high-level operations and return codes for low-level operations
 
 ### Design Principles
 
@@ -186,7 +232,7 @@ auto addr_moved = std::move(addr);  // Move operation
 The project uses comprehensive static analysis with clang-tidy:
 
 ```bash
-#Run clang - tidy on the entire codebase
+# Run clang-tidy on the entire codebase
 clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 ```
 
