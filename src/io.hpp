@@ -21,6 +21,8 @@
 #ifndef IO_HPP
 #define IO_HPP
 #include "detail/bind.hpp" // IWYU pragma: export
+#include "detail/listen.hpp" // IWYU pragma: export
+
 /**
  * @brief The main namespace for the iosched library.
  *
@@ -45,5 +47,21 @@ namespace io {
  * @endcode
  */
 inline constexpr detail::bind_fn bind{};
+
+/**
+ * @brief A customization point object for setting a socket to listen.
+ *
+ * This CPO can be used to set a socket to listen. The actual
+ * implementation is found by `tag_invoke`.
+ *
+ * Example:
+ * @code
+ * io::socket_handle sock{AF_INET, SOCK_STREAM, IPPROTO_TCP};
+ * // ...
+ * int backlog = 16;
+ * ::io::listen(sock, backlog);
+ * @endcode
+ */
+inline constexpr detail::listen_fn listen{};
 } // namespace io
 #endif // IO_TAGS_HPP

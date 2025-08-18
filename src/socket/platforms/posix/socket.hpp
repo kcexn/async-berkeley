@@ -52,6 +52,11 @@ using native_socket_type = int;
 inline static constexpr native_socket_type INVALID_SOCKET = -1;
 
 /**
+ * @brief Sentinel value for error conditions on socket API calls.
+ */
+inline static constexpr int SOCKET_ERROR = -1;
+
+/**
  * @brief Closes a socket descriptor on POSIX systems.
  * @param socket The native socket handle to close.
  * @return `0` on success, or an error code on failure.

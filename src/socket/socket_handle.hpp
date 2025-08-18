@@ -246,5 +246,18 @@ private:
 auto tag_invoke(::io::bind_t, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int;
 
+/**
+ * @brief Sets a socket to listen for incoming connections.
+ * @relates socket_handle
+ *
+ * Marks the socket as a passive socket, that is, as a socket that will be
+ * used to accept incoming connection requests.
+ *
+ * @param socket The `socket_handle` to be marked for listening.
+ * @param backlog The maximum number of pending connections.
+ * @return 0 on success, or -1 on error, with `errno` set appropriately.
+ */
+auto tag_invoke(::io::listen_t, const socket_handle &socket, int backlog) -> int;
+
 } // namespace io::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP

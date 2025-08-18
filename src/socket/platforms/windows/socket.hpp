@@ -51,6 +51,11 @@ using native_socket_type = ::SOCKET;
 inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 
 /**
+ * @brief Sentinel value for error conditions on socket API calls.
+ */
+inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
+
+/**
  * @brief Closes a socket descriptor on Windows systems.
  * @param socket The native socket handle to close.
  * @return `0` on success, or an error code on failure.

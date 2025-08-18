@@ -586,3 +586,60 @@ TEST_F(SocketHandleTest, BindTagInvoke) {
 
   EXPECT_EQ(result, 0);
 }
+
+TEST_F(SocketHandleTest, ListenTagInvoke) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = 0;
+
+  int bind_result = ::io::bind(handle, reinterpret_cast<const sockaddr_type*>(&addr), sizeof(addr));
+  ASSERT_EQ(bind_result, 0);
+
+  int listen_result = ::io::listen(handle, 5);
+
+  EXPECT_EQ(listen_result, 0);
+}
+
+TEST_F(SocketHandleTest, ListenTagInvokeWithDifferentBacklogs) {
+  socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in addr1{}, addr2{};
+  addr1.sin_family = addr2.sin_family = AF_INET;
+  addr1.sin_addr.s_addr = addr2.sin_addr.s_addr = INADDR_ANY;
+  addr1.sin_port = addr2.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(handle1, reinterpret_cast<const sockaddr_type*>(&addr1), sizeof(addr1)), 0);
+  ASSERT_EQ(::io::bind(handle2, reinterpret_cast<const sockaddr_type*>(&addr2), sizeof(addr2)), 0);
+
+  EXPECT_EQ(::io::listen(handle1, 1), 0);
+  EXPECT_EQ(::io::listen(handle2, SOMAXCONN), 0);
+}
+
+TEST_F(SocketHandleTest, ListenTagInvokeOnInvalidSocket) {
+  socket_handle invalid_handle;
+
+  int listen_result = ::io::listen(invalid_handle, 5);
+
+  EXPECT_EQ(listen_result, -1);
+  EXPECT_EQ(errno, EBADF);
+}
+
+TEST_F(SocketHandleTest, ListenTagInvokeOnDatagramSocket) {
+  socket_handle dgram_handle(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+  sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(dgram_handle, reinterpret_cast<const sockaddr_type*>(&addr), sizeof(addr)), 0);
+
+  int listen_result = ::io::listen(dgram_handle, 5);
+
+  EXPECT_EQ(listen_result, -1);
+  EXPECT_EQ(errno, EOPNOTSUPP);
+}
