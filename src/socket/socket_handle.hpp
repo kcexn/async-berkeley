@@ -260,5 +260,21 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
 auto tag_invoke(::io::listen_t, const socket_handle &socket,
                 int backlog) -> int;
 
+// TODO: Implement free-standing functions in the berkeley sockets API *starred* functions are a priority:
+// - connect*
+// - accept*
+// - send
+// - sendto
+// - sendmsg*
+// - recv
+// - recvfrom
+// - recvmsg*
+// - getsockopt*
+// - setsockopt*
+// - getsockname*
+// - getpeername*
+// - shutdown*
+// - fcntl*
+
 } // namespace io::socket
 #endif // IOSCHED_SOCKET_HANDLE_HPP
