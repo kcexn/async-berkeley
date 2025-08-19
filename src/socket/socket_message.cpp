@@ -26,8 +26,7 @@ socket_message::socket_message(socket_message &&other) noexcept
 
 auto socket_message::operator=(socket_message &&other) noexcept
     -> socket_message & {
-  if (this != &other)
-    swap(*this, other);
+  swap(*this, other);
   return *this;
 }
 

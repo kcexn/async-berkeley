@@ -45,8 +45,7 @@ socket_handle::socket_handle(socket_handle &&other) noexcept : socket_handle() {
 
 auto socket_handle::operator=(socket_handle &&other) noexcept
     -> socket_handle & {
-  if (this != &other)
-    swap(*this, other);
+  swap(*this, other);
   return *this;
 }
 

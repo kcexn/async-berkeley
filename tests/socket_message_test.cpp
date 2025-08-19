@@ -68,11 +68,9 @@ TEST_F(SocketMessageTest, MoveConstruction) {
   msg1.set_flags(42);
 
   std::vector<socket_buffer_type> buffers;
-  socket_buffer_type buf;
-  std::array<char, 100> test_data;
+  std::array<char, 100> test_data{};
   test_data.fill('A');
-  buf.iov_base = test_data.data();
-  buf.iov_len = test_data.size();
+  socket_buffer_type buf{test_data};
   buffers.push_back(buf);
   msg1.set_buffers(std::move(buffers));
 
@@ -158,13 +156,13 @@ TEST_F(SocketMessageTest, BufferOperations) {
   std::vector<socket_buffer_type> buffers;
 
   // Create test buffers
-  std::array<char, 50> data1;
-  std::array<char, 75> data2;
+  std::array<char, 50> data1{};
+  std::array<char, 75> data2{};
   data1.fill('X');
   data2.fill('Y');
 
-  socket_buffer_type buf1{data1.data(), data1.size()};
-  socket_buffer_type buf2{data2.data(), data2.size()};
+  socket_buffer_type buf1{data1};
+  socket_buffer_type buf2{data2};
 
   buffers.push_back(buf1);
   buffers.push_back(buf2);
@@ -176,10 +174,10 @@ TEST_F(SocketMessageTest, BufferOperations) {
   auto retrieved_buffers = msg.buffers();
 
   EXPECT_EQ(retrieved_buffers.size(), 2);
-  EXPECT_EQ(retrieved_buffers[0].iov_len, 50);
-  EXPECT_EQ(retrieved_buffers[1].iov_len, 75);
-  EXPECT_EQ(retrieved_buffers[0].iov_base, data1.data());
-  EXPECT_EQ(retrieved_buffers[1].iov_base, data2.data());
+  EXPECT_EQ(retrieved_buffers[0].size(), 50);
+  EXPECT_EQ(retrieved_buffers[1].size(), 75);
+  EXPECT_EQ(retrieved_buffers[0].data(), data1.data());
+  EXPECT_EQ(retrieved_buffers[1].data(), data2.data());
 }
 
 TEST_F(SocketMessageTest, BufferChaining) {
@@ -247,8 +245,9 @@ TEST_F(SocketMessageTest, LargeControlData) {
 
   auto retrieved = msg.control();
   EXPECT_EQ(retrieved.size(), 1024);
-  EXPECT_TRUE(std::all_of(retrieved.begin(), retrieved.end(),
-                          [](char c) { return c == 'Z'; }));
+  EXPECT_TRUE(
+      std::all_of(retrieved.begin(), retrieved.end(),
+                  [](char control_char) { return control_char == 'Z'; }));
 }
 
 // Test flags operations
@@ -327,6 +326,111 @@ TEST_F(SocketMessageTest, SwapWithSelf) {
   EXPECT_EQ(ctrl[0], 'S');
 }
 
+// Test exchange methods
+TEST_F(SocketMessageTest, ExchangeBuffers) {
+  socket_message msg;
+
+  std::vector<socket_buffer_type> initial_buffers;
+  std::array<char, 50> initial_data{};
+  initial_data.fill('I');
+  socket_buffer_type initial_buf{initial_data};
+  initial_buffers.push_back(initial_buf);
+  msg.set_buffers(std::move(initial_buffers));
+
+  // Exchange with new buffers
+  std::vector<socket_buffer_type> new_buffers;
+  std::array<char, 100> new_data{};
+  new_data.fill('N');
+  socket_buffer_type new_buf{new_data};
+  new_buffers.push_back(new_buf);
+
+  auto old_buffers = msg.exchange_buffers(std::move(new_buffers));
+
+  // Verify exchange occurred
+  auto current_buffers = msg.buffers();
+  EXPECT_EQ(current_buffers.size(), 1);
+  EXPECT_EQ(current_buffers[0].size(), 100);
+  EXPECT_EQ(current_buffers[0].data(), new_data.data());
+
+  // Verify old buffers returned
+  EXPECT_EQ(old_buffers.size(), 1);
+  EXPECT_EQ(old_buffers[0].size(), 50);
+  EXPECT_EQ(old_buffers[0].data(), initial_data.data());
+}
+
+TEST_F(SocketMessageTest, ExchangeControl) {
+  socket_message msg;
+
+  std::vector<char> initial_control{'I', 'N', 'I', 'T'};
+  msg.set_control(std::move(initial_control));
+
+  // Exchange with new control data
+  std::vector<char> new_control{'N', 'E', 'W', 'C', 'T', 'R', 'L'};
+  auto old_control = msg.exchange_control(std::move(new_control));
+
+  // Verify exchange occurred
+  auto current_control = msg.control();
+  EXPECT_EQ(current_control.size(), 7);
+  EXPECT_EQ(current_control[0], 'N');
+  EXPECT_EQ(current_control[3], 'C');
+
+  // Verify old control returned
+  EXPECT_EQ(old_control.size(), 4);
+  EXPECT_EQ(old_control[0], 'I');
+  EXPECT_EQ(old_control[3], 'T');
+}
+
+TEST_F(SocketMessageTest, ExchangeFlags) {
+  socket_message msg;
+  msg.set_flags(100);
+
+  // Exchange flags
+  int old_flags = msg.exchange_flags(200);
+
+  // Verify exchange occurred
+  EXPECT_EQ(msg.flags(), 200);
+  EXPECT_EQ(old_flags, 100);
+
+  // Test with zero flags
+  int old_flags2 = msg.exchange_flags(0);
+  EXPECT_EQ(msg.flags(), 0);
+  EXPECT_EQ(old_flags2, 200);
+}
+
+TEST_F(SocketMessageTest, ExchangeEmptyBuffers) {
+  socket_message msg;
+
+  // Start with empty buffers
+  std::vector<socket_buffer_type> empty_buffers;
+  auto old_empty = msg.exchange_buffers(std::move(empty_buffers));
+  EXPECT_TRUE(old_empty.empty());
+
+  // Exchange empty for non-empty
+  std::vector<socket_buffer_type> new_buffers;
+  std::array<char, 25> data{};
+  socket_buffer_type buf{data};
+  new_buffers.push_back(buf);
+
+  auto old_buffers = msg.exchange_buffers(std::move(new_buffers));
+  EXPECT_TRUE(old_buffers.empty());
+  EXPECT_EQ(msg.buffers().size(), 1);
+}
+
+TEST_F(SocketMessageTest, ExchangeEmptyControl) {
+  socket_message msg;
+
+  // Start with empty control
+  std::vector<char> empty_control;
+  auto old_empty = msg.exchange_control(std::move(empty_control));
+  EXPECT_TRUE(old_empty.empty());
+
+  // Exchange empty for non-empty
+  std::vector<char> new_control{'D', 'A', 'T', 'A'};
+  auto old_control = msg.exchange_control(std::move(new_control));
+  EXPECT_TRUE(old_control.empty());
+  EXPECT_EQ(msg.control().size(), 4);
+}
+
 // Test complete message scenarios
 TEST_F(SocketMessageTest, CompleteMessageScenario) {
   socket_message msg;
@@ -336,9 +440,9 @@ TEST_F(SocketMessageTest, CompleteMessageScenario) {
   msg = addr;
 
   std::vector<socket_buffer_type> buffers;
-  std::array<char, 256> data;
+  std::array<char, 256> data{};
   std::iota(data.begin(), data.end(), 0);
-  socket_buffer_type buf{data.data(), data.size()};
+  socket_buffer_type buf{data};
   buffers.push_back(buf);
   msg.set_buffers(std::move(buffers));
 
@@ -349,19 +453,19 @@ TEST_F(SocketMessageTest, CompleteMessageScenario) {
 
   // Verify all components
   EXPECT_EQ(msg.buffers().size(), 1);
-  EXPECT_EQ(msg.buffers()[0].iov_len, 256);
+  EXPECT_EQ(msg.buffers()[0].size(), 256);
   EXPECT_EQ(msg.control().size(), 64);
   EXPECT_EQ(msg.flags(), MSG_DONTWAIT | MSG_NOSIGNAL);
 
   // Verify data integrity
   auto retrieved_buffers = msg.buffers();
-  EXPECT_EQ(static_cast<char *>(retrieved_buffers[0].iov_base)[0], 0);
-  EXPECT_EQ(static_cast<char *>(retrieved_buffers[0].iov_base)[255],
-            static_cast<char>(255));
+  EXPECT_EQ(retrieved_buffers[0][0], 0);
+  EXPECT_EQ(retrieved_buffers[0][255], static_cast<char>(255));
 
   auto retrieved_control = msg.control();
-  EXPECT_TRUE(std::all_of(retrieved_control.begin(), retrieved_control.end(),
-                          [](char c) { return c == 'C'; }));
+  EXPECT_TRUE(
+      std::all_of(retrieved_control.begin(), retrieved_control.end(),
+                  [](char control_char) { return control_char == 'C'; }));
 }
 
 // Thread safety tests
@@ -491,8 +595,8 @@ TEST_F(SocketMessageRAIITest, DestructorCleansUpProperly) {
   {
     socket_message msg;
     std::vector<socket_buffer_type> buffers;
-    std::array<char, 100> data;
-    socket_buffer_type buf{data.data(), data.size()};
+    std::array<char, 100> data{};
+    socket_buffer_type buf{data};
     buffers.push_back(buf);
     msg.set_buffers(std::move(buffers));
   }

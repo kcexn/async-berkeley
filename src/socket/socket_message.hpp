@@ -37,7 +37,29 @@
 
 namespace io::socket {
 
+/**
+ * @brief Type alias for ancillary data buffer used in socket messages.
+ *
+ * This buffer stores control information that can be passed alongside the
+ * main message data in advanced socket operations. Ancillary data can include
+ * file descriptors, credentials, socket options, or other metadata that needs
+ * to be transmitted with the message.
+ *
+ * @see sendmsg(2), recvmsg(2), cmsg(3)
+ */
 using ancillary_buffer = std::vector<char>;
+
+/**
+ * @brief Type alias for scatter-gather I/O buffer collection.
+ *
+ * This collection holds multiple data buffers that can be used for vectored
+ * I/O operations. Scatter-gather I/O allows reading from or writing to
+ * multiple non-contiguous memory regions in a single system call, improving
+ * performance by reducing the number of system calls needed for complex
+ * data structures.
+ *
+ * @see readv(2), writev(2), sendmsg(2), recvmsg(2)
+ */
 using scatter_gather_buffer = std::vector<socket_buffer_type>;
 
 /**
