@@ -15,7 +15,8 @@
 
 /**
  * @file socket_address.hpp
- * @brief Provides a platform-independent socket address abstraction.
+ * @brief This file defines the `socket_address` class, a platform-independent
+ * abstraction for socket addresses.
  */
 #pragma once
 #ifndef IO_SOCKET_ADDRESS_HPP
@@ -27,21 +28,16 @@
 #else
 #include "platforms/posix/socket.hpp"
 #endif
-/**
- * @namespace io::socket
- * @brief Provides cross-platform abstractions for socket-level I/O.
- */
+
 namespace io::socket {
 /**
- * @class socket_address
- * @brief Represents a platform-independent socket address.
+ * @brief A platform-independent representation of a socket address.
  *
- * This class provides a wrapper around native socket address structures,
+ * This class provides a wrapper around the native socket address structures,
  * offering a safe and convenient way to manage address information for socket
  * operations. It uses `sockaddr_storage_type` to ensure sufficient space for
  * any address family and `socklen_type` for the address size, which are
  * platform-specific aliases.
- *
  */
 class socket_address {
 
@@ -49,10 +45,10 @@ public:
   /**
    * @brief Constructs an empty socket address.
    *
-   * The internal storage is zero-initialized, and the size is set to the
-   * full capacity of the address storage. This prepares the object to be
-   * populated by functions that require a buffer for the address, such as
-   * `::accept()` or `::recvfrom()`.
+   * The internal storage is zero-initialized, and the size is set to the full
+   * capacity of the address storage. This prepares the object to be populated
+   * by functions that require a buffer for the address, such as `accept()` or
+   * `recvfrom()`.
    */
   socket_address() = default;
 
@@ -81,14 +77,15 @@ public:
   explicit socket_address(socklen_type size) noexcept;
 
   /**
-   * @brief Constructs a socket_address from a native socket address structure.
+   * @brief Constructs a `socket_address` from a native socket address
+   * structure.
    *
    * This constructor copies the provided native socket address data into its
    * internal storage, making it suitable for passing to socket functions that
-   * require an address, such as `::connect()` or `::bind()`.
+   * require an address, such as `connect()` or `bind()`.
    *
    * @param addr A pointer to the native socket address (e.g., `sockaddr_in`).
-   *             The pointed-to data is copied into the object.
+   * The data pointed to is copied into the object.
    * @param size The size of the address structure in bytes.
    */
   explicit socket_address(const sockaddr_type *addr,
@@ -98,9 +95,9 @@ public:
    * @brief Returns a mutable pointer to the underlying socket address data.
    *
    * This allows the raw address data to be modified by functions like
-   * `::accept()` or `::getpeername()` that populate a socket address
-   * structure provided by the caller. The lifetime of the returned pointer
-   * is tied to this `socket_address` object.
+   * `accept()` or `getpeername()` that populate a socket address structure
+   * provided by the caller. The lifetime of the returned pointer is tied to
+   * this `socket_address` object.
    *
    * @return A non-owning pointer to the `sockaddr_type` data.
    */
@@ -109,10 +106,9 @@ public:
   /**
    * @brief Returns a constant pointer to the underlying socket address data.
    *
-   * This provides read-only access to the address data, suitable for passing
-   * to functions like `::connect()` or `::bind()` that do not modify the
-   * address. The lifetime of the returned pointer is tied to this
-   * `socket_address` object.
+   * This provides read-only access to the address data, suitable for passing to
+   * functions like `connect()` or `bind()` that do not modify the address. The
+   * lifetime of the returned pointer is tied to this `socket_address` object.
    *
    * @return A non-owning constant pointer to the `sockaddr_type` data.
    */
@@ -121,10 +117,10 @@ public:
   /**
    * @brief Returns a mutable pointer to the size of the socket address.
    *
-   * This allows the size to be modified by functions like `::accept()` or
-   * `::getpeername()` that update the size argument to reflect the actual
-   * size of the returned address. The lifetime of the returned pointer is
-   * tied to this `socket_address` object.
+   * This allows the size to be modified by functions like `accept()` or
+   * `getpeername()` that update the size argument to reflect the actual size of
+   * the returned address. The lifetime of the returned pointer is tied to this
+   * `socket_address` object.
    *
    * @return A non-owning pointer to the `socklen_type` size.
    */
@@ -134,20 +130,20 @@ public:
    * @brief Returns a constant pointer to the size of the socket address.
    *
    * This provides read-only access to the size, suitable for functions that
-   * only need to know the size of the address being passed. The lifetime of
-   * the returned pointer is tied to this `socket_address` object.
+   * only need to know the size of the address being passed. The lifetime of the
+   * returned pointer is tied to this `socket_address` object.
    *
    * @return A non-owning constant pointer to the `socklen_type` size.
    */
   [[nodiscard]] auto size() const noexcept -> const socklen_type *;
 
   /**
-   * @brief Compares two socket_address objects for equality.
+   * @brief Compares two `socket_address` objects for equality.
    *
    * Two addresses are considered equal if they have the same size and their
    * underlying address data is bit-for-bit identical.
    *
-   * @param other The socket_address to compare against.
+   * @param other The `socket_address` to compare against.
    * @return `true` if the addresses are equal, `false` otherwise.
    */
   auto operator==(const socket_address &other) const noexcept -> bool;
@@ -165,18 +161,18 @@ private:
  * native address.
  * @relates socket_address
  *
- * This function is a helper to construct a `socket_address` instance.
- * If `addr` is provided, the `socket_address` is initialized with the given
- * native address and its size. Otherwise, it creates a `socket_address` with an
- * appropriate size for `SockAddr` but without initial address data.
- * It performs a compile-time assertion to guarantee that `SockAddr` can fit
- * within `sockaddr_storage_type`.
+ * This function is a helper to construct a `socket_address` instance. If `addr`
+ * is provided, the `socket_address` is initialized with the given native
+ * address and its size. Otherwise, it creates a `socket_address` with an
+ * appropriate size for `SockAddr` but without initial address data. It performs
+ * a compile-time assertion to guarantee that `SockAddr` can fit within
+ * `sockaddr_storage_type`.
  *
  * @tparam SockAddr The native socket address structure type (e.g.,
  * `sockaddr_in`, `sockaddr_in6`).
- * @param addr Optional pointer to a native socket address structure to
- * initialize from. If `nullptr`, an empty `socket_address` of appropriate size
- * is created.
+ * @param addr An optional pointer to a native socket address structure to
+ * initialize from. If `nullptr`, an empty `socket_address` of the appropriate
+ * size is created.
  * @return A `socket_address` object, either initialized from `addr` or with the
  * size of `SockAddr`.
  */

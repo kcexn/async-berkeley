@@ -15,13 +15,8 @@
 
 /**
  * @file error.hpp
- * @brief Defines macros for creating compile-time error messages.
- *
- * This header provides a set of utility macros to generate formatted error
- * messages that automatically include the file and line number where the
- * error occurs. This is useful for compile-time assertions and debugging.
+ * @brief This file defines macros for creating compile-time error messages.
  */
-
 #pragma once
 #ifndef IO_ERROR_HPP
 #define IO_ERROR_HPP
@@ -30,7 +25,6 @@
  * @def IO_STRINGIFY(x)
  * @brief Converts a macro argument to a string literal.
  * @param x The argument to stringify.
- * @hideinitializer
  */
 #define IO_STRINGIFY(x) #x
 
@@ -38,34 +32,32 @@
  * @def IO_TOSTRING(x)
  * @brief Helper macro to convert the result of a macro expansion to a string.
  *
- * This is necessary to correctly stringify macros like `__LINE__`, which
- * must be expanded before being converted to a string.
+ * This is necessary to correctly stringify macros like `__LINE__`, which must
+ * be expanded before being converted to a string.
  * @param x The macro to expand and stringify.
- * @hideinitializer
  */
 #define IO_TOSTRING(x) IO_STRINGIFY(x)
 
 /**
  * @def IO_ERROR_MESSAGE(msg)
- * @brief Constructs a formatted error message with file and line number.
+ * @brief Constructs a formatted error message with the file and line number.
  *
- * The resulting string literal is in the format `"file:line:message"`.
+ * The resulting string literal is in the format `"file:line: message"`.
  *
  * @param msg The custom error message string to append.
  * @return A string literal containing the full error message.
- * @hideinitializer
  *
  * @b Example
  * @code
- * #include "error_handling.hpp"
+ * #include "error.hpp"
  * #include <iostream>
  *
  * void some_function() {
- *     std::cerr << IOSCHED_ERROR_MESSAGE("Something went wrong!") << std::endl;
+ *     std::cerr << IO_ERROR_MESSAGE("Something went wrong!") << std::endl;
  * }
  * // Possible output:
- * // /path/to/your/file.cpp:123:Something went wrong!
+ * // /path/to/your/file.cpp:123: Something went wrong!
  * @endcode
  */
-#define IO_ERROR_MESSAGE(msg) (__FILE__ ":" IO_TOSTRING(__LINE__) ":" msg)
+#define IO_ERROR_MESSAGE(msg) (__FILE__ ":" IO_TOSTRING(__LINE__) ": " msg)
 #endif // IO_ERROR_HPP

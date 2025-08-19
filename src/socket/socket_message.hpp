@@ -13,6 +13,11 @@
  * limitations under the License.
  */
 
+/**
+ * @file socket_message.hpp
+ * @brief This file defines the `socket_message` class, a thread-safe container
+ * for advanced socket I/O operations.
+ */
 #pragma once
 #ifndef IO_SOCKET_MESSAGE_HPP
 #define IO_SOCKET_MESSAGE_HPP
@@ -32,215 +37,238 @@
 
 namespace io::socket {
 
+using ancillary_buffer = std::vector<char>;
+using scatter_gather_buffer = std::vector<socket_buffer_type>;
+
 /**
- * @brief Data structure containing all components of a socket message
+ * @brief A data structure that contains all the components of a socket message.
  *
- * This structure holds the complete data for a socket message including
- * address information, data buffers, control data, and message flags.
- * Used internally by socket_message for thread-safe storage.
+ * This structure holds the complete data for a socket message, including the
+ * address, data buffers, control data, and flags. It is used internally by the
+ * `socket_message` class for thread-safe storage.
  */
 struct message_data {
-  /// Type alias for scatter-gather I/O buffer collection
-  using scatter_gather_type = std::vector<socket_buffer_type>;
-  /// Type alias for ancillary data storage
-  using ancillary_data_type = std::vector<char>;
-
-  socket_address address; ///< Socket address for the message
-  scatter_gather_type
-      buffers; ///< Collection of data buffers for scatter-gather I/O
-  ancillary_data_type control; ///< Ancillary data (control information)
-  int flags{};                 ///< Message flags for socket operations
+  socket_address address; ///< The socket address for the message.
+  scatter_gather_buffer
+      buffers; ///< A collection of data buffers for scatter-gather I/O.
+  ancillary_buffer control; ///< The ancillary data (control information).
+  int flags{};              ///< The message flags for socket operations.
 };
 
 /**
- * @brief Thread-safe socket message container for advanced I/O operations
+ * @brief A thread-safe container for socket messages used in advanced I/O
+ * operations.
  *
- * The socket_message class provides a thread-safe wrapper around socket message
- * data, supporting scatter-gather I/O operations with ancillary data and
- * control information. This class is designed for use with sendmsg() and
- * recvmsg() system calls that require complex message structures.
+ * The `socket_message` class provides a thread-safe wrapper around the socket
+ * message data, supporting scatter-gather I/O operations with ancillary data
+ * and control information. This class is designed for use with the `sendmsg()`
+ * and `recvmsg()` system calls, which require complex message structures.
  *
  * @details
  * Key features:
- * - Thread-safe access to all message components using mutex protection
- * - Move-only semantics preventing resource duplication
- * - Eager initialization of internal data storage
- * - Support for scatter-gather I/O with multiple data buffers
- * - Ancillary data handling for control messages
- * - Socket address management for message routing
+ * - Thread-safe access to all message components using mutex protection.
+ * - Move-only semantics to prevent resource duplication.
+ * - Eager initialization of internal data storage.
+ * - Support for scatter-gather I/O with multiple data buffers.
+ * - Handling of ancillary data for control messages.
+ * - Management of socket addresses for message routing.
  *
- * Thread Safety:
- * - All operations are thread-safe using internal mutex protection
- * - Multiple threads can safely access different socket_message instances
- * - Concurrent access to the same instance is serialized
+ * @par Thread Safety
+ * All operations on a `socket_message` instance are thread-safe due to internal
+ * mutex protection. Multiple threads can safely access different
+ * `socket_message` instances concurrently. Concurrent access to the same
+ * instance is serialized.
  *
- * @note This class uses eager initialization - the internal data structure
- *       is created immediately in the constructor.
+ * @note This class uses eager initialization, meaning the internal data
+ * structure is created immediately in the constructor.
  *
- * @warning Copy operations are explicitly deleted to prevent resource
- *          ownership ambiguity. Use move semantics instead.
+ * @warning Copy operations are explicitly deleted to prevent ambiguity in
+ * resource ownership. Use move semantics instead.
  */
 class socket_message {
 
 public:
   /**
-   * @brief Default constructor
+   * @brief Default constructor.
    *
    * Creates an empty socket message with initialized internal data.
-   * Data is immediately initialized in the constructor.
    */
   socket_message();
 
   /**
-   * @brief Deleted copy constructor
+   * @brief Deleted copy constructor.
    *
-   * Copy construction is explicitly deleted to enforce move-only semantics
-   * and prevent resource ownership ambiguity.
+   * Copying is disallowed to enforce move-only semantics and prevent resource
+   * ownership issues.
    */
   socket_message(const socket_message &other) = delete;
 
   /**
-   * @brief Deleted copy assignment operator
+   * @brief Deleted copy assignment operator.
    *
-   * Copy assignment is explicitly deleted to enforce move-only semantics
-   * and prevent resource ownership ambiguity.
+   * Copying is disallowed to enforce move-only semantics and prevent resource
+   * ownership issues.
    */
   auto operator=(const socket_message &other) -> socket_message & = delete;
 
   /**
-   * @brief Move constructor
+   * @brief Move constructor.
    *
-   * Transfers ownership of the socket message data from another instance.
-   * The source instance is left in a valid but unspecified state.
+   * Transfers ownership of the socket message data from another instance,
+   * leaving the source instance in a valid but unspecified state.
    *
-   * @param other The socket_message to move from
+   * @param other The `socket_message` to move from.
    */
   socket_message(socket_message &&other) noexcept;
 
   /**
-   * @brief Move assignment operator
+   * @brief Move assignment operator.
    *
-   * Transfers ownership of the socket message data from another instance.
-   * The source instance is left in a valid but unspecified state.
+   * Transfers ownership of the socket message data from another instance,
+   * leaving the source instance in a valid but unspecified state.
    *
-   * @param other The socket_message to move from
-   * @return Reference to this instance
+   * @param other The `socket_message` to move from.
+   * @return A reference to this instance.
    */
   auto operator=(socket_message &&other) noexcept -> socket_message &;
 
   /**
-   * @brief Thread-safe swap operation
+   * @brief Swaps the contents of two `socket_message` instances.
    *
-   * Atomically swaps the contents of two socket_message instances using
-   * dual-mutex locking to prevent deadlocks. Both instances are locked
-   * simultaneously to ensure atomicity.
+   * This function atomically swaps the contents of two `socket_message`
+   * instances using a dual-mutex lock to prevent deadlocks.
    *
-   * @param lhs First socket_message instance
-   * @param rhs Second socket_message instance
+   * @param lhs The first `socket_message` instance.
+   * @param rhs The second `socket_message` instance.
    *
-   * @note Uses std::scoped_lock to prevent deadlocks when locking multiple
-   * mutexes
+   * @note This function uses `std::scoped_lock` to prevent deadlocks when
+   * locking multiple mutexes.
    */
   friend auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void;
 
   /**
-   * @brief Get the socket address
+   * @brief Gets the socket address.
    *
-   * Returns a copy of the socket address associated with this message.
-   *
-   * @return Copy of the socket address
+   * @return A copy of the socket address associated with this message.
    */
   auto address() const -> socket_address;
 
   /**
-   * @brief Set the socket address
+   * @brief Sets the socket address.
    *
-   * Sets the socket address for this message.
-   *
-   * @param address The socket address to set
-   * @return Reference to this socket_message for method chaining
+   * @param address The socket address to set.
+   * @return A reference to this `socket_message` for method chaining.
    */
   auto operator=(socket_address address) -> socket_message &;
 
   /**
-   * @brief Get the data buffers
+   * @brief Gets the data buffers.
    *
-   * Returns a copy of the scatter-gather buffer collection. These buffers
-   * are used for vectored I/O operations that can read/write multiple
-   * non-contiguous memory regions in a single system call.
+   * These buffers are used for vectored I/O operations that can read or write
+   * multiple non-contiguous memory regions in a single system call.
    *
-   * @return Copy of the scatter-gather buffer collection
+   * @return A copy of the scatter-gather buffer collection.
    */
-  auto buffers() const -> message_data::scatter_gather_type;
+  [[nodiscard]] auto buffers() const -> scatter_gather_buffer;
 
   /**
-   * @brief Set the data buffers
+   * @brief Sets the data buffers.
    *
-   * Sets the scatter-gather buffer collection for this message. The buffers
-   * are moved into the message, transferring ownership.
+   * The provided buffers are moved into the message, transferring ownership.
    *
-   * @param buffers The buffer collection to set (will be moved)
-   * @return Reference to this socket_message for method chaining
+   * @param buffers The buffer collection to set (will be moved).
+   * @return A reference to this `socket_message` for method chaining.
    */
-  auto operator=(message_data::scatter_gather_type buffers) -> socket_message &;
+  auto set_buffers(scatter_gather_buffer buffers) -> socket_message &;
 
   /**
-   * @brief Get the ancillary data
+   * @brief Exchanges the data buffers.
    *
-   * Returns a copy of the ancillary (control) data. This data contains
-   * control information that can be passed alongside the main message data,
-   * such as file descriptors, credentials, or other metadata.
+   * The provided buffers are moved into the message, transferring ownership.
+   * The previous buffers are returned to the caller.
    *
-   * @return Copy of the ancillary data
+   * @param buffers The buffer collection to set (will be moved).
+   * @return The previous buffer collection that was replaced.
    */
-  auto control() const -> message_data::ancillary_data_type;
+  auto exchange_buffers(scatter_gather_buffer buffers) -> scatter_gather_buffer;
 
   /**
-   * @brief Set the ancillary data
+   * @brief Gets the ancillary data.
    *
-   * Sets the ancillary (control) data for this message. The data is moved
-   * into the message, transferring ownership.
+   * This data contains control information that can be passed alongside the
+   * main message data, such as file descriptors, credentials, or other
+   * metadata.
    *
-   * @param control The ancillary data to set (will be moved)
-   * @return Reference to this socket_message for method chaining
+   * @return A copy of the ancillary data.
    */
-  auto operator=(message_data::ancillary_data_type control) -> socket_message &;
+  [[nodiscard]] auto control() const -> ancillary_buffer;
 
   /**
-   * @brief Get the message flags
+   * @brief Sets the ancillary data.
    *
-   * Returns the message flags that control the behavior of socket operations.
-   * These flags correspond to the flags parameter used with sendmsg() and
-   * recvmsg() system calls.
+   * The provided data is moved into the message, transferring ownership.
    *
-   * @return The message flags
+   * @param control The ancillary data to set (will be moved).
+   * @return A reference to this `socket_message` for method chaining.
    */
-  auto flags() const -> int;
+  auto set_control(ancillary_buffer control) -> socket_message &;
 
   /**
-   * @brief Set the message flags
+   * @brief Exchanges the ancillary data.
    *
-   * Sets the message flags that control the behavior of socket operations.
-   * These flags correspond to the flags parameter used with sendmsg() and
-   * recvmsg() system calls (e.g., MSG_DONTWAIT, MSG_PEEK, MSG_TRUNC).
+   * The provided control data is moved into the message, transferring
+   * ownership. The previous control data is returned to the caller.
    *
-   * @param flags The message flags to set
-   * @return Reference to this socket_message for method chaining
+   * @param control The ancillary data to set (will be moved).
+   * @return The previous ancillary data that was replaced.
    */
-  auto operator=(int flags) -> socket_message &;
+  auto exchange_control(ancillary_buffer control) -> ancillary_buffer;
 
   /**
-   * @brief Default destructor
+   * @brief Gets the message flags.
    *
-   * Automatically cleans up internal resources. The unique_ptr ensures
-   * proper cleanup of the message_data structure.
+   * These flags control the behavior of socket operations and correspond to the
+   * flags parameter used with the `sendmsg()` and `recvmsg()` system calls.
+   *
+   * @return The message flags.
+   */
+  [[nodiscard]] auto flags() const -> int;
+
+  /**
+   * @brief Sets the message flags.
+   *
+   * These flags control the behavior of socket operations and correspond to the
+   * flags parameter used with the `sendmsg()` and `recvmsg()` system calls
+   * (e.g., `MSG_DONTWAIT`, `MSG_PEEK`, `MSG_TRUNC`).
+   *
+   * @param flags The message flags to set.
+   * @return A reference to this `socket_message` for method chaining.
+   */
+  auto set_flags(int flags) -> socket_message &;
+
+  /**
+   * @brief Exchanges the message flags.
+   *
+   * The provided flags are set in the message, replacing the current flags.
+   * The previous flags are returned to the caller.
+   *
+   * @param flags The message flags to set.
+   * @return The previous message flags that were replaced.
+   */
+  auto exchange_flags(int flags) -> int;
+
+  /**
+   * @brief Default destructor.
+   *
+   * Cleans up internal resources. The `unique_ptr` ensures that the
+   * `message_data` structure is properly deallocated.
    */
   ~socket_message() = default;
 
 private:
-  /// Message data storage
+  /// The storage for the message data.
   std::unique_ptr<message_data> data_;
-  /// Mutex for thread-safe access to message data
+  /// A mutex for thread-safe access to the message data.
   mutable std::mutex mtx_;
 };
 

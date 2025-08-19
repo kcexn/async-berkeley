@@ -13,51 +13,47 @@
  * limitations under the License.
  */
 
+/**
+ * @file fcntl.hpp
+ * @brief This file defines the `fcntl` customization point object for the I/O
+ * library.
+ */
 #pragma once
 #ifndef IO_FCNTL_HPP
 #define IO_FCNTL_HPP
 #include <utility>
 
-/**
- * @brief The main namespace for the io library.
- */
 namespace io {
 /**
- * @brief A tag type used for the `fcntl` customization point object (CPO).
+ * @brief A tag type for the `io::fcntl` customization point object (CPO).
  *
- * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `fcntl` CPO. It is not meant to be used directly by users.
- *
- * @see io::fcntl
- * @see tag_invoke
+ * This type is used as a tag to dispatch to the correct `tag_invoke` overload
+ * for the `fcntl` CPO. It is not meant to be used directly by end-users.
  */
 struct fcntl_t {};
 
-/**
- * @brief Implementation details for the `io` library.
- * @details This namespace contains types and functions that are not part of the
- * public API. They are subject to change without notice.
- */
 namespace detail {
 /**
- * @brief A function object that provides the `fcntl` customization point.
- * @details This struct acts as a customization point for file control
- * operations. It doesn't perform the fcntl itself, but dispatches to a
- * user-provided implementation via `tag_invoke`. To customize `fcntl` for a
- * type, provide an overload of `tag_invoke` with `io::fcntl_t` as the first
- * argument.
+ * @brief The function object that implements the `fcntl` customization point.
+ *
+ * This struct acts as a customization point for file control operations. It
+ * dispatches to a user-provided implementation via `tag_invoke`.
+ *
+ * To customize `fcntl` for a type, provide an overload of `tag_invoke` that
+ * takes `io::fcntl_t` as its first argument.
  */
 struct fcntl_fn {
   /**
-   * @brief Calls the `fcntl` customization point.
+   * @brief Invokes the `fcntl` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::fcntl_t{}`, followed by the
+   * argument to `tag_invoke` will be `::io::fcntl_t{}`, followed by the
    * arguments passed to this function.
    *
-   * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `fcntl` implementation.
-   * @return The value returned by the `tag_invoke` overload.
+   * @tparam Args The types of the arguments to forward to the `fcntl`
+   * implementation.
+   * @param ...args The arguments to forward to the `fcntl` implementation.
+   * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const

@@ -13,50 +13,47 @@
  * limitations under the License.
  */
 
+/**
+ * @file recvmsg.hpp
+ * @brief This file defines the `recvmsg` customization point object for the I/O
+ * library.
+ */
 #pragma once
 #ifndef IO_RECVMSG_HPP
 #define IO_RECVMSG_HPP
 #include <utility>
 
-/**
- * @brief The main namespace for the io library.
- */
 namespace io {
 /**
- * @brief A tag type used for the `recvmsg` customization point object (CPO).
+ * @brief A tag type for the `io::recvmsg` customization point object (CPO).
  *
- * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `recvmsg` CPO. It is not meant to be used directly by users.
- *
- * @see io::recvmsg
- * @see tag_invoke
+ * This type is used as a tag to dispatch to the correct `tag_invoke` overload
+ * for the `recvmsg` CPO. It is not meant to be used directly by end-users.
  */
 struct recvmsg_t {};
 
-/**
- * @brief Implementation details for the `io` library.
- * @details This namespace contains types and functions that are not part of the
- * public API. They are subject to change without notice.
- */
 namespace detail {
 /**
- * @brief A function object that provides the `recvmsg` customization point.
- * @details This struct acts as a customization point for receiving messages. It
- * doesn't perform the recvmsg itself, but dispatches to a user-provided
- * implementation via `tag_invoke`. To customize `recvmsg` for a type, provide
- * an overload of `tag_invoke` with `io::recvmsg_t` as the first argument.
+ * @brief The function object that implements the `recvmsg` customization point.
+ *
+ * This struct acts as a customization point for receiving messages. It
+ * dispatches to a user-provided implementation via `tag_invoke`.
+ *
+ * To customize `recvmsg` for a type, provide an overload of `tag_invoke` that
+ * takes `io::recvmsg_t` as its first argument.
  */
 struct recvmsg_fn {
   /**
-   * @brief Calls the `recvmsg` customization point.
+   * @brief Invokes the `recvmsg` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::recvmsg_t{}`, followed by the
+   * argument to `tag_invoke` will be `::io::recvmsg_t{}`, followed by the
    * arguments passed to this function.
    *
-   * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `recvmsg` implementation.
-   * @return The value returned by the `tag_invoke` overload.
+   * @tparam Args The types of the arguments to forward to the `recvmsg`
+   * implementation.
+   * @param ...args The arguments to forward to the `recvmsg` implementation.
+   * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const

@@ -13,50 +13,48 @@
  * limitations under the License.
  */
 
+/**
+ * @file shutdown.hpp
+ * @brief This file defines the `shutdown` customization point object for the
+ * I/O library.
+ */
 #pragma once
 #ifndef IO_SHUTDOWN_HPP
 #define IO_SHUTDOWN_HPP
 #include <utility>
 
-/**
- * @brief The main namespace for the io library.
- */
 namespace io {
 /**
- * @brief A tag type used for the `shutdown` customization point object (CPO).
+ * @brief A tag type for the `io::shutdown` customization point object (CPO).
  *
- * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `shutdown` CPO. It is not meant to be used directly by users.
- *
- * @see io::shutdown
- * @see tag_invoke
+ * This type is used as a tag to dispatch to the correct `tag_invoke` overload
+ * for the `shutdown` CPO. It is not meant to be used directly by end-users.
  */
 struct shutdown_t {};
 
-/**
- * @brief Implementation details for the `io` library.
- * @details This namespace contains types and functions that are not part of the
- * public API. They are subject to change without notice.
- */
 namespace detail {
 /**
- * @brief A function object that provides the `shutdown` customization point.
- * @details This struct acts as a customization point for shutting down sockets.
- * It doesn't perform the shutdown itself, but dispatches to a user-provided
- * implementation via `tag_invoke`. To customize `shutdown` for a type, provide
- * an overload of `tag_invoke` with `io::shutdown_t` as the first argument.
+ * @brief The function object that implements the `shutdown` customization
+ * point.
+ *
+ * This struct acts as a customization point for shutting down sockets. It
+ * dispatches to a user-provided implementation via `tag_invoke`.
+ *
+ * To customize `shutdown` for a type, provide an overload of `tag_invoke` that
+ * takes `io::shutdown_t` as its first argument.
  */
 struct shutdown_fn {
   /**
-   * @brief Calls the `shutdown` customization point.
+   * @brief Invokes the `shutdown` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::shutdown_t{}`, followed by the
+   * argument to `tag_invoke` will be `::io::shutdown_t{}`, followed by the
    * arguments passed to this function.
    *
-   * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `shutdown` implementation.
-   * @return The value returned by the `tag_invoke` overload.
+   * @tparam Args The types of the arguments to forward to the `shutdown`
+   * implementation.
+   * @param ...args The arguments to forward to the `shutdown` implementation.
+   * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const

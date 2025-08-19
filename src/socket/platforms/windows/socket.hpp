@@ -15,66 +15,62 @@
 
 /**
  * @file socket.hpp
- * @brief Provides core Windows-specific socket definitions and functions.
- *
- * This file contains fundamental type aliases and functions for handling
- * socket operations specifically on Windows systems.
+ * @brief This file contains the Windows-specific socket definitions and
+ * functions.
  */
 #pragma once
 #ifndef IO_SOCKET_WINDOWS_HPP
 #define IO_SOCKET_WINDOWS_HPP
 #include <cassert>
 #include <ios>
+#include <span>
 #include <tuple>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-/**
- * @namespace io::socket
- * @brief Provides cross-platform abstractions for socket-level I/O.
- *
- * This namespace contains fundamental types and functions for abstracting
- * away platform-specific socket details, allowing for portable network code.
- */
+
 namespace io::socket {
 /**
- * @typedef native_socket_type
- * @brief Alias for the native socket handle on Windows systems.
+ * @brief The native socket handle type for Windows systems.
  *
- * This type is an alias for the underlying socket descriptor used by the
- * operating system, which is `::SOCKET` on Windows systems.
+ * This is an alias for the `::SOCKET` type provided by the Winsock library.
  */
 using native_socket_type = ::SOCKET;
 
 /**
  * @brief Represents an invalid socket descriptor on Windows systems.
  *
- * This constant holds the value of an invalid socket, which is
- * `INVALID_SOCKET` (from Winsock) on Windows systems.
+ * This constant holds the value of an invalid socket, which is `INVALID_SOCKET`
+ * from the Winsock library.
  */
 inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 
 /**
- * @brief Sentinel value for error conditions on socket API calls.
+ * @brief A sentinel value used to indicate an error in socket API calls.
  */
 inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
 
 /**
- * @brief socket buffer type
+ * @brief The socket buffer type for Windows systems.
+ *
+ * This is an alias for the `::WSABUF` type provided by the Winsock library.
  */
-using socket_buffer_type = ::WSABUF;
+using socket_buffer_type = std::span<char, std::dynamic_extent>;
 
 /**
- * @brief socket message type
+ * @brief The socket message type for Windows systems.
+ *
+ * This is an alias for the `::WSAMSG` type provided by the Winsock library.
  */
 using socket_message_type = ::WSAMSG;
 
 /**
  * @brief Closes a socket descriptor on Windows systems.
- * @param socket The native socket handle to close.
- * @return `0` on success, or an error code on failure.
  *
  * This function wraps the native `::closesocket` function.
+ *
+ * @param socket The native socket handle to close.
+ * @return 0 on success, or an error code on failure.
  */
 inline auto close(native_socket_type socket) noexcept -> int {
   return ::closesocket(socket);
@@ -85,23 +81,23 @@ static constexpr int F_SETFL = 4;
 static constexpr int O_NONBLOCK = 2048;
 
 /**
- * @brief Provides a Windows compatibility implementation of the POSIX fcntl
+ * @brief Provides a Windows compatibility implementation of the POSIX `fcntl`
  * function.
  *
- * This function is a limited implementation of the POSIX fcntl function,
+ * This function is a limited implementation of the POSIX `fcntl` function,
  * specifically tailored for setting the non-blocking mode on a socket. It
- * translates the POSIX fcntl(socket, F_SETFL, O_NONBLOCK) call to its Windows
- * equivalent using ioctlsocket.
+ * translates the `fcntl(socket, F_SETFL, O_NONBLOCK)` call to its Windows
+ * equivalent using `ioctlsocket`.
  *
- * @note This implementation only supports the F_SETFL command with the
- * O_NONBLOCK flag. Any other usage will result in a compile-time or runtime
+ * @note This implementation only supports the `F_SETFL` command with the
+ * `O_NONBLOCK` flag. Any other usage will result in a compile-time or run-time
  * assertion failure.
  *
  * @param socket The native socket descriptor.
- * @param cmd The fcntl command to execute. Only F_SETFL is supported.
+ * @param cmd The `fcntl` command to execute. Only `F_SETFL` is supported.
  * @param ...args A single argument, which must be the flags to set. Only
- * O_NONBLOCK is handled.
- * @return Returns 0 on success. On error, SOCKET_ERROR is returned.
+ * `O_NONBLOCK` is handled.
+ * @return 0 on success, or `SOCKET_ERROR` on failure.
  */
 template <typename... Args>
 inline auto fcntl(native_socket_type socket, int cmd,
@@ -123,14 +119,15 @@ inline auto fcntl(native_socket_type socket, int cmd,
 
 /**
  * @brief Sends a message on a socket using `WSASendMsg`.
+ *
+ * This function wraps the native `::WSASendMsg` function.
+ *
  * @param socket The native socket handle.
  * @param msg A pointer to the `WSAMSG` structure containing the message to
  * send.
  * @param flags This parameter is ignored on Windows.
  * @return The number of bytes sent on success, or a standard Windows Sockets
- *         error code on failure.
- *
- * This function wraps the native `::WSASendMsg` function.
+ * error code on failure.
  */
 inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
                     int flags) noexcept -> std::streamsize {
@@ -140,14 +137,15 @@ inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
 }
 
 /**
- * @brief Receives a message from a socket.
+ * @brief Receives a message from a socket using `WSARecvMsg`.
+ *
+ * This function wraps the native `::WSARecvMsg` function.
+ *
  * @param socket The native socket handle.
  * @param msg A pointer to the `WSAMSG` structure to store the received message.
  * @param flags A bitwise OR of flags to modify the receive behavior.
  * @return The number of bytes received on success, or a standard Windows
  * Sockets error code on failure.
- *
- * This function wraps the native `::WSARecvMsg` function.
  */
 inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
                     int flags) noexcept -> std::streamsize {
@@ -157,30 +155,28 @@ inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
 }
 
 /**
- * @typedef sockaddr_type
- * @brief Alias for the generic socket address structure on Windows systems.
+ * @brief The generic socket address structure for Windows systems.
  *
- * This type is an alias for `SOCKADDR`, which serves as the base
+ * This is an alias for the `::SOCKADDR` type, which serves as the base
  * structure for all other socket address types (e.g., `SOCKADDR_IN`). It is
  * primarily used for type-casting when passing addresses to Winsock functions.
  */
 using sockaddr_type = ::SOCKADDR;
 
 /**
- * @typedef sockaddr_storage_type
- * @brief Alias for the `SOCKADDR_STORAGE` structure on Windows systems.
+ * @brief The socket address storage structure for Windows systems.
  *
- * This type is used to store socket address information in a generic way,
- * large enough to accommodate all supported socket address types.
+ * This is an alias for the `::SOCKADDR_STORAGE` type, which is used to store
+ * socket address information in a generic way, large enough to accommodate all
+ * supported socket address types.
  */
 using sockaddr_storage_type = ::SOCKADDR_STORAGE;
 
 /**
- * @typedef socket_size_type
- * @brief Alias for the type used to represent socket-related sizes on Windows.
+ * @brief The type used to represent socket-related sizes on Windows systems.
  *
- * This type is typically used for lengths of socket address structures and
- * other size parameters in Winsock functions.
+ * This is an alias for the `int` type, which is used for the lengths of socket
+ * address structures and other size parameters in Winsock functions.
  */
 using socklen_type = int;
 } // namespace io::socket

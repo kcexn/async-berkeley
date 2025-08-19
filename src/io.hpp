@@ -15,7 +15,9 @@
 
 /**
  * @file io.hpp
- * @brief Core types for the io library.
+ * @brief This file contains the main header for the I/O library. It includes
+ * all the necessary headers for the I/O operations and defines the main
+ * namespace and customization point objects.
  */
 #pragma once
 #ifndef IO_HPP
@@ -34,9 +36,12 @@
 #include "detail/shutdown.hpp"
 
 /**
- * @brief The main namespace for the iosched library.
+ * @brief The `io` namespace contains all the functions and classes for the I/O
+ * library.
  *
- * This namespace contains the core components for I/O scheduling.
+ * This namespace provides a set of customization point objects (CPOs) for
+ * various I/O operations. These CPOs are designed to be extensible and can be
+ * customized for different types of I/O objects.
  */
 namespace io {
 /**
@@ -44,6 +49,8 @@ namespace io {
  *
  * This CPO can be used to bind a socket to a specific address. The actual
  * implementation is found by `tag_invoke`.
+ *
+ * @see tag_invoke
  *
  * Example:
  * @code
@@ -59,10 +66,13 @@ namespace io {
 inline constexpr detail::bind_fn bind{};
 
 /**
- * @brief A customization point object for setting a socket to listen.
+ * @brief A customization point object for setting a socket to listen for
+ * incoming connections.
  *
  * This CPO can be used to set a socket to listen. The actual
  * implementation is found by `tag_invoke`.
+ *
+ * @see tag_invoke
  *
  * Example:
  * @code
@@ -79,14 +89,19 @@ inline constexpr detail::listen_fn listen{};
  *
  * This CPO finds a suitable implementation for connecting a socket via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::connect_fn connect{};
 
 /**
- * @brief A customization point object that accepts an incoming connection.
+ * @brief A customization point object that accepts an incoming connection on a
+ * listening socket.
  *
  * This CPO finds a suitable implementation for accepting a connection via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::accept_fn accept{};
 
@@ -95,6 +110,8 @@ inline constexpr detail::accept_fn accept{};
  *
  * This CPO finds a suitable implementation for sending a message via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::sendmsg_fn sendmsg{};
 
@@ -103,6 +120,8 @@ inline constexpr detail::sendmsg_fn sendmsg{};
  *
  * This CPO finds a suitable implementation for receiving a message via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::recvmsg_fn recvmsg{};
 
@@ -111,6 +130,8 @@ inline constexpr detail::recvmsg_fn recvmsg{};
  *
  * This CPO finds a suitable implementation for getting a socket option via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::getsockopt_fn getsockopt{};
 
@@ -119,6 +140,8 @@ inline constexpr detail::getsockopt_fn getsockopt{};
  *
  * This CPO finds a suitable implementation for setting a socket option via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::setsockopt_fn setsockopt{};
 
@@ -127,6 +150,8 @@ inline constexpr detail::setsockopt_fn setsockopt{};
  *
  * This CPO finds a suitable implementation for getting the local address of a
  * socket via `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::getsockname_fn getsockname{};
 
@@ -136,6 +161,8 @@ inline constexpr detail::getsockname_fn getsockname{};
  *
  * This CPO finds a suitable implementation for getting the peer address of a
  * socket via `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::getpeername_fn getpeername{};
 
@@ -145,6 +172,8 @@ inline constexpr detail::getpeername_fn getpeername{};
  *
  * This CPO finds a suitable implementation for shutting down a socket via
  * `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::shutdown_fn shutdown{};
 
@@ -154,6 +183,8 @@ inline constexpr detail::shutdown_fn shutdown{};
  *
  * This CPO finds a suitable implementation for performing a file control
  * operation on a socket via `tag_invoke`.
+ *
+ * @see tag_invoke
  */
 inline constexpr detail::fcntl_fn fcntl{};
 } // namespace io

@@ -65,7 +65,7 @@ TEST_F(SocketMessageTest, MoveConstruction) {
   socket_message msg1;
 
   // Set up some test data
-  msg1 = 42; // flags
+  msg1.set_flags(42);
 
   std::vector<socket_buffer_type> buffers;
   socket_buffer_type buf;
@@ -74,10 +74,10 @@ TEST_F(SocketMessageTest, MoveConstruction) {
   buf.iov_base = test_data.data();
   buf.iov_len = test_data.size();
   buffers.push_back(buf);
-  msg1 = std::move(buffers);
+  msg1.set_buffers(std::move(buffers));
 
   std::vector<char> control_data{'C', 'T', 'R', 'L'};
-  msg1 = std::move(control_data);
+  msg1.set_control(std::move(control_data));
 
   // Move construct
   socket_message msg2 = std::move(msg1);
@@ -94,10 +94,10 @@ TEST_F(SocketMessageTest, MoveAssignment) {
   socket_message msg2;
 
   // Set up test data in msg1
-  msg1 = 123;
+  msg1.set_flags(123);
 
   std::vector<char> control_data{'T', 'E', 'S', 'T'};
-  msg1 = std::move(control_data);
+  msg1.set_control(std::move(control_data));
 
   // Move assign
   msg2 = std::move(msg1);
@@ -110,7 +110,7 @@ TEST_F(SocketMessageTest, MoveAssignment) {
 
 TEST_F(SocketMessageTest, SelfMoveAssignment) {
   socket_message msg;
-  msg = 456;
+  msg.set_flags(456);
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -170,7 +170,7 @@ TEST_F(SocketMessageTest, BufferOperations) {
   buffers.push_back(buf2);
 
   // Set buffers
-  msg = std::move(buffers);
+  msg.set_buffers(std::move(buffers));
 
   // Get buffers
   auto retrieved_buffers = msg.buffers();
@@ -187,7 +187,7 @@ TEST_F(SocketMessageTest, BufferChaining) {
   std::vector<socket_buffer_type> buffers;
 
   // Test method chaining
-  auto &result = (msg = std::move(buffers));
+  auto &result = msg.set_buffers(std::move(buffers));
   EXPECT_EQ(&result, &msg);
 }
 
@@ -195,7 +195,7 @@ TEST_F(SocketMessageTest, EmptyBuffers) {
   socket_message msg;
 
   std::vector<socket_buffer_type> empty_buffers;
-  msg = std::move(empty_buffers);
+  msg.set_buffers(std::move(empty_buffers));
 
   auto retrieved = msg.buffers();
   EXPECT_TRUE(retrieved.empty());
@@ -209,7 +209,7 @@ TEST_F(SocketMessageTest, ControlDataOperations) {
   control_data.assign({'H', 'E', 'L', 'L', 'O', '\0'});
 
   // Set control data
-  msg = std::move(control_data);
+  msg.set_control(std::move(control_data));
 
   // Get control data
   auto retrieved = msg.control();
@@ -225,7 +225,7 @@ TEST_F(SocketMessageTest, ControlDataChaining) {
   std::vector<char> control;
 
   // Test method chaining
-  auto &result = (msg = std::move(control));
+  auto &result = msg.set_control(std::move(control));
   EXPECT_EQ(&result, &msg);
 }
 
@@ -233,7 +233,7 @@ TEST_F(SocketMessageTest, EmptyControlData) {
   socket_message msg;
 
   std::vector<char> empty_control;
-  msg = std::move(empty_control);
+  msg.set_control(std::move(empty_control));
 
   auto retrieved = msg.control();
   EXPECT_TRUE(retrieved.empty());
@@ -243,7 +243,7 @@ TEST_F(SocketMessageTest, LargeControlData) {
   socket_message msg;
 
   std::vector<char> large_control(1024, 'Z');
-  msg = std::move(large_control);
+  msg.set_control(std::move(large_control));
 
   auto retrieved = msg.control();
   EXPECT_EQ(retrieved.size(), 1024);
@@ -256,19 +256,19 @@ TEST_F(SocketMessageTest, FlagsOperations) {
   socket_message msg;
 
   // Test various flag values
-  msg = MSG_DONTWAIT;
+  msg.set_flags(MSG_DONTWAIT);
   EXPECT_EQ(msg.flags(), MSG_DONTWAIT);
 
-  msg = MSG_PEEK;
+  msg.set_flags(MSG_PEEK);
   EXPECT_EQ(msg.flags(), MSG_PEEK);
 
-  msg = MSG_DONTWAIT | MSG_PEEK;
+  msg.set_flags(MSG_DONTWAIT | MSG_PEEK);
   EXPECT_EQ(msg.flags(), MSG_DONTWAIT | MSG_PEEK);
 
-  msg = 0;
+  msg.set_flags(0);
   EXPECT_EQ(msg.flags(), 0);
 
-  msg = -1;
+  msg.set_flags(-1);
   EXPECT_EQ(msg.flags(), -1);
 }
 
@@ -276,7 +276,7 @@ TEST_F(SocketMessageTest, FlagsChaining) {
   socket_message msg;
 
   // Test method chaining
-  auto &result = (msg = MSG_TRUNC);
+  auto &result = msg.set_flags(MSG_TRUNC);
   EXPECT_EQ(&result, &msg);
   EXPECT_EQ(msg.flags(), MSG_TRUNC);
 }
@@ -287,13 +287,13 @@ TEST_F(SocketMessageTest, SwapOperation) {
   socket_message msg2;
 
   // Set up different data in each message
-  msg1 = 100;
+  msg1.set_flags(100);
   std::vector<char> control1{'A', 'B', 'C'};
-  msg1 = std::move(control1);
+  msg1.set_control(std::move(control1));
 
-  msg2 = 200;
+  msg2.set_flags(200);
   std::vector<char> control2{'X', 'Y', 'Z', 'W'};
-  msg2 = std::move(control2);
+  msg2.set_control(std::move(control2));
 
   // Swap
   swap(msg1, msg2);
@@ -313,10 +313,10 @@ TEST_F(SocketMessageTest, SwapOperation) {
 
 TEST_F(SocketMessageTest, SwapWithSelf) {
   socket_message msg;
-  msg = 789;
+  msg.set_flags(789);
 
   std::vector<char> control{'S', 'E', 'L', 'F'};
-  msg = std::move(control);
+  msg.set_control(std::move(control));
 
   // Self swap should not corrupt data
   swap(msg, msg);
@@ -340,12 +340,12 @@ TEST_F(SocketMessageTest, CompleteMessageScenario) {
   std::iota(data.begin(), data.end(), 0);
   socket_buffer_type buf{data.data(), data.size()};
   buffers.push_back(buf);
-  msg = std::move(buffers);
+  msg.set_buffers(std::move(buffers));
 
   std::vector<char> control(64, 'C');
-  msg = std::move(control);
+  msg.set_control(std::move(control));
 
-  msg = MSG_DONTWAIT | MSG_NOSIGNAL;
+  msg.set_flags(MSG_DONTWAIT | MSG_NOSIGNAL);
 
   // Verify all components
   EXPECT_EQ(msg.buffers().size(), 1);
@@ -367,7 +367,7 @@ TEST_F(SocketMessageTest, CompleteMessageScenario) {
 // Thread safety tests
 TEST_F(SocketMessageTest, ThreadSafetyBasic) {
   socket_message msg;
-  msg = 1000;
+  msg.set_flags(1000);
 
   std::atomic<int> reader_count{0};
   std::atomic<int> writer_count{0};
@@ -395,10 +395,10 @@ TEST_F(SocketMessageTest, ThreadSafetyBasic) {
   for (int i = 0; i < num_threads / 2; ++i) {
     threads.emplace_back([&, i]() {
       for (int op = 0; op < operations_per_thread; ++op) {
-        msg = (i + 1) * 100 + op;
+        msg.set_flags((i + 1) * 100 + op);
 
         std::vector<char> control(op % 5 + 1, 'A' + (i % 26));
-        msg = std::move(control);
+        msg.set_control(std::move(control));
 
         writer_count.fetch_add(1);
         std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -426,13 +426,13 @@ TEST_F(SocketMessageTest, ThreadSafeSwap) {
   socket_message msg1;
   socket_message msg2;
 
-  msg1 = 111;
+  msg1.set_flags(111);
   std::vector<char> control1{'1', '1', '1'};
-  msg1 = std::move(control1);
+  msg1.set_control(std::move(control1));
 
-  msg2 = 222;
+  msg2.set_flags(222);
   std::vector<char> control2{'2', '2', '2'};
-  msg2 = std::move(control2);
+  msg2.set_control(std::move(control2));
 
   std::atomic<int> swap_count{0};
   constexpr int num_swap_threads = 2; // Reduced for simpler test
@@ -479,13 +479,13 @@ TEST_F(SocketMessageRAIITest, DestructorCleansUpProperly) {
 
   {
     socket_message msg;
-    msg = 42;
+    msg.set_flags(42);
   }
 
   {
     socket_message msg;
     std::vector<char> data(1000, 'X');
-    msg = std::move(data);
+    msg.set_control(std::move(data));
   }
 
   {
@@ -494,7 +494,7 @@ TEST_F(SocketMessageRAIITest, DestructorCleansUpProperly) {
     std::array<char, 100> data;
     socket_buffer_type buf{data.data(), data.size()};
     buffers.push_back(buf);
-    msg = std::move(buffers);
+    msg.set_buffers(std::move(buffers));
   }
 
   // If we reach here, all destructors completed successfully
@@ -503,9 +503,9 @@ TEST_F(SocketMessageRAIITest, DestructorCleansUpProperly) {
 
 TEST_F(SocketMessageRAIITest, MoveOperationsLeaveValidState) {
   socket_message msg1;
-  msg1 = 999;
+  msg1.set_flags(999);
   std::vector<char> control{'M', 'O', 'V', 'E'};
-  msg1 = std::move(control);
+  msg1.set_control(std::move(control));
 
   socket_message msg2 = std::move(msg1);
 
@@ -517,7 +517,7 @@ TEST_F(SocketMessageRAIITest, MoveOperationsLeaveValidState) {
   auto moved_address1 = msg1.address();
 
   // msg1 should be assignable
-  msg1 = 777;
+  msg1.set_flags(777);
   EXPECT_EQ(msg1.flags(), 777);
 
   // msg2 should have the original data

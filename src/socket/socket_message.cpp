@@ -52,28 +52,43 @@ auto socket_message::operator=(socket_address address) -> socket_message & {
   return *this;
 }
 
-auto socket_message::buffers() const -> message_data::scatter_gather_type {
+auto socket_message::buffers() const -> scatter_gather_buffer {
   std::lock_guard lock{mtx_};
   return data_->buffers;
 }
 
-auto socket_message::operator=(message_data::scatter_gather_type buffers)
+auto socket_message::set_buffers(scatter_gather_buffer buffers)
     -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->buffers = std::move(buffers);
   return *this;
 }
 
-auto socket_message::control() const -> message_data::ancillary_data_type {
+auto socket_message::exchange_buffers(scatter_gather_buffer buffers)
+    -> scatter_gather_buffer {
+  std::lock_guard lock{mtx_};
+  using std::swap;
+  swap(data_->buffers, buffers);
+  return buffers;
+}
+
+auto socket_message::control() const -> ancillary_buffer {
   std::lock_guard lock{mtx_};
   return data_->control;
 }
 
-auto socket_message::operator=(message_data::ancillary_data_type control)
-    -> socket_message & {
+auto socket_message::set_control(ancillary_buffer control) -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->control = std::move(control);
   return *this;
+}
+
+auto socket_message::exchange_control(ancillary_buffer control)
+    -> ancillary_buffer {
+  std::lock_guard lock{mtx_};
+  using std::swap;
+  swap(data_->control, control);
+  return control;
 }
 
 auto socket_message::flags() const -> int {
@@ -81,10 +96,17 @@ auto socket_message::flags() const -> int {
   return data_->flags;
 }
 
-auto socket_message::operator=(int flags) -> socket_message & {
+auto socket_message::set_flags(int flags) -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->flags = flags;
   return *this;
+}
+
+auto socket_message::exchange_flags(int flags) -> int {
+  std::lock_guard lock{mtx_};
+  using std::swap;
+  swap(data_->flags, flags);
+  return flags;
 }
 
 } // namespace io::socket

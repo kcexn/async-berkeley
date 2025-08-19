@@ -13,51 +13,47 @@
  * limitations under the License.
  */
 
+/**
+ * @file listen.hpp
+ * @brief This file defines the `listen` customization point object for the I/O
+ * library.
+ */
 #pragma once
 #ifndef IO_LISTEN_HPP
 #define IO_LISTEN_HPP
 #include <utility>
 
-/**
- * @brief The main namespace for the io library.
- */
 namespace io {
 /**
- * @brief A tag type used for the `listen` customization point object (CPO).
+ * @brief A tag type for the `io::listen` customization point object (CPO).
  *
- * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `listen` CPO. It is not meant to be used directly by users.
- *
- * @see io::listen
- * @see tag_invoke
+ * This type is used as a tag to dispatch to the correct `tag_invoke` overload
+ * for the `listen` CPO. It is not meant to be used directly by end-users.
  */
 struct listen_t {};
 
-/**
- * @brief Implementation details for the `io` library.
- * @details This namespace contains types and functions that are not part of the
- * public API. They are subject to change without notice.
- */
 namespace detail {
 /**
- * @brief A function object that provides the `listen` customization point.
- * @details This struct acts as a customization point for setting sockets to
- * `listen`. It doesn't perform the listen itself, but dispatches to a
- * user-provided implementation via `tag_invoke`. To customize `listen` for a
- * type, provide an overload of `tag_invoke` with `io::listen_t` as the first
- * argument.
+ * @brief The function object that implements the `listen` customization point.
+ *
+ * This struct acts as a customization point for setting sockets to listen. It
+ * dispatches to a user-provided implementation via `tag_invoke`.
+ *
+ * To customize `listen` for a type, provide an overload of `tag_invoke` that
+ * takes `io::listen_t` as its first argument.
  */
 struct listen_fn {
   /**
-   * @brief Calls the `listen` customization point.
+   * @brief Invokes the `listen` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::listen_t{}`, followed by the
+   * argument to `tag_invoke` will be `::io::listen_t{}`, followed by the
    * arguments passed to this function.
    *
-   * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `listen` implementation.
-   * @return The value returned by the `tag_invoke` overload.
+   * @tparam Args The types of the arguments to forward to the `listen`
+   * implementation.
+   * @param ...args The arguments to forward to the `listen` implementation.
+   * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const

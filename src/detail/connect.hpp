@@ -13,50 +13,47 @@
  * limitations under the License.
  */
 
+/**
+ * @file connect.hpp
+ * @brief This file defines the `connect` customization point object for the I/O
+ * library.
+ */
 #pragma once
 #ifndef IO_CONNECT_HPP
 #define IO_CONNECT_HPP
 #include <utility>
 
-/**
- * @brief The main namespace for the io library.
- */
 namespace io {
 /**
- * @brief A tag type used for the `connect` customization point object (CPO).
+ * @brief A tag type for the `io::connect` customization point object (CPO).
  *
- * This type is used to dispatch to the correct `tag_invoke` overload for the
- * `connect` CPO. It is not meant to be used directly by users.
- *
- * @see io::connect
- * @see tag_invoke
+ * This type is used as a tag to dispatch to the correct `tag_invoke` overload
+ * for the `connect` CPO. It is not meant to be used directly by end-users.
  */
 struct connect_t {};
 
-/**
- * @brief Implementation details for the `io` library.
- * @details This namespace contains types and functions that are not part of the
- * public API. They are subject to change without notice.
- */
 namespace detail {
 /**
- * @brief A function object that provides the `connect` customization point.
- * @details This struct acts as a customization point for connecting sockets. It
- * doesn't perform the connect itself, but dispatches to a user-provided
- * implementation via `tag_invoke`. To customize `connect` for a type, provide
- * an overload of `tag_invoke` with `io::connect_t` as the first argument.
+ * @brief The function object that implements the `connect` customization point.
+ *
+ * This struct acts as a customization point for connecting sockets. It
+ * dispatches to a user-provided implementation via `tag_invoke`.
+ *
+ * To customize `connect` for a type, provide an overload of `tag_invoke` that
+ * takes `io::connect_t` as its first argument.
  */
 struct connect_fn {
   /**
-   * @brief Calls the `connect` customization point.
+   * @brief Invokes the `connect` customization point.
    *
    * This function call is dispatched to an overload of `tag_invoke`. The first
-   * argument to `tag_invoke` is `::io::connect_t{}`, followed by the
+   * argument to `tag_invoke` will be `::io::connect_t{}`, followed by the
    * arguments passed to this function.
    *
-   * @tparam Args The types of the arguments.
-   * @param args The arguments to pass to the `connect` implementation.
-   * @return The value returned by the `tag_invoke` overload.
+   * @tparam Args The types of the arguments to forward to the `connect`
+   * implementation.
+   * @param ...args The arguments to forward to the `connect` implementation.
+   * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
   auto operator()(Args &&...args) const

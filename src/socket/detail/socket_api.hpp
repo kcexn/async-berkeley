@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+/**
+ * @file socket_api.hpp
+ * @brief This file includes all the necessary headers for the socket API.
+ *
+ * It serves as a single entry point for including all the socket-related CPOs.
+ */
 #pragma once
 #ifndef IO_SOCKET_API_HPP
 #define IO_SOCKET_API_HPP
