@@ -141,7 +141,8 @@ ctest --preset debug
 # Run individual test executables
 ./build/debug/tests/socket_handle_test
 ./build/debug/tests/socket_message_test
-./build/debug/tests/socket_buffer_test
+./build/debug/tests/socket_address_test
+./build/debug/tests/socket_test
 ```
 
 #### Release Build (Production)
@@ -197,7 +198,8 @@ ctest
 # or manually:
 ./tests/socket_handle_test
 ./tests/socket_message_test
-./tests/socket_buffer_test
+./tests/socket_address_test
+./tests/socket_test
 ```
 
 #### Build with Tests and Coverage
@@ -421,9 +423,10 @@ ctest --preset debug -R socket_handle_test
 ### Test Categories
 
 Current test suites:
-- **socket_handle_test**: Tests for RAII socket wrapper (`iosched::socket::socket_handle`)
-- **socket_message_test**: Tests for cross-platform socket messages (`iosched::socket::socket_message`)
-- **socket_buffer_test**: Tests for custom stream buffer implementation (`iosched::buffers::socket_buffer`)
+- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`)
+- **socket_message_test**: Tests for thread-safe socket messages (`io::socket::socket_message`) with push/emplace functionality
+- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`)
+- **socket_test**: Tests for cross-platform socket operations and tag-dispatched customization points
 
 ## Troubleshooting
 
@@ -545,6 +548,6 @@ cmake --build --preset benchmark
 ctest --preset benchmark
 
 # Profile with perf (Linux)
-perf record -g ./build/benchmark/tests/socket_buffer_test
+perf record -g ./build/benchmark/tests/socket_handle_test
 perf report
 ```

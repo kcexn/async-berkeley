@@ -12,7 +12,7 @@ A modern C++20 I/O scheduling library providing cross-platform asynchronous sock
 - **Tag-Dispatched Operations**: Type-safe, extensible socket operations using the `tag_invoke` customization point pattern
 - **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations with platform-specific implementations
 - **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage and mutex-protected operations
-- **Advanced Message Handling**: Thread-safe `socket_message` class for scatter-gather I/O and ancillary data
+- **Advanced Message Handling**: Thread-safe `socket_message` class for scatter-gather I/O and ancillary data with `push()` and `emplace()` methods for efficient data appending
 - **Move-Only Semantics**: Clear resource ownership preventing double-free errors and resource leaks
 - **Comprehensive Socket Operations**: Full set of socket operations (bind, listen, connect, accept, sendmsg, recvmsg, etc.) through customization points
 - **Exception Safety**: Robust error handling with automatic resource cleanup and strong exception guarantees
@@ -151,11 +151,14 @@ io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 // Create a socket message for scatter-gather I/O
 io::socket::socket_message msg;
 
-// Add multiple data buffers
+// Add multiple data buffers using thread-safe methods
 std::string header = "HTTP/1.1 200 OK\r\n";
 std::string content = "Hello, World!";
-msg.add_buffer(header.data(), header.size());
-msg.add_buffer(content.data(), content.size());
+msg.push(header.data(), header.size());  // Thread-safe append
+msg.push(content.data(), content.size());
+
+// Alternative: Use emplace for in-place construction
+msg.emplace("Connection: close\r\n\r\n");
 
 // Send using scatter-gather I/O
 auto bytes_sent = io::sendmsg(client_socket, msg.native(), MSG_NOSIGNAL);
@@ -237,7 +240,7 @@ try {
 
 - **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage and mutex-protected operations
 - **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
-- **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns
+- **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns with efficient `push()` and `emplace()` methods for data management
 - **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with multiple overloads using the `tag_invoke` pattern
 - **Cross-Platform Abstraction**: Platform-specific implementations in `src/socket/platforms/` with unified interfaces
 - **Error Handling**: Structured exception handling with `std::system_error` for high-level operations and return codes for low-level operations
