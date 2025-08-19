@@ -1,5 +1,5 @@
 Checks: >
-  -*, 
+  -*,
   bugprone-*,
   cert-*,
   cppcoreguidelines-*,
@@ -7,7 +7,8 @@ Checks: >
   performance-*,
   readability-*,
   -readability-braces-around-statements,
-  -readability-magic-numbers
+  -readability-magic-numbers,
+  -readability-implicit-bool-conversion
 HeaderFilterRegex: 'src/.*'
 CheckOptions:
   misc-trailing-whitespace.AllowEmptyLines: false

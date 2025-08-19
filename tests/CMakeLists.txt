@@ -1,52 +1,28 @@
-add_executable(
-  socket_message_test
-  socket_message_test.cpp
-)
-
-target_link_libraries(
-  socket_message_test
-  PRIVATE
-  GTest::gtest_main
-  iosched
-)
-
-if(IOSCHED_ENABLE_COVERAGE)
-  target_link_libraries(socket_message_test PRIVATE gcov)
-endif()
-
-add_executable(
-  socket_buffer_test
-  socket_buffer_test.cpp
-)
-
-target_link_libraries(
-  socket_buffer_test
-  PRIVATE
-  GTest::gtest_main
-  iosched
-)
-
-if(IOSCHED_ENABLE_COVERAGE)
-  target_link_libraries(socket_buffer_test PRIVATE gcov)
-endif()
-
-add_executable(
-  socket_handle_test
-  socket_handle_test.cpp
-)
-
-target_link_libraries(
-  socket_handle_test
-  PRIVATE
-  GTest::gtest_main
-  iosched
-)
-
-if(IOSCHED_ENABLE_COVERAGE)
-  target_link_libraries(socket_handle_test PRIVATE gcov)
-endif()
-
 include(GoogleTest)
-gtest_discover_tests(socket_message_test)
-gtest_discover_tests(socket_buffer_test)
-gtest_discover_tests(socket_handle_test)
+
+set(TEST_NAMES
+  socket_handle_test
+  socket_address_test
+  socket_message_test
+  socket_test
+)
+
+foreach(TEST_NAME IN LISTS TEST_NAMES)
+  add_executable(
+    ${TEST_NAME}
+    ${TEST_NAME}.cpp
+  )
+
+  target_link_libraries(
+    ${TEST_NAME}
+    PRIVATE
+    GTest::gtest_main
+    iosched
+  )
+
+  if(IOSCHED_ENABLE_COVERAGE)
+    target_link_libraries(${TEST_NAME} PRIVATE gcov)
+  endif()
+
+  gtest_discover_tests(${TEST_NAME})
+endforeach()

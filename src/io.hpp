@@ -7,262 +7,185 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
+ * distributed under the License is a "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "buffers.hpp"
-#include "streams.hpp"
-#include <algorithm>
-#include <chrono>
-#include <poll.h>
-
-#pragma once
-#ifndef IO
-#define IO
 
 /**
- * @brief The main namespace for the iosched library.
- *
- * This namespace contains the core components for I/O scheduling.
+ * @file io.hpp
+ * @brief This file contains the main header for the I/O library. It includes
+ * all the necessary headers for the I/O operations and defines the main
+ * namespace and customization point objects.
  */
-namespace iosched {
-namespace {
-template <class T> static bool shrink_to_fit(std::vector<T> &vec) {
-  static constexpr std::size_t THRESH = 256;
-  bool resized = false;
-  const std::size_t capacity = vec.capacity();
-  if (capacity > THRESH && vec.size() < capacity / 8) {
-    vec = std::vector<T>(std::make_move_iterator(vec.begin()),
-                         std::make_move_iterator(vec.end()));
-    resized = true;
-  }
-  return resized;
-}
-} // namespace
-struct poll_t {
-  using native_handle_type = int;
-  using event_type = struct pollfd;
-  using events_type = std::vector<event_type>;
-  using event_mask = short;
-  static event_type mkevent(const native_handle_type &hnd,
-                            const event_mask &events,
-                            const event_mask &revents = 0) {
-    return event_type{hnd, events, revents};
-  }
-};
+#pragma once
+#ifndef IO_HPP
+#define IO_HPP
+#include "detail/accept.hpp"
+#include "detail/bind.hpp"
+#include "detail/connect.hpp"
+#include "detail/fcntl.hpp"
+#include "detail/getpeername.hpp"
+#include "detail/getsockname.hpp"
+#include "detail/getsockopt.hpp"
+#include "detail/listen.hpp"
+#include "detail/recvmsg.hpp"
+#include "detail/sendmsg.hpp"
+#include "detail/setsockopt.hpp"
+#include "detail/shutdown.hpp"
 
-template <class PollT> struct poll_traits : public PollT {
-  using Base = PollT;
-  using signal_type = sigset_t;
-  using size_type = std::size_t;
-  using duration_type = std::chrono::milliseconds;
-  static const size_type npos = -1;
-};
+/**
+ * @brief The `io` namespace contains all the functions and classes for the I/O
+ * library.
+ *
+ * This namespace provides a set of customization point objects (CPOs) for
+ * various I/O operations. These CPOs are designed to be extensible and can be
+ * customized for different types of I/O objects.
+ */
+namespace io {
+/**
+ * @brief A customization point object for binding a socket to an address.
+ *
+ * This CPO can be used to bind a socket to a specific address. The actual
+ * implementation is found by `tag_invoke`.
+ *
+ * @see tag_invoke
+ *
+ * Example:
+ * @code
+ * io::socket_handle sock{AF_INET, SOCK_STREAM, IPPROTO_TCP};
+ * sockaddr_in addr{}
+ * addr.sin_family = AF_INET;
+ * addr.sin_addr.s_addr = INADDR_ANY;
+ * addr.sin_port = 0;
+ * // ...
+ * ::io::bind(sock, &addr, sizeof(addr));
+ * @endcode
+ */
+inline constexpr detail::bind_fn bind{};
 
-template <class PollT, class Traits = poll_traits<PollT>> class basic_poller {
-public:
-  using native_handle_type = typename Traits::native_handle_type;
-  using signal_type = typename Traits::signal_type;
-  using size_type = typename Traits::size_type;
-  using duration_type = typename Traits::duration_type;
-  using event_type = typename Traits::event_type;
-  using events_type = typename Traits::events_type;
-  using event_mask = typename Traits::event_mask;
-  static const size_type npos = Traits::npos;
+/**
+ * @brief A customization point object for setting a socket to listen for
+ * incoming connections.
+ *
+ * This CPO can be used to set a socket to listen. The actual
+ * implementation is found by `tag_invoke`.
+ *
+ * @see tag_invoke
+ *
+ * Example:
+ * @code
+ * io::socket_handle sock{AF_INET, SOCK_STREAM, IPPROTO_TCP};
+ * // ...
+ * int backlog = 16;
+ * ::io::listen(sock, backlog);
+ * @endcode
+ */
+inline constexpr detail::listen_fn listen{};
 
-  basic_poller() = default;
+/**
+ * @brief A customization point object that connects a socket to an address.
+ *
+ * This CPO finds a suitable implementation for connecting a socket via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::connect_fn connect{};
 
-  size_type operator()(duration_type timeout = duration_type(0)) {
-    return _poll(timeout);
-  }
+/**
+ * @brief A customization point object that accepts an incoming connection on a
+ * listening socket.
+ *
+ * This CPO finds a suitable implementation for accepting a connection via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::accept_fn accept{};
 
-  size_type add(native_handle_type handle, event_type event) {
-    return _add(handle, _events, event);
-  }
-  size_type update(native_handle_type handle, event_type event) {
-    return _update(handle, _events, event);
-  }
-  size_type del(native_handle_type handle) { return _del(handle, _events); }
+/**
+ * @brief A customization point object that sends a message on a socket.
+ *
+ * This CPO finds a suitable implementation for sending a message via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::sendmsg_fn sendmsg{};
 
-  events_type &events() { return _events; }
-  const events_type &events() const { return _events; }
+/**
+ * @brief A customization point object that receives a message from a socket.
+ *
+ * This CPO finds a suitable implementation for receiving a message via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::recvmsg_fn recvmsg{};
 
-  virtual ~basic_poller() = default;
+/**
+ * @brief A customization point object that gets a socket option.
+ *
+ * This CPO finds a suitable implementation for getting a socket option via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::getsockopt_fn getsockopt{};
 
-  basic_poller(const basic_poller &other) = delete;
-  basic_poller(basic_poller &&other) = delete;
-  basic_poller &operator=(const basic_poller &other) = delete;
-  basic_poller &operator=(basic_poller &&other) = delete;
+/**
+ * @brief A customization point object that sets a socket option.
+ *
+ * This CPO finds a suitable implementation for setting a socket option via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::setsockopt_fn setsockopt{};
 
-protected:
-  virtual size_type _add(native_handle_type handle, events_type &events,
-                         event_type event) {
-    return npos;
-  }
-  virtual size_type _update(native_handle_type handle, events_type &events,
-                            event_type event) {
-    return npos;
-  }
-  virtual size_type _del(native_handle_type handle, events_type &events) {
-    return npos;
-  }
-  virtual size_type _poll(const duration_type &timeout) { return npos; }
+/**
+ * @brief A customization point object that gets the local address of a socket.
+ *
+ * This CPO finds a suitable implementation for getting the local address of a
+ * socket via `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::getsockname_fn getsockname{};
 
-private:
-  events_type _events{};
-};
+/**
+ * @brief A customization point object that gets the peer address of a connected
+ * socket.
+ *
+ * This CPO finds a suitable implementation for getting the peer address of a
+ * socket via `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::getpeername_fn getpeername{};
 
-class poller : public basic_poller<poll_t> {
-public:
-  using Base = basic_poller<poll_t>;
-  using size_type = Base::size_type;
-  using duration_type = Base::duration_type;
-  using event_type = Base::event_type;
-  using events_type = Base::events_type;
-  using event_mask = Base::event_mask;
+/**
+ * @brief A customization point object that shuts down all or part of a
+ * connection on a socket.
+ *
+ * This CPO finds a suitable implementation for shutting down a socket via
+ * `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::shutdown_fn shutdown{};
 
-  poller() : Base() {}
-  virtual ~poller() = default;
-
-  poller(const poller &other) = delete;
-  poller(poller &&other) = delete;
-  poller &operator=(const poller &other) = delete;
-  poller &operator=(poller &&other) = delete;
-
-protected:
-  size_type _add(native_handle_type handle, events_type &events,
-                 event_type event) override;
-  size_type _update(native_handle_type handle, events_type &events,
-                    event_type event) override;
-  size_type _del(native_handle_type handle, events_type &events) override;
-  size_type _poll(const duration_type &timeout) override;
-};
-
-template <class PollT, class Traits = poll_traits<PollT>> class basic_trigger {
-public:
-  using poller_type = basic_poller<PollT>;
-  using traits_type = Traits;
-  using native_handle_type = typename traits_type::native_handle_type;
-  using signal_type = typename traits_type::signal_type;
-  using size_type = typename traits_type::size_type;
-  using duration_type = typename traits_type::duration_type;
-  using event_type = typename traits_type::event_type;
-  using events_type = typename traits_type::events_type;
-  using event_mask = typename traits_type::event_mask;
-  using trigger_type = std::uint32_t;
-  using interest_type = std::tuple<native_handle_type, trigger_type>;
-  using interest_list = std::vector<interest_type>;
-  static const size_type npos = traits_type::npos;
-
-  explicit basic_trigger(poller_type &poller) : _poller{poller} {}
-
-  size_type set(native_handle_type handle, trigger_type trigger) {
-    auto begin = _list.begin(), end = _list.end();
-    auto lb = std::lower_bound(
-        begin, end, handle, [](const auto &lhs, const native_handle_type &rhs) {
-          return std::get<native_handle_type>(lhs) < rhs;
-        });
-    if (lb == end || std::get<native_handle_type>(*lb) != handle) {
-      _list.insert(lb, interest_type{handle, trigger});
-      shrink_to_fit(_list);
-      return _poller.add(handle, traits_type::mkevent(handle, trigger));
-    }
-    auto &trig = std::get<trigger_type>(*lb);
-    if ((trig & trigger) != trigger)
-      return _poller.update(handle,
-                            traits_type::mkevent(handle, trig |= trigger));
-    return _list.size();
-  }
-
-  size_type clear(native_handle_type handle,
-                  trigger_type trigger = UINT32_MAX) {
-    auto begin = _list.begin(), end = _list.end();
-    auto lb = std::lower_bound(
-        begin, end, handle, [](const auto &lhs, const native_handle_type &rhs) {
-          return std::get<native_handle_type>(lhs) < rhs;
-        });
-    if (lb == end || std::get<native_handle_type>(*lb) != handle)
-      return npos;
-    auto &trig = std::get<trigger_type>(*lb);
-    if (!(trig & ~trigger)) {
-      _list.erase(lb);
-      return _poller.del(handle);
-    }
-    if ((trig & ~trigger) != trig)
-      return _poller.update(handle,
-                            traits_type::mkevent(handle, trig &= ~trigger));
-    return _list.size();
-  }
-
-  size_type wait(duration_type timeout = duration_type(0)) {
-    return _poller(timeout);
-  }
-  const interest_list &list() const { return _list; }
-
-  const events_type &events() const { return _poller.events(); }
-
-  virtual ~basic_trigger() = default;
-
-  basic_trigger() = delete;
-  basic_trigger(const basic_trigger &other) = delete;
-  basic_trigger(basic_trigger &&other) = delete;
-  basic_trigger &operator=(const basic_trigger &other) = delete;
-  basic_trigger &operator=(const basic_trigger &&other) = delete;
-
-private:
-  interest_list _list;
-  poller_type &_poller;
-};
-
-class trigger : public basic_trigger<poll_t> {
-public:
-  using Base = basic_trigger<poll_t>;
-  using native_handle_type = Base::native_handle_type;
-  using trigger_type = Base::trigger_type;
-  using event_type = Base::event_type;
-  using events_type = Base::events_type;
-  using event_mask = Base::event_mask;
-  using size_type = Base::size_type;
-
-  trigger() : Base(_poller) {}
-  virtual ~trigger() = default;
-
-  trigger(const trigger &other) = delete;
-  trigger(trigger &&other) = delete;
-  trigger &operator=(const trigger &other) = delete;
-  trigger &operator=(trigger &&other) = delete;
-
-private:
-  poller _poller;
-};
-
-template <class TriggerT> class basic_handler {
-public:
-  using trigger_type = TriggerT;
-  using event_type = typename trigger_type::event_type;
-  using events_type = typename trigger_type::events_type;
-  using event_mask = typename trigger_type::event_mask;
-  using size_type = typename trigger_type::size_type;
-
-  explicit basic_handler(trigger_type &triggers) : _triggers{triggers} {}
-
-  size_type handle(events_type &events) { return _handle(events); }
-  trigger_type &triggers() { return _triggers; }
-
-  virtual ~basic_handler() = default;
-
-  basic_handler(const basic_handler &other) = delete;
-  basic_handler(basic_handler &&other) = delete;
-  basic_handler &operator=(const basic_handler &other) = delete;
-  basic_handler &operator=(basic_handler &&other) = delete;
-
-protected:
-  virtual size_type _handle(events_type &events) { return trigger_type::npos; }
-
-private:
-  trigger_type &_triggers;
-};
-} // namespace iosched
-#endif
+/**
+ * @brief A customization point object that performs a file control operation on
+ * a socket.
+ *
+ * This CPO finds a suitable implementation for performing a file control
+ * operation on a socket via `tag_invoke`.
+ *
+ * @see tag_invoke
+ */
+inline constexpr detail::fcntl_fn fcntl{};
+} // namespace io
+#endif // IO_HPP

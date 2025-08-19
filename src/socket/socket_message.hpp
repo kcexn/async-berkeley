@@ -15,376 +15,342 @@
 
 /**
  * @file socket_message.hpp
- * @brief Cross-platform socket message and buffer abstractions.
- *
- * This file defines a set of classes and type aliases for handling socket
- * messages, data buffers, and ancillary data in a platform-independent manner.
- * It uses template metaprogramming (CRTP) and preprocessor checks to abstract
- * away the differences between POSIX (struct iovec, struct msghdr) and
- * Windows (WSABUF, WSAMSG) socket APIs.
- *
- * The primary components are:
- * - `socket_message`: A unified struct for scatter/gather I/O operations.
- * - `ancillary_buffer`: A thread-safe container for control messages.
- * - `data_buffer`: A wrapper for platform-specific data buffer types.
+ * @brief This file defines the `socket_message` class, a thread-safe container
+ * for advanced socket I/O operations.
  */
 #pragma once
-#ifndef IOSCHED_SOCKET_MESSAGE_HPP
-#define IOSCHED_SOCKET_MESSAGE_HPP
+#ifndef IO_SOCKET_MESSAGE_HPP
+#define IO_SOCKET_MESSAGE_HPP
 #include <boost/predef.h>
 
-#include <mutex>
-#include <tuple>
-#include <vector>
-
 #if BOOST_OS_WINDOWS
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include "platforms/windows/socket.hpp"
 #else
-#include <sys/socket.h>
+#include "platforms/posix/socket.hpp"
 #endif
 
-/**
- * @namespace iosched::socket
- * @brief Provides cross-platform abstractions for socket-level I/O.
- *
- * This namespace contains a set of tools for building and manipulating
- * socket messages and buffers, ensuring that code can be written once and
- * compiled on both Windows and POSIX-compliant systems without modification.
- */
-namespace iosched::socket {
+#include "socket_address.hpp"
+
+#include <memory>
+#include <mutex>
+#include <vector>
+
+namespace io::socket {
 
 /**
- * @namespace iosched::socket::detail
- * @brief Contains internal implementation details for the socket abstractions.
+ * @brief Type alias for ancillary data buffer used in socket messages.
  *
- * The contents of this namespace are not intended for direct use and are
- * subject to change without notice. They provide the underlying mechanics
- * for the public-facing APIs in the `iosched::socket` namespace.
+ * This buffer stores control information that can be passed alongside the
+ * main message data in advanced socket operations. Ancillary data can include
+ * file descriptors, credentials, socket options, or other metadata that needs
+ * to be transmitted with the message.
+ *
+ * @see sendmsg(2), recvmsg(2), cmsg(3)
  */
-namespace detail {
+using ancillary_buffer = std::vector<char>;
 
 /**
- * @class ancillary_buffer_impl
- * @brief A thread-safe, platform-aware implementation for ancillary data.
- * @tparam Base The platform-specific base class, which is either
- *              `wsabuf_base` (Windows) or `posix_base` (POSIX).
+ * @brief Type alias for scatter-gather I/O buffer collection.
  *
- * This class manages a buffer for ancillary (control) data used in
- * advanced socket operations. It employs the Curiously Recurring
- * Template Pattern (CRTP) to inherit from a platform-specific base,
- * allowing it to interface directly with native socket APIs.
+ * This collection holds multiple data buffers that can be used for vectored
+ * I/O operations. Scatter-gather I/O allows reading from or writing to
+ * multiple non-contiguous memory regions in a single system call, improving
+ * performance by reducing the number of system calls needed for complex
+ * data structures.
  *
- * @note Thread safety is ensured by protecting all member data with a
- *       mutex. Copy and swap operations are performed atomically.
+ * @see readv(2), writev(2), sendmsg(2), recvmsg(2)
  */
-template <typename Base> class ancillary_buffer_impl : public Base {
+using scatter_gather_buffer = std::vector<socket_buffer_type>;
+
+/**
+ * @brief A data structure that contains all the components of a socket message.
+ *
+ * This structure holds the complete data for a socket message, including the
+ * address, data buffers, control data, and flags. It is used internally by the
+ * `socket_message` class for thread-safe storage.
+ */
+struct message_data {
+  socket_address address; ///< The socket address for the message.
+  scatter_gather_buffer
+      buffers; ///< A collection of data buffers for scatter-gather I/O.
+  ancillary_buffer control; ///< The ancillary data (control information).
+  int flags{};              ///< The message flags for socket operations.
+};
+
+/**
+ * @brief A thread-safe container for socket messages used in advanced I/O
+ * operations.
+ *
+ * The `socket_message` class provides a thread-safe wrapper around the socket
+ * message data, supporting scatter-gather I/O operations with ancillary data
+ * and control information. This class is designed for use with the `sendmsg()`
+ * and `recvmsg()` system calls, which require complex message structures.
+ *
+ * @details
+ * Key features:
+ * - Thread-safe access to all message components using mutex protection.
+ * - Move-only semantics to prevent resource duplication.
+ * - Eager initialization of internal data storage.
+ * - Support for scatter-gather I/O with multiple data buffers.
+ * - Handling of ancillary data for control messages.
+ * - Management of socket addresses for message routing.
+ *
+ * @par Thread Safety
+ * All operations on a `socket_message` instance are thread-safe due to internal
+ * mutex protection. Multiple threads can safely access different
+ * `socket_message` instances concurrently. Concurrent access to the same
+ * instance is serialized.
+ *
+ * @note This class uses eager initialization, meaning the internal data
+ * structure is created immediately in the constructor.
+ *
+ * @warning Copy operations are explicitly deleted to prevent ambiguity in
+ * resource ownership. Use move semantics instead.
+ */
+class socket_message {
+
 public:
-  /// @brief The underlying container for ancillary data bytes.
-  using ancillary_data = std::vector<char>;
-
   /**
-   * @brief Constructs an empty ancillary buffer.
-   */
-  ancillary_buffer_impl() = default;
-
-  /**
-   * @brief Thread-safe copy constructor.
-   * @param other The object to copy from.
+   * @brief Default constructor.
    *
-   * A lock is acquired on the other object's mutex during the copy
-   * to prevent data races.
+   * Creates an empty socket message with initialized internal data.
    */
-  ancillary_buffer_impl(const ancillary_buffer_impl &other)
-      : ancillary_buffer_impl() {
-    std::lock_guard lock{other.mtx_};
+  socket_message();
 
-    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-    data_ = other.data_;
-    static_cast<Base &>(*this) = static_cast<const Base &>(other);
-  }
+  /**
+   * @brief Deleted copy constructor.
+   *
+   * Copying is disallowed to enforce move-only semantics and prevent resource
+   * ownership issues.
+   */
+  socket_message(const socket_message &other) = delete;
+
+  /**
+   * @brief Deleted copy assignment operator.
+   *
+   * Copying is disallowed to enforce move-only semantics and prevent resource
+   * ownership issues.
+   */
+  auto operator=(const socket_message &other) -> socket_message & = delete;
 
   /**
    * @brief Move constructor.
-   * @param other The object to move from.
+   *
+   * Transfers ownership of the socket message data from another instance,
+   * leaving the source instance in a valid but unspecified state.
+   *
+   * @param other The `socket_message` to move from.
    */
-  ancillary_buffer_impl(ancillary_buffer_impl &&other) noexcept //GCOVR_EXCL_START
-      : ancillary_buffer_impl() {
-    swap(*this, other);
-  }
-  //GCOVR_EXCL_STOP
-
-  /**
-   * @brief Constructs the buffer by copying data from a container.
-   * @param buffer The vector of chars to use as the buffer's content.
-   */
-  ancillary_buffer_impl(const ancillary_data &buffer) : data_{buffer} {
-    update_base();
-  }
-
-  /**
-   * @brief Constructs the buffer by moving data from a container.
-   * @param buffer The vector of chars to move into the buffer.
-   */
-  ancillary_buffer_impl(ancillary_data &&buffer) : data_{std::move(buffer)} {
-    update_base();
-  }
-
-  /**
-   * @brief Copy assignment operator.
-   * @param other The object to copy from.
-   * @return A reference to this object.
-   */
-  auto
-  operator=(const ancillary_buffer_impl &other) -> ancillary_buffer_impl & {
-    auto temp = ancillary_buffer_impl{other};
-    swap(*this, temp);
-    return *this;
-  }
+  socket_message(socket_message &&other) noexcept;
 
   /**
    * @brief Move assignment operator.
-   * @param other The object to move from.
-   * @return A reference to this object.
+   *
+   * Transfers ownership of the socket message data from another instance,
+   * leaving the source instance in a valid but unspecified state.
+   *
+   * @param other The `socket_message` to move from.
+   * @return A reference to this instance.
    */
-  auto
-  operator=(ancillary_buffer_impl &&other) noexcept -> ancillary_buffer_impl & {
-    swap(*this, other);
+  auto operator=(socket_message &&other) noexcept -> socket_message &;
+
+  /**
+   * @brief Swaps the contents of two `socket_message` instances.
+   *
+   * This function atomically swaps the contents of two `socket_message`
+   * instances using a dual-mutex lock to prevent deadlocks.
+   *
+   * @param lhs The first `socket_message` instance.
+   * @param rhs The second `socket_message` instance.
+   *
+   * @note This function uses `std::scoped_lock` to prevent deadlocks when
+   * locking multiple mutexes.
+   */
+  friend auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void;
+
+  /**
+   * @brief Gets the underlying `message_data` struct
+   */
+  [[nodiscard]] auto get() const -> message_data;
+
+  /**
+   * @brief Assign `message_data` to socket_message
+   */
+  auto operator=(message_data data) -> socket_message &;
+
+  /**
+   * @brief Gets the socket address.
+   *
+   * @return A copy of the socket address associated with this message.
+   */
+  [[nodiscard]] auto address() const -> socket_address;
+
+  /**
+   * @brief Sets the socket address.
+   *
+   * @param address The socket address to set.
+   * @return A reference to this `socket_message` for method chaining.
+   */
+  auto set_address(socket_address address) -> socket_message &;
+
+  /**
+   * @brief Exchanges the socket address.
+   *
+   * @param address The socket address to set.
+   * @return The previous address that was replaced.
+   */
+  auto exchange_address(socket_address address) -> socket_address;
+
+  /**
+   * @brief Gets the data buffers.
+   *
+   * These buffers are used for vectored I/O operations that can read or write
+   * multiple non-contiguous memory regions in a single system call.
+   *
+   * @return A copy of the scatter-gather buffer collection.
+   */
+  [[nodiscard]] auto buffers() const -> scatter_gather_buffer;
+
+  /**
+   * @brief Sets the data buffers.
+   *
+   * The provided buffers are moved into the message, transferring ownership.
+   *
+   * @param buffers The buffer collection to set (will be moved).
+   * @return A reference to this `socket_message` for method chaining.
+   */
+  auto set_buffers(scatter_gather_buffer buffers) -> socket_message &;
+
+  /**
+   * @brief Exchanges the data buffers.
+   *
+   * The provided buffers are moved into the message, transferring ownership.
+   * The previous buffers are returned to the caller.
+   *
+   * @param buffers The buffer collection to set (will be moved).
+   * @return The previous buffer collection that was replaced.
+   */
+  auto exchange_buffers(scatter_gather_buffer buffers) -> scatter_gather_buffer;
+
+  /**
+   * @brief Adds a new data buffer to the end of the buffer collection.
+   *
+   * This method appends the provided buffer to the end of the scatter-gather
+   * buffer collection. The operation is thread-safe and the buffer is copied
+   * into the collection.
+   *
+   * @param buffer The buffer to add to the collection.
+   * @return A reference to this `socket_message` for method chaining.
+   *
+   * @note This operation is thread-safe due to internal mutex protection.
+   */
+  auto push_back(socket_buffer_type buffer) -> socket_message &;
+
+  /**
+   * @brief Constructs a new buffer in-place at the end of the buffer
+   * collection.
+   *
+   * This method constructs a new `socket_buffer_type` object directly in the
+   * buffer collection using the provided arguments, avoiding unnecessary copies
+   * or moves. This is more efficient than `push_back` when the buffer can be
+   * constructed from the arguments directly.
+   *
+   * @tparam Args The types of arguments to forward to the buffer constructor.
+   * @param args The arguments to forward to construct the new buffer.
+   * @return A reference to this `socket_message` for method chaining.
+   *
+   * @note This operation is thread-safe due to internal mutex protection.
+   */
+  template <typename... Args>
+  auto emplace_back(Args &&...args) -> socket_message & {
+    std::lock_guard<std::mutex> lock{mtx_};
+    data_->buffers.emplace_back(std::forward<Args>(args)...);
     return *this;
   }
 
   /**
-   * @brief Swaps the contents of two ancillary buffers thread-safely.
-   * @param lhs The first buffer.
-   * @param rhs The second buffer.
+   * @brief Gets the ancillary data.
    *
-   * This function acquires locks on both buffers to ensure the swap
-   * is atomic and avoids deadlocks.
+   * This data contains control information that can be passed alongside the
+   * main message data, such as file descriptors, credentials, or other
+   * metadata.
+   *
+   * @return A copy of the ancillary data.
    */
-  friend void swap(ancillary_buffer_impl &lhs, //GCOVR_EXCL_START
-                   ancillary_buffer_impl &rhs) noexcept {
-    std::scoped_lock lock{lhs.mtx_, rhs.mtx_};
-
-    using std::swap;
-    swap(lhs.data_, rhs.data_);
-    swap(static_cast<Base &>(lhs), static_cast<Base &>(rhs));
-  }
-  //GCOVR_EXCL_STOP
+  [[nodiscard]] auto control() const -> ancillary_buffer;
 
   /**
-   * @brief Gets a pointer to the raw ancillary data.
-   * @return A const pointer to the beginning of the data buffer.
+   * @brief Sets the ancillary data.
+   *
+   * The provided data is moved into the message, transferring ownership.
+   *
+   * @param control The ancillary data to set (will be moved).
+   * @return A reference to this `socket_message` for method chaining.
    */
-  [[nodiscard]] auto data() const -> const char * { return data_.data(); }
+  auto set_control(ancillary_buffer control) -> socket_message &;
 
   /**
-   * @brief Gets the size of the ancillary data buffer.
-   * @return The size of the buffer in bytes.
+   * @brief Exchanges the ancillary data.
+   *
+   * The provided control data is moved into the message, transferring
+   * ownership. The previous control data is returned to the caller.
+   *
+   * @param control The ancillary data to set (will be moved).
+   * @return The previous ancillary data that was replaced.
    */
-  [[nodiscard]] auto size() const -> size_t { return data_.size(); }
+  auto exchange_control(ancillary_buffer control) -> ancillary_buffer;
+
+  /**
+   * @brief Gets the message flags.
+   *
+   * These flags control the behavior of socket operations and correspond to the
+   * flags parameter used with the `sendmsg()` and `recvmsg()` system calls.
+   *
+   * @return The message flags.
+   */
+  [[nodiscard]] auto flags() const -> int;
+
+  /**
+   * @brief Sets the message flags.
+   *
+   * These flags control the behavior of socket operations and correspond to the
+   * flags parameter used with the `sendmsg()` and `recvmsg()` system calls
+   * (e.g., `MSG_DONTWAIT`, `MSG_PEEK`, `MSG_TRUNC`).
+   *
+   * @param flags The message flags to set.
+   * @return A reference to this `socket_message` for method chaining.
+   */
+  auto set_flags(int flags) -> socket_message &;
+
+  /**
+   * @brief Exchanges the message flags.
+   *
+   * The provided flags are set in the message, replacing the current flags.
+   * The previous flags are returned to the caller.
+   *
+   * @param flags The message flags to set.
+   * @return The previous message flags that were replaced.
+   */
+  auto exchange_flags(int flags) -> int;
 
   /**
    * @brief Default destructor.
-   */
-  ~ancillary_buffer_impl() = default;
-
-private:
-  /// @brief The underlying storage for the ancillary data.
-  ancillary_data data_;
-  /// @brief A mutex to ensure thread-safe access to the buffer.
-  mutable std::mutex mtx_;
-
-  /**
-   * @brief Updates the platform-specific base class with the current
-   *        buffer pointer and size.
    *
-   * This function is specialized for each platform. On Windows, it
-   * updates the `len` and `buf` members of the `WSABUF` base struct.
-   * On POSIX, it is a no-op.
+   * Cleans up internal resources. The `unique_ptr` ensures that the
+   * `message_data` structure is properly deallocated.
    */
-  void update_base();
-};
-
-/**
- * @class data_buffer_impl
- * @brief A template-based wrapper for platform-specific data buffers.
- * @tparam Base The native buffer type (`wsabuf_base` or `iovec_type`).
- *
- * This class provides a uniform interface for accessing the data pointer
- * and size of a socket buffer, abstracting away the different field names
- * used by Windows (`buf`, `len`) and POSIX (`iov_base`, `iov_len`).
- *
- * Template specializations of its private methods provide the
- * platform-specific logic.
- */
-template <typename Base> class data_buffer_impl : public Base {
-public:
-  /// @brief A type alias for the base buffer type.
-  using base_type = Base;
-
-  /**
-   * @brief Default constructor.
-   */
-  data_buffer_impl() = default;
-
-  /**
-   * @brief Gets a mutable reference to the buffer's data pointer.
-   * @return A reference to the platform-specific data pointer.
-   */
-  auto data() -> auto & { return get_data_ptr(); }
-
-  /**
-   * @brief Gets a mutable reference to the buffer's length.
-   * @return A reference to the platform-specific length field.
-   */
-  auto size() -> auto & { return get_size_ref(); }
+  ~socket_message() = default;
 
 private:
-  /**
-   * @brief Template-specialized method to get the data pointer.
-   * @return A reference to the data pointer member of the base struct.
-   */
-  auto get_data_ptr() -> auto &;
-
-  /**
-   * @brief Template-specialized method to get the size field.
-   * @return A reference to the size member of the base struct.
-   */
-  auto get_size_ref() -> auto &;
+  /// The storage for the message data.
+  std::unique_ptr<message_data> data_;
+  /// A mutex for thread-safe access to the message data.
+  mutable std::mutex mtx_;
 };
 
-} // namespace detail
+// TODO implement customization points for sendmsg and recvmsg that are passed
+// in socket_message types.
 
-/**
- * @defgroup platform_impl Platform-Specific Implementations
- * @brief Contains platform-specific type definitions and specializations.
- *
- * This section uses preprocessor directives to define types and implement
- * template specializations for Windows and POSIX systems, respectively.
- * @{
- */
+} // namespace io::socket
 
-#if BOOST_OS_WINDOWS
-/**
- * @brief Base struct for ancillary buffers on Windows.
- *
- * Inherits from `WSABUF` to be compatible with the `WSASendMsg` and
- * `WSARecvMsg` functions.
- */
-struct wsabuf_base : public WSABUF {
-  /**
-   * @brief Constructs a zero-initialized `WSABUF`.
-   */
-  wsabuf_base() : WSABUF{0, nullptr} {}
-};
-
-/**
- * @brief Specialization of `update_base` for Windows.
- *
- * Updates the `len` and `buf` members of the `WSABUF` base struct to
- * point to the data stored in the `ancillary_buffer_impl`.
- */
-template <>
-inline void detail::ancillary_buffer_impl<wsabuf_base>::update_base() {
-  this->len = static_cast<ULONG>(data_.size());
-  this->buf = const_cast<char *>(data_.data());
-}
-
-/// @brief A thread-safe buffer for ancillary data on Windows.
-using ancillary_buffer = detail::ancillary_buffer_impl<wsabuf_base>;
-/// @brief Platform-specific address type for Windows (address and its length).
-using address_type = std::tuple<struct sockaddr_storage, int>;
-
-/**
- * @brief Specialization of `get_data_ptr` for Windows.
- * @return A reference to the `buf` member of the `WSABUF` base struct.
- */
-template <>
-inline auto detail::data_buffer_impl<wsabuf_base>::get_data_ptr() -> auto & {
-  return this->buf;
-}
-
-/**
- * @brief Specialization of `get_size_ref` for Windows.
- * @return A reference to the `len` member of the `WSABUF` base struct.
- */
-template <>
-inline auto detail::data_buffer_impl<wsabuf_base>::get_size_ref() -> auto & {
-  return this->len;
-}
-
-/// @brief A wrapper for a `WSABUF` data buffer on Windows.
-using data_buffer = detail::data_buffer_impl<wsabuf_base>;
-
-#else
-/**
- * @brief Base struct for ancillary buffers on POSIX systems.
- *
- * This is an empty struct because POSIX systems handle the ancillary
- * data buffer separately from the data buffer (`iovec`).
- */
-struct posix_base {};
-
-/**
- * @brief Specialization of `update_base` for POSIX.
- *
- * This is a no-op because the ancillary data buffer is not part of a
- * larger struct that needs updating.
- */
-template <>
-inline void detail::ancillary_buffer_impl<posix_base>::update_base() {}
-
-/// @brief A thread-safe buffer for ancillary data on POSIX systems.
-using ancillary_buffer = detail::ancillary_buffer_impl<posix_base>;
-/// @brief Platform-specific address type for POSIX (address and its length).
-using address_type = std::tuple<struct sockaddr_storage, socklen_t>;
-
-/// @brief Type alias for the POSIX `iovec` struct.
-using iovec_type = struct iovec;
-
-/**
- * @brief Specialization of `get_data_ptr` for POSIX.
- * @return A reference to the `iov_base` member of the `iovec` base struct.
- */
-template <>
-inline auto detail::data_buffer_impl<iovec_type>::get_data_ptr() -> auto & {
-  return this->iov_base;
-}
-
-/**
- * @brief Specialization of `get_size_ref` for POSIX.
- * @return A reference to the `iov_len` member of the `iovec` base struct.
- */
-template <>
-inline auto detail::data_buffer_impl<iovec_type>::get_size_ref() -> auto & {
-  return this->iov_len;
-}
-
-/// @brief A wrapper for an `iovec` data buffer on POSIX systems.
-using data_buffer = detail::data_buffer_impl<iovec_type>;
-
-#endif
-/** @} */
-
-/**
- * @struct socket_message
- * @brief A unified, cross-platform structure for socket I/O operations.
- *
- * This struct aggregates all the necessary components for scatter/gather
- * I/O (`sendmsg`/`recvmsg` on POSIX, `WSASendMsg`/`WSARecvMsg` on Windows),
- * providing a single, consistent interface for both platforms.
- */
-struct socket_message {
-  /// @brief The remote address, stored as a platform-specific tuple
-  ///        containing a `sockaddr_storage` and its length.
-  address_type addr;
-  /// @brief The primary data buffer for the I/O operation.
-  data_buffer data;
-  /// @brief The buffer for ancillary (control) data.
-  ancillary_buffer ancillary;
-  /// @brief Flags to control message processing (e.g., `MSG_OOB`).
-  std::size_t flags;
-};
-
-} // namespace iosched::socket
-#endif // IOSCHED_SOCKET_MESSAGE_HPP
+#endif // IO_SOCKET_MESSAGE_HPP

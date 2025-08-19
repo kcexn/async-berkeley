@@ -13,10 +13,31 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
-#include "../error/error_handling.hpp"
+#include "../error.hpp"
+
 #include <system_error>
 
-namespace iosched::socket {
+// generic helper functions
+static auto throw_system_error(const char *message) -> void {
+  throw std::system_error(errno, std::generic_category(), message);
+}
+
+namespace io::socket {
+
+static auto is_valid_socket(native_socket_type handle) -> bool {
+  if (handle == INVALID_SOCKET)
+    return false;
+
+  int type = 0;
+  socklen_type len = sizeof(type);
+
+  return ::getsockopt(handle, SOL_SOCKET, SO_TYPE, &type, &len) == 0;
+}
+
+} // namespace io::socket
+
+// socket_handle implementation
+namespace io::socket {
 
 socket_handle::socket_handle(socket_handle &&other) noexcept : socket_handle() {
   swap(*this, other);
@@ -24,54 +45,68 @@ socket_handle::socket_handle(socket_handle &&other) noexcept : socket_handle() {
 
 auto socket_handle::operator=(socket_handle &&other) noexcept
     -> socket_handle & {
-  if (this != &other)
-    swap(*this, other);
+  swap(*this, other);
   return *this;
+}
+
+socket_handle::socket_handle(native_socket_type handle) : socket_{handle} {
+  if (!is_valid_socket(handle))
+    throw_system_error(IO_ERROR_MESSAGE("Invalid socket handle."));
 }
 
 socket_handle::socket_handle(int domain, int type, int protocol)
     : socket_{::socket(domain, type, protocol)} {
   if (socket_ == INVALID_SOCKET)
-    throw std::system_error(errno, std::generic_category(),
-                            IOSCHED_ERROR_MESSAGE("Failed to create socket."));
+    throw_system_error(IO_ERROR_MESSAGE("Failed to create socket."));
 }
 
-socket_handle::~socket_handle() { close(); }
-
 socket_handle::operator native_socket_type() const noexcept {
-  std::lock_guard lock{mtx_};
-  return socket_;
+  return socket_.load(std::memory_order_relaxed);
+}
+
+auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void {
+  if (&lhs == &rhs)
+    return;
+
+  std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
+
+  using std::swap;
+  auto temp = lhs.socket_.exchange(rhs.socket_);
+  rhs.socket_.store(temp);
 }
 
 socket_handle::operator bool() const noexcept {
-  std::lock_guard lock{mtx_};
   return socket_ != INVALID_SOCKET;
 }
 
 auto socket_handle::operator<=>(const socket_handle &other) const noexcept
     -> std::strong_ordering {
-  std::scoped_lock lock(mtx_, other.mtx_);
   return socket_ <=> other.socket_;
 }
 
-auto socket_handle::operator!=(const socket_handle &other) const noexcept
+auto socket_handle::operator==(const socket_handle &other) const noexcept
     -> bool {
-  return (*this <=> other) != 0;
+  return (*this <=> other) == 0;
 }
+
+auto socket_handle::operator<=>(native_socket_type other) const noexcept
+    -> std::strong_ordering {
+  return socket_ <=> other;
+}
+
+auto socket_handle::operator==(native_socket_type other) const noexcept
+    -> bool {
+  return (*this <=> other) == 0;
+}
+
+socket_handle::~socket_handle() { close(); }
 
 auto socket_handle::close() noexcept -> void {
   std::lock_guard lock{mtx_};
   if (socket_ != INVALID_SOCKET) {
-    ::iosched::socket::close(socket_);
+    ::io::socket::close(socket_);
     socket_ = INVALID_SOCKET;
   }
 }
 
-auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void {
-  std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
-
-  using std::swap;
-  swap(lhs.socket_, rhs.socket_);
-}
-
-} // namespace iosched::socket
+} // namespace io::socket

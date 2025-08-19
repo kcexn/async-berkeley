@@ -1,6 +1,6 @@
 # Doxyfile for iosched library
 
-PROJECT_NAME           = "iosched"
+PROJECT_NAME           = "io"
 PROJECT_NUMBER         =
 PROJECT_BRIEF          = "C++ I/O scheduling library with asynchronous socket operations"
 PROJECT_LOGO           =
