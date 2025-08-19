@@ -91,6 +91,12 @@ auto socket_message::exchange_buffers(scatter_gather_buffer buffers)
   return buffers;
 }
 
+auto socket_message::push_back(socket_buffer_type buffer) -> socket_message & {
+  std::lock_guard lock{mtx_};
+  data_->buffers.push_back(buffer);
+  return *this;
+}
+
 auto socket_message::control() const -> ancillary_buffer {
   std::lock_guard lock{mtx_};
   return data_->control;

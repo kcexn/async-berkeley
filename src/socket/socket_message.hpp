@@ -233,6 +233,42 @@ public:
   auto exchange_buffers(scatter_gather_buffer buffers) -> scatter_gather_buffer;
 
   /**
+   * @brief Adds a new data buffer to the end of the buffer collection.
+   *
+   * This method appends the provided buffer to the end of the scatter-gather
+   * buffer collection. The operation is thread-safe and the buffer is copied
+   * into the collection.
+   *
+   * @param buffer The buffer to add to the collection.
+   * @return A reference to this `socket_message` for method chaining.
+   *
+   * @note This operation is thread-safe due to internal mutex protection.
+   */
+  auto push_back(socket_buffer_type buffer) -> socket_message &;
+
+  /**
+   * @brief Constructs a new buffer in-place at the end of the buffer
+   * collection.
+   *
+   * This method constructs a new `socket_buffer_type` object directly in the
+   * buffer collection using the provided arguments, avoiding unnecessary copies
+   * or moves. This is more efficient than `push_back` when the buffer can be
+   * constructed from the arguments directly.
+   *
+   * @tparam Args The types of arguments to forward to the buffer constructor.
+   * @param args The arguments to forward to construct the new buffer.
+   * @return A reference to this `socket_message` for method chaining.
+   *
+   * @note This operation is thread-safe due to internal mutex protection.
+   */
+  template <typename... Args>
+  auto emplace_back(Args &&...args) -> socket_message & {
+    std::lock_guard<std::mutex> lock{mtx_};
+    data_->buffers.emplace_back(std::forward<Args>(args)...);
+    return *this;
+  }
+
+  /**
    * @brief Gets the ancillary data.
    *
    * This data contains control information that can be passed alongside the

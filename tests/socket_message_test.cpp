@@ -782,66 +782,252 @@ TEST_F(SocketMessageRAIITest, MoveOperationsLeaveValidState) {
   EXPECT_EQ(control2[0], 'M');
 }
 
-TEST_F(SocketMessageTest, SendmsgTagInvokeWithSocketMessage) {
-  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  sockaddr_in server_addr{};
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = 0;
-
-  ASSERT_EQ(::io::bind(server_socket,
-                       reinterpret_cast<const sockaddr_type *>(&server_addr),
-                       sizeof(server_addr)),
-            0);
-  ASSERT_EQ(::io::listen(server_socket, 5), 0);
-
-  socklen_t addr_len = sizeof(server_addr);
-  ASSERT_EQ(::io::getsockname(server_socket,
-                              reinterpret_cast<sockaddr_type *>(&server_addr),
-                              &addr_len),
-            0);
-  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-  native_socket_type accepted_socket = -1;
-  std::thread server_thread([&server_socket, &accepted_socket] {
-    sockaddr_in client_addr{};
-    socklen_t client_addr_len = sizeof(client_addr);
-    accepted_socket = ::io::accept(
-        server_socket, reinterpret_cast<sockaddr_type *>(&client_addr),
-        &client_addr_len);
-
-    if (accepted_socket != -1) {
-      std::array<char, 1024> buffer{};
-      recv(accepted_socket, buffer.data(), buffer.size(), 0);
-    }
-  });
-
-  ASSERT_EQ(::io::connect(client_socket,
-                          reinterpret_cast<const sockaddr_type *>(&server_addr),
-                          sizeof(server_addr)),
-            0);
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
+TEST_F(SocketMessageTest, PushBackBasicOperation) {
   socket_message msg;
+
+  std::array<char, 32> data{};
+  data.fill('P');
+  socket_buffer_type buffer{data};
+
+  msg.push_back(buffer);
+
   auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_EQ(buffers[0].size(), 32);
+  EXPECT_EQ(buffers[0].data(), data.data());
+}
 
-  std::array<char, 14> message_data;
-  std::strcpy(message_data.data(), "Hello, World!");
+TEST_F(SocketMessageTest, PushBackMultipleBuffers) {
+  socket_message msg;
 
-  buffers.emplace_back(message_data);
-  msg.set_buffers(std::move(buffers));
-  msg.set_flags(0);
+  std::array<char, 64> data1{};
+  std::array<char, 128> data2{};
+  data1.fill('A');
+  data2.fill('B');
 
-  std::streamsize result = ::io::sendmsg(client_socket, msg);
+  socket_buffer_type buffer1{data1};
+  socket_buffer_type buffer2{data2};
 
-  server_thread.join();
+  msg.push_back(buffer1).push_back(buffer2);
 
-  EXPECT_EQ(result, 14);
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 2);
+  EXPECT_EQ(buffers[0].size(), 64);
+  EXPECT_EQ(buffers[1].size(), 128);
+  EXPECT_EQ(buffers[0].data(), data1.data());
+  EXPECT_EQ(buffers[1].data(), data2.data());
+}
 
-  if (accepted_socket != -1) {
-    ::close(accepted_socket);
+TEST_F(SocketMessageTest, PushBackMethodChaining) {
+  socket_message msg;
+
+  std::array<char, 16> data{};
+  data.fill('C');
+  socket_buffer_type buffer{data};
+
+  auto &result = msg.push_back(buffer);
+  EXPECT_EQ(&result, &msg);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+}
+
+TEST_F(SocketMessageTest, PushBackEmptyBuffer) {
+  socket_message msg;
+
+  socket_buffer_type empty_buffer{};
+  msg.push_back(empty_buffer);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_EQ(buffers[0].size(), 0);
+}
+
+TEST_F(SocketMessageTest, PushBackToExistingBuffers) {
+  socket_message msg;
+
+  std::vector<socket_buffer_type> initial_buffers;
+  std::array<char, 50> initial_data{};
+  initial_data.fill('I');
+  socket_buffer_type initial_buffer{initial_data};
+  initial_buffers.push_back(initial_buffer);
+  msg.set_buffers(std::move(initial_buffers));
+
+  std::array<char, 25> new_data{};
+  new_data.fill('N');
+  socket_buffer_type new_buffer{new_data};
+
+  msg.push_back(new_buffer);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 2);
+  EXPECT_EQ(buffers[0].size(), 50);
+  EXPECT_EQ(buffers[1].size(), 25);
+  EXPECT_EQ(buffers[0].data(), initial_data.data());
+  EXPECT_EQ(buffers[1].data(), new_data.data());
+}
+
+TEST_F(SocketMessageTest, PushBackThreadSafety) {
+  socket_message msg;
+  constexpr int num_threads = 4;
+  constexpr int pushes_per_thread = 5;
+  std::atomic<int> push_count{0};
+
+  std::vector<std::thread> threads;
+
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&, i]() {
+      for (int p = 0; p < pushes_per_thread; ++p) {
+        std::array<char, 8> data{};
+        data.fill('A' + (i % 26));
+        socket_buffer_type buffer{data};
+        msg.push_back(buffer);
+        push_count.fetch_add(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+      }
+    });
   }
+
+  for (auto &t : threads) {
+    t.join();
+  }
+
+  EXPECT_EQ(push_count.load(), num_threads * pushes_per_thread);
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), num_threads * pushes_per_thread);
+}
+
+TEST_F(SocketMessageTest, EmplaceBackBasicOperation) {
+  socket_message msg;
+
+  std::array<char, 64> data{};
+  data.fill('E');
+
+  msg.emplace_back(data);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_EQ(buffers[0].size(), 64);
+  EXPECT_EQ(buffers[0].data(), data.data());
+}
+
+TEST_F(SocketMessageTest, EmplaceBackDirectConstruction) {
+  socket_message msg;
+
+  std::array<char, 32> data{};
+  data.fill('D');
+
+  msg.emplace_back(data);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_EQ(buffers[0].size(), 32);
+  EXPECT_EQ(buffers[0].data(), data.data());
+}
+
+TEST_F(SocketMessageTest, EmplaceBackMethodChaining) {
+  socket_message msg;
+
+  std::array<char, 16> data{};
+  data.fill('M');
+
+  auto &result = msg.emplace_back(data);
+  EXPECT_EQ(&result, &msg);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 1);
+  EXPECT_EQ(buffers[0].size(), 16);
+}
+
+TEST_F(SocketMessageTest, EmplaceBackMultipleBuffers) {
+  socket_message msg;
+
+  std::array<char, 32> data1{};
+  std::array<char, 64> data2{};
+  data1.fill('X');
+  data2.fill('Y');
+
+  msg.emplace_back(data1).emplace_back(data2);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 2);
+  EXPECT_EQ(buffers[0].size(), 32);
+  EXPECT_EQ(buffers[1].size(), 64);
+  EXPECT_EQ(buffers[0].data(), data1.data());
+  EXPECT_EQ(buffers[1].data(), data2.data());
+}
+
+TEST_F(SocketMessageTest, EmplaceBackToExistingBuffers) {
+  socket_message msg;
+
+  std::vector<socket_buffer_type> initial_buffers;
+  std::array<char, 100> initial_data{};
+  initial_data.fill('I');
+  socket_buffer_type initial_buffer{initial_data};
+  initial_buffers.push_back(initial_buffer);
+  msg.set_buffers(std::move(initial_buffers));
+
+  std::array<char, 50> new_data{};
+  new_data.fill('N');
+
+  msg.emplace_back(new_data);
+
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), 2);
+  EXPECT_EQ(buffers[0].size(), 100);
+  EXPECT_EQ(buffers[1].size(), 50);
+  EXPECT_EQ(buffers[0].data(), initial_data.data());
+  EXPECT_EQ(buffers[1].data(), new_data.data());
+}
+
+TEST_F(SocketMessageTest, EmplaceBackThreadSafety) {
+  socket_message msg;
+  constexpr int num_threads = 4;
+  constexpr int emplaces_per_thread = 5;
+  std::atomic<int> emplace_count{0};
+
+  std::vector<std::thread> threads;
+
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&, i]() {
+      for (int e = 0; e < emplaces_per_thread; ++e) {
+        std::array<char, 16> data{};
+        data.fill('A' + (i % 26));
+        msg.emplace_back(data);
+        emplace_count.fetch_add(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+      }
+    });
+  }
+
+  for (auto &t : threads) {
+    t.join();
+  }
+
+  EXPECT_EQ(emplace_count.load(), num_threads * emplaces_per_thread);
+  auto buffers = msg.buffers();
+  EXPECT_EQ(buffers.size(), num_threads * emplaces_per_thread);
+}
+
+TEST_F(SocketMessageTest, EmplaceBackVsPushBackPerformance) {
+  socket_message msg1;
+  socket_message msg2;
+
+  std::array<char, 256> data{};
+  data.fill('P');
+
+  socket_buffer_type buffer{data};
+  msg1.push_back(buffer);
+
+  msg2.emplace_back(data);
+
+  auto buffers1 = msg1.buffers();
+  auto buffers2 = msg2.buffers();
+
+  EXPECT_EQ(buffers1.size(), 1);
+  EXPECT_EQ(buffers2.size(), 1);
+  EXPECT_EQ(buffers1[0].size(), 256);
+  EXPECT_EQ(buffers2[0].size(), 256);
+  EXPECT_EQ(buffers1[0].data(), data.data());
+  EXPECT_EQ(buffers2[0].data(), data.data());
 }

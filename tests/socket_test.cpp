@@ -17,6 +17,7 @@
 #include "../src/socket/socket.hpp"
 #include "../src/socket/socket_address.hpp"
 #include "../src/socket/socket_handle.hpp"
+#include "../src/socket/socket_message.hpp"
 #include <array>
 #include <cerrno>
 #include <chrono>
@@ -939,6 +940,68 @@ TEST_F(SocketTest, ShutdownTagInvokePartialShutdown) {
 
   EXPECT_EQ(result_wr, 0);
   EXPECT_EQ(result_rd, 0);
+
+  if (accepted_socket != -1) {
+    ::close(accepted_socket);
+  }
+}
+
+TEST_F(SocketTest, SendmsgTagInvokeWithSocketMessage) {
+  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in server_addr{};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(server_socket,
+                       reinterpret_cast<const sockaddr_type *>(&server_addr),
+                       sizeof(server_addr)),
+            0);
+  ASSERT_EQ(::io::listen(server_socket, 5), 0);
+
+  socklen_t addr_len = sizeof(server_addr);
+  ASSERT_EQ(::io::getsockname(server_socket,
+                              reinterpret_cast<sockaddr_type *>(&server_addr),
+                              &addr_len),
+            0);
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  native_socket_type accepted_socket = -1;
+  std::thread server_thread([&server_socket, &accepted_socket] {
+    sockaddr_in client_addr{};
+    socklen_t client_addr_len = sizeof(client_addr);
+    accepted_socket = ::io::accept(
+        server_socket, reinterpret_cast<sockaddr_type *>(&client_addr),
+        &client_addr_len);
+
+    if (accepted_socket != -1) {
+      std::array<char, 1024> buffer{};
+      recv(accepted_socket, buffer.data(), buffer.size(), 0);
+    }
+  });
+
+  ASSERT_EQ(::io::connect(client_socket,
+                          reinterpret_cast<const sockaddr_type *>(&server_addr),
+                          sizeof(server_addr)),
+            0);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  socket_message msg;
+
+  std::array<char, 14> message_data;
+  std::strcpy(message_data.data(), "Hello, World!");
+
+  msg.emplace_back(message_data);
+  msg.set_flags(0);
+
+  std::streamsize result = ::io::sendmsg(client_socket, msg);
+
+  server_thread.join();
+
+  EXPECT_EQ(result, 14);
 
   if (accepted_socket != -1) {
     ::close(accepted_socket);
