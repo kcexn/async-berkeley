@@ -169,11 +169,21 @@ public:
   friend auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void;
 
   /**
+   * @brief Gets the underlying `message_data` struct
+   */
+  [[nodiscard]] auto get() const -> message_data;
+
+  /**
+   * @brief Assign `message_data` to socket_message
+   */
+  auto operator=(message_data data) -> socket_message &;
+
+  /**
    * @brief Gets the socket address.
    *
    * @return A copy of the socket address associated with this message.
    */
-  auto address() const -> socket_address;
+  [[nodiscard]] auto address() const -> socket_address;
 
   /**
    * @brief Sets the socket address.
@@ -181,7 +191,15 @@ public:
    * @param address The socket address to set.
    * @return A reference to this `socket_message` for method chaining.
    */
-  auto operator=(socket_address address) -> socket_message &;
+  auto set_address(socket_address address) -> socket_message &;
+
+  /**
+   * @brief Exchanges the socket address.
+   *
+   * @param address The socket address to set.
+   * @return The previous address that was replaced.
+   */
+  auto exchange_address(socket_address address) -> socket_address;
 
   /**
    * @brief Gets the data buffers.

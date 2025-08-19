@@ -40,15 +40,35 @@ auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void {
   swap(lhs.data_, rhs.data_);
 }
 
+auto socket_message::get() const -> message_data {
+  std::lock_guard lock{mtx_};
+
+  return *data_;
+}
+
+auto socket_message::operator=(message_data data) -> socket_message & {
+  std::lock_guard lock{mtx_};
+  data_ = std::make_unique<message_data>(std::move(data));
+  return *this;
+}
+
 auto socket_message::address() const -> socket_address {
   std::lock_guard lock{mtx_};
   return data_->address;
 }
 
-auto socket_message::operator=(socket_address address) -> socket_message & {
+auto socket_message::set_address(socket_address address) -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->address = address;
   return *this;
+}
+
+auto socket_message::exchange_address(socket_address address)
+    -> socket_address {
+  std::lock_guard lock{mtx_};
+  using std::swap;
+  swap(data_->address, address);
+  return address;
 }
 
 auto socket_message::buffers() const -> scatter_gather_buffer {

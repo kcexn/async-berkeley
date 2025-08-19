@@ -168,6 +168,22 @@ auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
                 const socket_message_type *msg, int flags) -> std::streamsize;
 
 /**
+ * @brief Sends a message on a socket using a `socket_message` object.
+ *
+ * This overload sends a message encapsulated in a `socket_message`, which
+ * provides a thread-safe container for scatter-gather I/O, ancillary data,
+ * and other message properties.
+ *
+ * @param socket The socket to send the message on.
+ * @param msg The `socket_message` to send.
+ * @return The number of bytes sent on success, or -1 on error. In case of an
+ * error, `errno` is set to indicate the error.
+ * @see socket_handle, socket_message
+ */
+auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
+                const socket_message &msg) -> std::streamsize;
+
+/**
  * @brief Receives a message from a socket.
  *
  * @param socket The socket to receive the message from.

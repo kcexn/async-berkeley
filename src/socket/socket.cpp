@@ -67,6 +67,25 @@ auto tag_invoke([[maybe_unused]] ::io::sendmsg_t tag,
                                flags);
 }
 
+// TODO: This needs to be made portable for both POSIX and Windows.
+auto tag_invoke([[maybe_unused]] ::io::sendmsg_t tag,
+                const socket_handle &socket,
+                const socket_message &msg) -> std::streamsize {
+
+  auto [address, buffers, control, flags] = msg.get();
+
+  std::vector<struct iovec> iov;
+  for (const auto &buffer : buffers)
+    iov.emplace_back(buffer.data(), buffer.size());
+
+  socket_message_type msghdr{
+      address.data(), *address.size(), iov.data(), iov.size(),
+      control.data(), control.size(),  0};
+
+  return ::io::socket::sendmsg(static_cast<native_socket_type>(socket), &msghdr,
+                               flags);
+}
+
 auto tag_invoke([[maybe_unused]] ::io::recvmsg_t tag,
                 const socket_handle &socket, socket_message_type *msg,
                 int flags) -> std::streamsize {

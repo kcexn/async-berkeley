@@ -52,9 +52,6 @@ inline static constexpr int SOCKET_ERROR = -1;
 
 /**
  * @brief The socket buffer type for POSIX systems.
- *
- * This is an alias for the `iovec` structure, which is used for scatter-gather
- * I/O operations.
  */
 using socket_buffer_type = std::span<char, std::dynamic_extent>;
 

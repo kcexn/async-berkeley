@@ -52,8 +52,6 @@ inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
 
 /**
  * @brief The socket buffer type for Windows systems.
- *
- * This is an alias for the `::WSABUF` type provided by the Winsock library.
  */
 using socket_buffer_type = std::span<char, std::dynamic_extent>;
 

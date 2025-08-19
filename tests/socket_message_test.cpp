@@ -13,7 +13,10 @@
  * limitations under the License.
  */
 
+#include "../src/io.hpp"
+#include "../src/socket/socket.hpp"
 #include "../src/socket/socket_address.hpp"
+#include "../src/socket/socket_handle.hpp"
 #include "../src/socket/socket_message.hpp"
 #include <algorithm>
 #include <array>
@@ -106,6 +109,59 @@ TEST_F(SocketMessageTest, MoveAssignment) {
   EXPECT_EQ(msg2.control()[0], 'T');
 }
 
+TEST_F(SocketMessageTest, MessageDataAssignment) {
+  socket_message msg;
+
+  // Create a message_data with complete test data
+  message_data data;
+
+  // Set up address
+  socket_address test_addr;
+  data.address = test_addr;
+
+  // Set up buffers
+  std::array<char, 32> buffer_data{};
+  buffer_data.fill('D');
+  socket_buffer_type buf{buffer_data};
+  data.buffers.push_back(buf);
+
+  // Set up control data
+  data.control = {'C', 'T', 'R', 'L', 'D', 'A', 'T', 'A'};
+
+  // Set flags
+  data.flags = MSG_DONTWAIT | MSG_PEEK;
+
+  // Assign message_data to socket_message
+  msg = std::move(data);
+
+  // Verify all components were assigned correctly
+  EXPECT_EQ(msg.flags(), MSG_DONTWAIT | MSG_PEEK);
+
+  auto retrieved_buffers = msg.buffers();
+  EXPECT_EQ(retrieved_buffers.size(), 1);
+  EXPECT_EQ(retrieved_buffers[0].size(), 32);
+  EXPECT_EQ(retrieved_buffers[0].data(), buffer_data.data());
+
+  auto retrieved_control = msg.control();
+  EXPECT_EQ(retrieved_control.size(), 8);
+  EXPECT_EQ(retrieved_control[0], 'C');
+  EXPECT_EQ(retrieved_control[7], 'A');
+
+  auto retrieved_addr = msg.address();
+  EXPECT_EQ(*retrieved_addr.size(), *test_addr.size());
+}
+
+TEST_F(SocketMessageTest, MessageDataAssignmentChaining) {
+  socket_message msg;
+  message_data data;
+  data.flags = 42;
+
+  // Test method chaining
+  auto &result = msg = std::move(data);
+  EXPECT_EQ(&result, &msg);
+  EXPECT_EQ(msg.flags(), 42);
+}
+
 TEST_F(SocketMessageTest, SelfMoveAssignment) {
   socket_message msg;
   msg.set_flags(456);
@@ -123,14 +179,14 @@ TEST_F(SocketMessageTest, SelfMoveAssignment) {
 }
 
 // Test socket address operations
-TEST_F(SocketMessageTest, AddressOperations) {
+TEST_F(SocketMessageTest, SetAddressOperations) {
   socket_message msg;
 
   // Create a test address
   socket_address test_addr;
 
   // Set address
-  msg = test_addr;
+  msg.set_address(test_addr);
 
   // Get address
   auto retrieved_addr = msg.address();
@@ -140,13 +196,35 @@ TEST_F(SocketMessageTest, AddressOperations) {
   EXPECT_EQ(*test_addr.size(), *retrieved_addr.size());
 }
 
-TEST_F(SocketMessageTest, AddressChaining) {
+TEST_F(SocketMessageTest, SetAddressChaining) {
   socket_message msg;
   socket_address addr;
 
   // Test method chaining
-  auto &result = (msg = addr);
+  auto &result = msg.set_address(addr);
   EXPECT_EQ(&result, &msg);
+}
+
+TEST_F(SocketMessageTest, ExchangeAddressOperations) {
+  socket_message msg;
+
+  // Create initial and new addresses
+  socket_address initial_addr;
+  socket_address new_addr;
+
+  // Set initial address
+  msg.set_address(initial_addr);
+
+  // Exchange with new address
+  auto old_addr = msg.exchange_address(new_addr);
+
+  // Get current address
+  auto current_addr = msg.address();
+
+  // Verify exchange occurred - both addresses are default constructed so should
+  // have same size
+  EXPECT_EQ(*current_addr.size(), *new_addr.size());
+  EXPECT_EQ(*old_addr.size(), *initial_addr.size());
 }
 
 // Test buffer operations
@@ -431,13 +509,86 @@ TEST_F(SocketMessageTest, ExchangeEmptyControl) {
   EXPECT_EQ(msg.control().size(), 4);
 }
 
+// Test get() method
+TEST_F(SocketMessageTest, GetMethod) {
+  socket_message msg;
+
+  // Set up a complete message with all components
+  socket_address addr;
+  msg.set_address(addr);
+
+  std::vector<socket_buffer_type> buffers;
+  std::array<char, 50> data{};
+  data.fill('T');
+  socket_buffer_type buf{data};
+  buffers.push_back(buf);
+  msg.set_buffers(std::move(buffers));
+
+  std::vector<char> control{'G', 'E', 'T', 'T', 'E', 'S', 'T'};
+  msg.set_control(std::move(control));
+
+  msg.set_flags(MSG_DONTWAIT | MSG_PEEK);
+
+  // Get the complete message data
+  auto message_data = msg.get();
+
+  // Verify all components are correctly returned
+  EXPECT_EQ(message_data.buffers.size(), 1);
+  EXPECT_EQ(message_data.buffers[0].size(), 50);
+  EXPECT_EQ(message_data.buffers[0].data(), data.data());
+
+  EXPECT_EQ(message_data.control.size(), 7);
+  EXPECT_EQ(message_data.control[0], 'G');
+  EXPECT_EQ(message_data.control[6], 'T');
+
+  EXPECT_EQ(message_data.flags, MSG_DONTWAIT | MSG_PEEK);
+
+  // Address should match (both default constructed, so same size)
+  EXPECT_EQ(*message_data.address.size(), *addr.size());
+}
+
+TEST_F(SocketMessageTest, GetMethodThreadSafety) {
+  socket_message msg;
+  msg.set_flags(999);
+
+  std::vector<char> control{'T', 'H', 'R', 'E', 'A', 'D'};
+  msg.set_control(std::move(control));
+
+  std::atomic<int> get_count{0};
+  constexpr int num_threads = 4;
+  constexpr int gets_per_thread = 10;
+
+  std::vector<std::thread> threads;
+
+  // Create threads that call get() concurrently
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&]() {
+      for (int g = 0; g < gets_per_thread; ++g) {
+        auto data = msg.get();
+        EXPECT_EQ(data.flags, 999);
+        EXPECT_EQ(data.control.size(), 6);
+        EXPECT_EQ(data.control[0], 'T');
+        get_count.fetch_add(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+      }
+    });
+  }
+
+  for (auto &t : threads) {
+    t.join();
+  }
+
+  // Verify all gets completed successfully
+  EXPECT_EQ(get_count.load(), num_threads * gets_per_thread);
+}
+
 // Test complete message scenarios
 TEST_F(SocketMessageTest, CompleteMessageScenario) {
   socket_message msg;
 
   // Set up a complete message with all components
   socket_address addr;
-  msg = addr;
+  msg.set_address(addr);
 
   std::vector<socket_buffer_type> buffers;
   std::array<char, 256> data{};
@@ -629,4 +780,68 @@ TEST_F(SocketMessageRAIITest, MoveOperationsLeaveValidState) {
   auto control2 = msg2.control();
   EXPECT_EQ(control2.size(), 4);
   EXPECT_EQ(control2[0], 'M');
+}
+
+TEST_F(SocketMessageTest, SendmsgTagInvokeWithSocketMessage) {
+  socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  sockaddr_in server_addr{};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = INADDR_ANY;
+  server_addr.sin_port = 0;
+
+  ASSERT_EQ(::io::bind(server_socket,
+                       reinterpret_cast<const sockaddr_type *>(&server_addr),
+                       sizeof(server_addr)),
+            0);
+  ASSERT_EQ(::io::listen(server_socket, 5), 0);
+
+  socklen_t addr_len = sizeof(server_addr);
+  ASSERT_EQ(::io::getsockname(server_socket,
+                              reinterpret_cast<sockaddr_type *>(&server_addr),
+                              &addr_len),
+            0);
+  server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  native_socket_type accepted_socket = -1;
+  std::thread server_thread([&server_socket, &accepted_socket] {
+    sockaddr_in client_addr{};
+    socklen_t client_addr_len = sizeof(client_addr);
+    accepted_socket = ::io::accept(
+        server_socket, reinterpret_cast<sockaddr_type *>(&client_addr),
+        &client_addr_len);
+
+    if (accepted_socket != -1) {
+      std::array<char, 1024> buffer{};
+      recv(accepted_socket, buffer.data(), buffer.size(), 0);
+    }
+  });
+
+  ASSERT_EQ(::io::connect(client_socket,
+                          reinterpret_cast<const sockaddr_type *>(&server_addr),
+                          sizeof(server_addr)),
+            0);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  socket_message msg;
+  auto buffers = msg.buffers();
+
+  std::array<char, 14> message_data;
+  std::strcpy(message_data.data(), "Hello, World!");
+
+  buffers.emplace_back(message_data);
+  msg.set_buffers(std::move(buffers));
+  msg.set_flags(0);
+
+  std::streamsize result = ::io::sendmsg(client_socket, msg);
+
+  server_thread.join();
+
+  EXPECT_EQ(result, 14);
+
+  if (accepted_socket != -1) {
+    ::close(accepted_socket);
+  }
 }
