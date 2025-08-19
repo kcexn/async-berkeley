@@ -20,8 +20,13 @@
 #pragma once
 #ifndef IO_SOCKET_ADDRESS_HPP
 #define IO_SOCKET_ADDRESS_HPP
-#include "socket.hpp"
+#include <boost/predef.h>
 
+#if BOOST_OS_WINDOWS
+#include "platforms/windows/socket.hpp"
+#else
+#include "platforms/posix/socket.hpp"
+#endif
 /**
  * @namespace io::socket
  * @brief Provides cross-platform abstractions for socket-level I/O.

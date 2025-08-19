@@ -16,7 +16,14 @@
 #pragma once
 #ifndef IO_SOCKET_MESSAGE_HPP
 #define IO_SOCKET_MESSAGE_HPP
-#include "socket.hpp"
+#include <boost/predef.h>
+
+#if BOOST_OS_WINDOWS
+#include "platforms/windows/socket.hpp"
+#else
+#include "platforms/posix/socket.hpp"
+#endif
+
 #include "socket_address.hpp"
 
 #include <memory>
@@ -38,19 +45,20 @@ struct message_data {
   /// Type alias for ancillary data storage
   using ancillary_data_type = std::vector<char>;
 
-  socket_address address;        ///< Socket address for the message
-  scatter_gather_type buffers;   ///< Collection of data buffers for scatter-gather I/O
-  ancillary_data_type control;   ///< Ancillary data (control information)
-  int flags{};                   ///< Message flags for socket operations
+  socket_address address; ///< Socket address for the message
+  scatter_gather_type
+      buffers; ///< Collection of data buffers for scatter-gather I/O
+  ancillary_data_type control; ///< Ancillary data (control information)
+  int flags{};                 ///< Message flags for socket operations
 };
 
 /**
  * @brief Thread-safe socket message container for advanced I/O operations
  *
  * The socket_message class provides a thread-safe wrapper around socket message
- * data, supporting scatter-gather I/O operations with ancillary data and control
- * information. This class is designed for use with sendmsg() and recvmsg()
- * system calls that require complex message structures.
+ * data, supporting scatter-gather I/O operations with ancillary data and
+ * control information. This class is designed for use with sendmsg() and
+ * recvmsg() system calls that require complex message structures.
  *
  * @details
  * Key features:
@@ -130,7 +138,8 @@ public:
    * @param lhs First socket_message instance
    * @param rhs Second socket_message instance
    *
-   * @note Uses std::scoped_lock to prevent deadlocks when locking multiple mutexes
+   * @note Uses std::scoped_lock to prevent deadlocks when locking multiple
+   * mutexes
    */
   friend auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void;
 
@@ -235,7 +244,8 @@ private:
   mutable std::mutex mtx_;
 };
 
-// TODO implement customization points for sendmsg and recvmsg that are passed in socket_message types.
+// TODO implement customization points for sendmsg and recvmsg that are passed
+// in socket_message types.
 
 } // namespace io::socket
 

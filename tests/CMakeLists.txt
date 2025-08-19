@@ -4,6 +4,7 @@ set(TEST_NAMES
   socket_handle_test
   socket_address_test
   socket_message_test
+  socket_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

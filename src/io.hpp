@@ -20,18 +20,18 @@
 #pragma once
 #ifndef IO_HPP
 #define IO_HPP
-#include "detail/accept.hpp"      // IWYU pragma: export
-#include "detail/bind.hpp"        // IWYU pragma: export
-#include "detail/connect.hpp"     // IWYU pragma: export
-#include "detail/fcntl.hpp"       // IWYU pragma: export
-#include "detail/getpeername.hpp" // IWYU pragma: export
-#include "detail/getsockname.hpp" // IWYU pragma: export
-#include "detail/getsockopt.hpp"  // IWYU pragma: export
-#include "detail/listen.hpp"      // IWYU pragma: export
-#include "detail/recvmsg.hpp"     // IWYU pragma: export
-#include "detail/sendmsg.hpp"     // IWYU pragma: export
-#include "detail/setsockopt.hpp"  // IWYU pragma: export
-#include "detail/shutdown.hpp"    // IWYU pragma: export
+#include "detail/accept.hpp"
+#include "detail/bind.hpp"
+#include "detail/connect.hpp"
+#include "detail/fcntl.hpp"
+#include "detail/getpeername.hpp"
+#include "detail/getsockname.hpp"
+#include "detail/getsockopt.hpp"
+#include "detail/listen.hpp"
+#include "detail/recvmsg.hpp"
+#include "detail/sendmsg.hpp"
+#include "detail/setsockopt.hpp"
+#include "detail/shutdown.hpp"
 
 /**
  * @brief The main namespace for the iosched library.

@@ -19,18 +19,20 @@ namespace io::socket {
 
 socket_message::socket_message() : data_{std::make_unique<message_data>()} {}
 
-socket_message::socket_message(socket_message &&other) noexcept : socket_message() {
+socket_message::socket_message(socket_message &&other) noexcept
+    : socket_message() {
   swap(*this, other);
 }
 
-auto socket_message::operator=(socket_message &&other) noexcept -> socket_message & {
+auto socket_message::operator=(socket_message &&other) noexcept
+    -> socket_message & {
   if (this != &other)
     swap(*this, other);
   return *this;
 }
 
 auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void {
-  if(&lhs == &rhs)
+  if (&lhs == &rhs)
     return;
 
   std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
@@ -55,7 +57,8 @@ auto socket_message::buffers() const -> message_data::scatter_gather_type {
   return data_->buffers;
 }
 
-auto socket_message::operator=(message_data::scatter_gather_type buffers) -> socket_message & {
+auto socket_message::operator=(message_data::scatter_gather_type buffers)
+    -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->buffers = std::move(buffers);
   return *this;
@@ -66,7 +69,8 @@ auto socket_message::control() const -> message_data::ancillary_data_type {
   return data_->control;
 }
 
-auto socket_message::operator=(message_data::ancillary_data_type control) -> socket_message & {
+auto socket_message::operator=(message_data::ancillary_data_type control)
+    -> socket_message & {
   std::lock_guard lock{mtx_};
   data_->control = std::move(control);
   return *this;
