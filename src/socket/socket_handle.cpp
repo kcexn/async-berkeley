@@ -13,14 +13,7 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
-#include "../error.hpp"
-
-#include <system_error>
-
-// generic helper functions
-static auto throw_system_error(const char *message) -> void {
-  throw std::system_error(errno, std::generic_category(), message);
-}
+#include <error.hpp>
 
 namespace io::socket {
 
