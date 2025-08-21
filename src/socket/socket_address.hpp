@@ -29,6 +29,9 @@
 #include "platforms/posix/socket.hpp"
 #endif
 
+#include <cassert>
+#include <cstring>
+
 namespace io::socket {
 /**
  * @brief A platform-independent representation of a socket address.
@@ -74,7 +77,10 @@ public:
    *
    * @param size The size in bytes for the socket address structure.
    */
-  constexpr explicit socket_address(socklen_type size) noexcept;
+  constexpr socket_address(socklen_type size) noexcept : size_{size} {
+    assert(size_ <= sizeof(sockaddr_storage_type) && size_ >= 0 &&
+           "size must be between 0 and sizeof(sockaddr_storage_type)");
+  }
 
   /**
    * @brief Constructs a `socket_address` from a native socket address
@@ -123,7 +129,7 @@ public:
    *
    * @return A non-owning pointer to the `socklen_type` size.
    */
-  [[nodiscard]] constexpr auto size() noexcept -> socklen_type *;
+  [[nodiscard]] auto size() noexcept -> socklen_type *;
 
   /**
    * @brief Returns a constant pointer to the size of the socket address.
@@ -134,7 +140,9 @@ public:
    *
    * @return A non-owning constant pointer to the `socklen_type` size.
    */
-  [[nodiscard]] constexpr auto size() const noexcept -> const socklen_type *;
+  [[nodiscard]] constexpr auto size() const noexcept -> const socklen_type * {
+    return &size_;
+  }
 
   /**
    * @brief Compares two `socket_address` objects for equality.
@@ -145,7 +153,11 @@ public:
    * @param other The `socket_address` to compare against.
    * @return `true` if the addresses are equal, `false` otherwise.
    */
-  constexpr auto operator==(const socket_address &other) const noexcept -> bool;
+  constexpr auto
+  operator==(const socket_address &other) const noexcept -> bool {
+    return size_ == other.size_ &&
+           std::memcmp(&storage_, &other.storage_, size_) == 0;
+  }
 
   /** @brief Default destructor. */
   ~socket_address() = default;
@@ -176,7 +188,8 @@ private:
  * size of `SockAddr`.
  */
 template <typename SockAddr>
-constexpr auto make_address(const SockAddr *addr = nullptr) noexcept -> socket_address {
+constexpr auto
+make_address(const SockAddr *addr = nullptr) noexcept -> socket_address {
   static_assert(sizeof(SockAddr) <= sizeof(sockaddr_storage_type),
                 "SockAddr must fit into sockaddr_storage_type.");
 
