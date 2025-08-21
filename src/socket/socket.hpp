@@ -25,11 +25,11 @@
 #pragma once
 #ifndef IO_SOCKET_HPP
 #define IO_SOCKET_HPP
-#include "socket_address.hpp" // IWYU pragma: export
-#include "socket_handle.hpp"  // IWYU pragma: export
-#include "socket_message.hpp" // IWYU pragma: export
 
-#include "detail/socket_api.hpp"
+#include "socket_address.hpp"
+#include "socket_handle.hpp"
+#include "socket_message.hpp"
+#include "socket_ops.hpp"
 
 /**
  * @brief The `io::socket` namespace provides a cross-platform abstraction for
@@ -40,7 +40,6 @@
  * interface for socket programming.
  */
 namespace io::socket {
-
 /**
  * @brief Binds a socket to a local address.
  *
@@ -55,8 +54,8 @@ namespace io::socket {
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::bind_t, const socket_handle &socket,
-                const sockaddr_type *addr, socklen_type len) -> int;
+auto tag_invoke(bind_t, const socket_handle &socket, const sockaddr_type *addr,
+                socklen_type len) -> int;
 
 /**
  * @brief Binds a socket to a local address.
@@ -70,7 +69,7 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::bind_t, const socket_handle &socket,
+auto tag_invoke(bind_t, const socket_handle &socket,
                 const socket_address &addr) -> int;
 
 /**
@@ -85,8 +84,7 @@ auto tag_invoke(::io::bind_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle
  */
-auto tag_invoke(::io::listen_t, const socket_handle &socket,
-                int backlog) -> int;
+auto tag_invoke(listen_t, const socket_handle &socket, int backlog) -> int;
 
 /**
  * @brief Connects a socket to a remote address.
@@ -101,7 +99,7 @@ auto tag_invoke(::io::listen_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::connect_t, const socket_handle &socket,
+auto tag_invoke(connect_t, const socket_handle &socket,
                 const sockaddr_type *addr, socklen_type len) -> int;
 
 /**
@@ -115,7 +113,7 @@ auto tag_invoke(::io::connect_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::connect_t, const socket_handle &socket,
+auto tag_invoke(connect_t, const socket_handle &socket,
                 const socket_address &addr) -> int;
 
 /**
@@ -133,8 +131,8 @@ auto tag_invoke(::io::connect_t, const socket_handle &socket,
  * case of an error, `errno` is set to indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::accept_t, const socket_handle &socket,
-                sockaddr_type *addr, socklen_type *len) -> native_socket_type;
+auto tag_invoke(accept_t, const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> native_socket_type;
 
 /**
  * @brief Accepts an incoming connection on a listening socket.
@@ -150,8 +148,7 @@ auto tag_invoke(::io::accept_t, const socket_handle &socket,
  * @throws std::system_error on failure.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::accept_t, const socket_handle &socket,
-                socket_address addr = {})
+auto tag_invoke(accept_t, const socket_handle &socket, socket_address addr = {})
     -> std::tuple<socket_handle, socket_address>;
 
 /**
@@ -164,7 +161,7 @@ auto tag_invoke(::io::accept_t, const socket_handle &socket,
  * error, `errno` is set to indicate the error.
  * @see socket_handle, socket_message
  */
-auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
+auto tag_invoke(sendmsg_t, const socket_handle &socket,
                 const socket_message_type *msg, int flags) -> std::streamsize;
 
 /**
@@ -180,7 +177,7 @@ auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
  * error, `errno` is set to indicate the error.
  * @see socket_handle, socket_message
  */
-auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
+auto tag_invoke(sendmsg_t, const socket_handle &socket,
                 const socket_message &msg) -> std::streamsize;
 
 /**
@@ -193,7 +190,7 @@ auto tag_invoke(::io::sendmsg_t, const socket_handle &socket,
  * an error, `errno` is set to indicate the error.
  * @see socket_handle, socket_message
  */
-auto tag_invoke(::io::recvmsg_t, const socket_handle &socket,
+auto tag_invoke(recvmsg_t, const socket_handle &socket,
                 socket_message_type *msg, int flags) -> std::streamsize;
 
 /**
@@ -208,7 +205,7 @@ auto tag_invoke(::io::recvmsg_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle
  */
-auto tag_invoke(::io::getsockopt_t, const socket_handle &socket, int level,
+auto tag_invoke(getsockopt_t, const socket_handle &socket, int level,
                 int optname, void *optval, socklen_type *optlen) -> int;
 
 /**
@@ -223,7 +220,7 @@ auto tag_invoke(::io::getsockopt_t, const socket_handle &socket, int level,
  * indicate the error.
  * @see socket_handle
  */
-auto tag_invoke(::io::setsockopt_t, const socket_handle &socket, int level,
+auto tag_invoke(setsockopt_t, const socket_handle &socket, int level,
                 int optname, const void *optval, socklen_type optlen) -> int;
 
 /**
@@ -236,8 +233,8 @@ auto tag_invoke(::io::setsockopt_t, const socket_handle &socket, int level,
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::getsockname_t, const socket_handle &socket,
-                sockaddr_type *addr, socklen_type *len) -> int;
+auto tag_invoke(getsockname_t, const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> int;
 
 /**
  * @brief Gets the peer address of a connected socket.
@@ -249,8 +246,8 @@ auto tag_invoke(::io::getsockname_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle, socket_address
  */
-auto tag_invoke(::io::getpeername_t, const socket_handle &socket,
-                sockaddr_type *addr, socklen_type *len) -> int;
+auto tag_invoke(getpeername_t, const socket_handle &socket, sockaddr_type *addr,
+                socklen_type *len) -> int;
 
 /**
  * @brief Shuts down a socket connection.
@@ -264,7 +261,7 @@ auto tag_invoke(::io::getpeername_t, const socket_handle &socket,
  * indicate the error.
  * @see socket_handle
  */
-auto tag_invoke(::io::shutdown_t, const socket_handle &socket, int how) -> int;
+auto tag_invoke(shutdown_t, const socket_handle &socket, int how) -> int;
 
 /**
  * @brief Performs a file control operation on a socket.
@@ -277,7 +274,7 @@ auto tag_invoke(::io::shutdown_t, const socket_handle &socket, int how) -> int;
  * @see socket_handle
  */
 template <typename... Args>
-auto tag_invoke([[maybe_unused]] ::io::fcntl_t tag, const socket_handle &socket,
+auto tag_invoke([[maybe_unused]] fcntl_t tag, const socket_handle &socket,
                 int cmd, Args &&...args) -> int {
   return ::io::socket::fcntl(static_cast<native_socket_type>(socket), cmd,
                              std::forward<Args>(args)...);
