@@ -34,7 +34,7 @@ public:
   }
 
   auto wait(interval_type interval = interval_type{-1}) -> size_type {
-    return Mux::wait();
+    return Mux::wait(interval);
   }
 
 private:

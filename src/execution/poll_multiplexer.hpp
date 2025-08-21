@@ -25,14 +25,12 @@
 
 #include <stdexec/execution.hpp>
 
-#include <algorithm>
 #include <chrono>
 #include <ios>
 #include <list>
 #include <map>
 #include <mutex>
 #include <queue>
-#include <system_error>
 
 #include <poll.h>
 
@@ -73,9 +71,7 @@ public:
   template <typename Fn>
     requires std::is_invocable_v<Fn>
   static auto lock_exec(std::unique_lock<std::mutex> lock,
-                        Fn func) -> decltype(auto) {
-    return func();
-  }
+                        Fn func) -> decltype(auto);
 
   template <typename Receiver, detail::Operation<event_type> Fn>
   struct poll_op : public op_ {
@@ -83,25 +79,8 @@ public:
     events_type *events{};
     Fn &&func;
 
-    auto complete() -> void override {
-      std::lock_guard lock{*mtx};
-
-      std::streamsize len = func(*event);
-      if (len >= 0) {
-        stdexec::set_value(std::move(receiver), len);
-      } else {
-        stdexec::set_error(std::move(receiver), errno);
-      }
-    }
-
-    auto start() -> void {
-      std::lock_guard lock{*mtx};
-
-      auto [qit, emplaced] = events->try_emplace(event->key());
-      auto &queue = (event->events & POLLIN) ? qit->second.read_queue
-                                             : qit->second.write_queue;
-      queue.push(this);
-    }
+    auto complete() -> void override;
+    auto start() -> void;
   };
 
   template <detail::Operation<event_type> Fn> struct poll_sender {
@@ -111,26 +90,7 @@ public:
                                        stdexec::set_error_t(int)>;
 
     template <typename Receiver>
-    auto connect(Receiver receiver) -> poll_op<Receiver, Fn> {
-      std::lock_guard lock{*mtx};
-
-      auto event_it = std::lower_bound(
-          std::begin(*interest), std::end(*interest), event.fd,
-          [&](const auto &lhs, int rhs) { return lhs.fd < rhs; });
-
-      if (event_it != std::end(*interest) && event_it->fd == event.key()) {
-        event_it->events |= event.events;
-      } else {
-        event_it = interest->insert(event_it, event);
-      }
-
-      return {.receiver = std::move(receiver),
-              .func = std::move(func),
-              .event = &*event_it,
-              .interest = interest,
-              .events = events,
-              .mtx = mtx};
-    }
+    auto connect(Receiver receiver) -> poll_op<Receiver, Fn>;
 
     Fn func;
     event_type event;
@@ -140,83 +100,9 @@ public:
   };
 
   template <detail::Operation<event_type> Fn>
-  auto submit(event_type event, Fn func) -> poll_sender<Fn> {
-    return {.func = std::move(func),
-            .event = event,
-            .interest = &interest_,
-            .events = &events_,
-            .mtx = &mtx_};
-  }
+  auto submit(event_type event, Fn func) -> poll_sender<Fn>;
 
-  auto wait(interval_type interval = interval_type{-1}) -> size_type {
-    auto list = lock_exec(std::unique_lock{mtx_}, [&]() {
-      return std::vector<event_base>(std::cbegin(interest_),
-                                     std::cend(interest_));
-    });
-
-    auto num_events =
-        poll(list.data(), list.size(), static_cast<int>(interval.count()));
-    if (num_events < 0)
-      throw_system_error(IO_ERROR_MESSAGE("poll failed."));
-
-    auto end = std::end(list);
-    for (auto it = std::begin(list); num_events && it != end; ++it) {
-      auto &event = *it;
-      if (event.revents && num_events--) {
-        auto queues = lock_exec(std::unique_lock{mtx_}, [&]() {
-          auto qit = events_.find(event.fd);
-          if (qit == std::end(events_))
-            return op_queues_{};
-          auto tmp = qit->second;
-          events_.erase(qit);
-          return tmp;
-        });
-
-        if (event.revents & POLLIN) {
-          auto &queue = queues.read_queue;
-
-          while (!queue.empty()) {
-            auto *operation = lock_exec(std::unique_lock{mtx_}, [&]() {
-              auto *tmp = queue.front();
-              queue.pop();
-              return tmp;
-            });
-
-            operation->complete();
-          }
-        }
-
-        if (event.revents & POLLOUT) {
-          auto &queue = queues.write_queue;
-
-          while (!queue.empty()) {
-            auto *operation = lock_exec(std::unique_lock{mtx_}, [&]() {
-              auto *tmp = queue.front();
-              queue.pop();
-              return tmp;
-            });
-
-            operation->complete();
-          }
-        }
-      }
-    }
-
-    // TODO: need to think of a way to clean the interest list.
-
-    return num_events;
-  }
-
-  // sendmsg
-  // template <typename Tag, typename Socket, typename Msg, typename Flags>
-  // auto tag_invoke([[maybe_unused]] Tag tag, const Socket &sock, const Msg
-  // &msg,
-  //                 Flags flags) -> decltype(auto) {
-  //   return submit({.fd = sock.fd(), .events = POLLOUT}, [=](event_type event)
-  //   {
-  //     return ::io::sendmsg(sock, msg, flags);
-  //   });
-  // }
+  auto wait(interval_type interval = interval_type{-1}) -> size_type;
 
 private:
   interest_list interest_;
@@ -225,4 +111,7 @@ private:
 };
 
 } // namespace io::execution
+
+#include "impl/poll_multiplexer_impl.hpp" // IWYU pragma: export
+
 #endif // IO_POLL_MULTIPLEXER_HPP
