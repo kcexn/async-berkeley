@@ -74,7 +74,7 @@ public:
    *
    * @param size The size in bytes for the socket address structure.
    */
-  explicit socket_address(socklen_type size) noexcept;
+  constexpr explicit socket_address(socklen_type size) noexcept;
 
   /**
    * @brief Constructs a `socket_address` from a native socket address
@@ -88,8 +88,7 @@ public:
    * The data pointed to is copied into the object.
    * @param size The size of the address structure in bytes.
    */
-  explicit socket_address(const sockaddr_type *addr,
-                          socklen_type size) noexcept;
+  socket_address(const sockaddr_type *addr, socklen_type size) noexcept;
 
   /**
    * @brief Returns a mutable pointer to the underlying socket address data.
@@ -124,7 +123,7 @@ public:
    *
    * @return A non-owning pointer to the `socklen_type` size.
    */
-  [[nodiscard]] auto size() noexcept -> socklen_type *;
+  [[nodiscard]] constexpr auto size() noexcept -> socklen_type *;
 
   /**
    * @brief Returns a constant pointer to the size of the socket address.
@@ -135,7 +134,7 @@ public:
    *
    * @return A non-owning constant pointer to the `socklen_type` size.
    */
-  [[nodiscard]] auto size() const noexcept -> const socklen_type *;
+  [[nodiscard]] constexpr auto size() const noexcept -> const socklen_type *;
 
   /**
    * @brief Compares two `socket_address` objects for equality.
@@ -146,7 +145,7 @@ public:
    * @param other The `socket_address` to compare against.
    * @return `true` if the addresses are equal, `false` otherwise.
    */
-  auto operator==(const socket_address &other) const noexcept -> bool;
+  constexpr auto operator==(const socket_address &other) const noexcept -> bool;
 
   /** @brief Default destructor. */
   ~socket_address() = default;
@@ -177,7 +176,7 @@ private:
  * size of `SockAddr`.
  */
 template <typename SockAddr>
-auto make_address(const SockAddr *addr = nullptr) noexcept -> socket_address {
+constexpr auto make_address(const SockAddr *addr = nullptr) noexcept -> socket_address {
   static_assert(sizeof(SockAddr) <= sizeof(sockaddr_storage_type),
                 "SockAddr must fit into sockaddr_storage_type.");
 
