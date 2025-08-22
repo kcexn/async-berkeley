@@ -13,21 +13,31 @@
  * limitations under the License.
  */
 
-#include "../src/execution/context.hpp"
-#include "../src/execution/poll_multiplexer.hpp"
-#include <gtest/gtest.h>
+#pragma once
+#ifndef IO_SOCKET_DIALOG_HPP
+#define IO_SOCKET_DIALOG_HPP
+// #include <boost/predef.h>
 
+// #if BOOST_OS_WINDOWS
+// #include "platforms/windows/socket.hpp"
+// #else
+// #include "platforms/posix/socket.hpp"
+// #endif
 
-using namespace io::execution;
+#include <execution/executor.hpp>
 
-class PollMultiplexerTest : public ::testing::Test {
-protected:
-  void SetUp() override {}
-  void TearDown() override {}
+#include <memory>
+
+namespace io::socket {
+
+template <::io::execution::detail::Multiplexer Mux> class socket_dialog {
+  using executor_ptr = std::weak_ptr<::io::execution::executor<Mux>>;
+
+public:
+private:
+  executor_ptr executor_;
 };
 
-TEST_F(PollMultiplexerTest, IsMultiplexerTest) {
-  using interval_type = poll_multiplexer::interval_type;
-  basic_context<poll_multiplexer> ctx{};
-  ctx.run_for(interval_type{0});
-}
+} // namespace io::socket
+
+#endif // IO_SOCKET_ADDRESS_HPP
