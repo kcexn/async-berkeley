@@ -26,17 +26,13 @@
 namespace io::execution {
 
 class context_base {
+
+public:
   using native_socket_type = ::io::socket::native_socket_type;
   using socket_handle = ::io::socket::socket_handle;
   using handles_type =
       std::map<native_socket_type, std::shared_ptr<socket_handle>>;
 
-  auto make_handle(std::shared_ptr<socket_handle> ptr)
-      -> std::weak_ptr<socket_handle>;
-
-  friend auto swap(context_base &lhs, context_base &rhs) noexcept -> void;
-
-public:
   context_base() = default;
   context_base(const context_base &other);
   auto operator=(const context_base &other) -> context_base &;
@@ -44,7 +40,6 @@ public:
   auto operator=(context_base &&other) noexcept -> context_base &;
 
   template <typename K>
-    requires std::is_convertible_v<K, native_socket_type>
   auto erase(const K &key) -> void {
     std::lock_guard lock{mtx_};
 
@@ -55,7 +50,7 @@ public:
 
   template <typename... Args>
   auto emplace(Args &&...args) -> std::weak_ptr<socket_handle> {
-    return make_handle(std::make_shared<socket_handle>(std::forward(args)...));
+    return make_handle(std::make_shared<socket_handle>(std::forward<Args>(args)...));
   }
 
   virtual ~context_base() = default;
@@ -63,19 +58,27 @@ public:
 private:
   handles_type handles_;
   mutable std::mutex mtx_;
+
+  auto make_handle(std::shared_ptr<socket_handle> ptr)
+      -> std::weak_ptr<socket_handle>;
+
+  friend auto swap(context_base &lhs, context_base &rhs) noexcept -> void;
 };
 
 template <detail::Multiplexer Mux> class basic_context : public context_base {
+  using Base = context_base;
   using size_type = Mux::size_type;
   using interval_type = Mux::interval_type;
   using executor_type = executor<Mux>;
+  using socket_handle = Base::socket_handle;
+  using socket_dialog = ::io::socket::socket_dialog<Mux>;
 
 public:
   static constexpr auto MUX_ERROR = Mux::MUX_ERROR;
 
   template <detail::Operation<typename Mux::event_type> Fn>
   auto submit(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return executor_->submit(event, std::forward(exec));
+    return executor_->submit(event, std::forward<Fn>(exec));
   }
 
   auto run_for(interval_type interval = interval_type{-1}) -> size_type {
@@ -85,6 +88,19 @@ public:
   auto run() -> size_type { return executor_->run(); }
 
   auto get_executor() -> std::weak_ptr<executor_type> { return executor_; }
+
+  auto erase(const socket_dialog &dialog) -> void {
+    if(auto ptr = dialog.socket.lock())
+      return Base::erase(*ptr);
+  }
+
+  auto push(socket_handle &&handle) -> socket_dialog {
+    return {executor_, Base::push(std::move(handle))};
+  }
+
+  template <typename... Args> auto emplace(Args &&...args) -> socket_dialog {
+    return {executor_, Base::emplace(std::forward<Args>(args)...)};
+  }
 
 private:
   std::shared_ptr<executor_type> executor_{std::make_shared<executor_type>()};

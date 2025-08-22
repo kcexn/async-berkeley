@@ -24,18 +24,19 @@
 // #include "platforms/posix/socket.hpp"
 // #endif
 
+#include "socket_handle.hpp"
 #include <execution/executor.hpp>
 
 #include <memory>
 
 namespace io::socket {
 
-template <::io::execution::detail::Multiplexer Mux> class socket_dialog {
+template <::io::execution::detail::Multiplexer Mux> struct socket_dialog {
   using executor_ptr = std::weak_ptr<::io::execution::executor<Mux>>;
+  using socket_ptr = std::weak_ptr<socket_handle>;
 
-public:
-private:
-  executor_ptr executor_;
+  executor_ptr executor;
+  socket_ptr socket;
 };
 
 } // namespace io::socket

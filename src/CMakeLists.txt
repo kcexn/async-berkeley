@@ -4,6 +4,7 @@ add_library(iosched
   socket/socket_message.cpp
   socket/socket.cpp
   execution/poll_multiplexer.cpp
+  execution/context.cpp
 )
 
 target_include_directories(iosched
