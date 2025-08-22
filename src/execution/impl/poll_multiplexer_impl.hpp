@@ -84,66 +84,6 @@ auto poll_multiplexer::submit(event_type event, Fn func) -> poll_sender<Fn> {
           .mtx = &mtx_};
 }
 
-auto poll_multiplexer::wait(interval_type interval) -> size_type {
-  auto list = lock_exec(std::unique_lock{mtx_}, [&]() {
-    return std::vector<event_base>(std::cbegin(interest_),
-                                   std::cend(interest_));
-  });
-
-  auto num_events =
-      poll(list.data(), list.size(), static_cast<int>(interval.count()));
-  if (num_events < 0)
-    throw_system_error(IO_ERROR_MESSAGE("poll failed."));
-
-  auto end = std::end(list);
-  for (auto it = std::begin(list); num_events && it != end; ++it) {
-    auto &event = *it;
-    if (event.revents && num_events--) {
-      auto queues = lock_exec(std::unique_lock{mtx_}, [&]() {
-        auto qit = events_.find(event.fd);
-        if (qit == std::end(events_))
-          return op_queues_{};
-        auto tmp = qit->second;
-        events_.erase(qit);
-        return tmp;
-      });
-
-      if (event.revents & POLLIN) {
-        auto &queue = queues.read_queue;
-
-        while (!queue.empty()) {
-          auto *operation = lock_exec(std::unique_lock{mtx_}, [&]() {
-            auto *tmp = queue.front();
-            queue.pop();
-            return tmp;
-          });
-
-          operation->complete();
-        }
-      }
-
-      if (event.revents & POLLOUT) {
-        auto &queue = queues.write_queue;
-
-        while (!queue.empty()) {
-          auto *operation = lock_exec(std::unique_lock{mtx_}, [&]() {
-            auto *tmp = queue.front();
-            queue.pop();
-            return tmp;
-          });
-
-          operation->complete();
-        }
-      }
-    }
-  }
-
-  // TODO: need to think of a way to clean the interest list.
-
-  return num_events;
-}
-
-
   // sendmsg
   // template <typename Tag, typename Socket, typename Msg, typename Flags>
   // auto tag_invoke([[maybe_unused]] Tag tag, const Socket &sock, const Msg
