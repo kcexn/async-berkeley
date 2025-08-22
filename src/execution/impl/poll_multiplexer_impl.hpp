@@ -22,13 +22,6 @@
 
 namespace io::execution {
 
-template <typename Fn>
-  requires std::is_invocable_v<Fn>
-auto poll_multiplexer::lock_exec(std::unique_lock<std::mutex> lock,
-                                 Fn func) -> decltype(auto) {
-  return func();
-}
-
 template <typename Receiver, detail::Operation<poll_multiplexer::event_type> Fn>
 auto poll_multiplexer::poll_op<Receiver, Fn>::complete() -> void {
   std::lock_guard lock{*mtx};
@@ -84,16 +77,15 @@ auto poll_multiplexer::submit(event_type event, Fn func) -> poll_sender<Fn> {
           .mtx = &mtx_};
 }
 
-  // sendmsg
-  // template <typename Tag, typename Socket, typename Msg, typename Flags>
-  // auto tag_invoke([[maybe_unused]] Tag tag, const Socket &sock, const Msg
-  // &msg,
-  //                 Flags flags) -> decltype(auto) {
-  //   return submit({.fd = sock.fd(), .events = POLLOUT}, [=](event_type event)
-  //   {
-  //     return ::io::sendmsg(sock, msg, flags);
-  //   });
-  // }
+// template <typename Tag, typename Socket, typename Msg, typename Flags>
+// auto tag_invoke([[maybe_unused]] Tag tag, const Socket &sock, const Msg
+// &msg,
+//                 Flags flags) -> decltype(auto) {
+//   return submit({.fd = sock.fd(), .events = POLLOUT}, [=](auto &event)
+//   {
+//     return ::io::sendmsg(sock, msg, flags);
+//   });
+// }
 
 } // namespace io::execution
 #endif // IO_POLL_MULTIPLEXER_IMPL_HPP

@@ -14,37 +14,30 @@
  */
 
 #pragma once
-#ifndef IO_CONTEXT_HPP
-#define IO_CONTEXT_HPP
-#include "executor.hpp"
+#ifndef IO_EXECUTOR_HPP
+#define IO_EXECUTOR_HPP
+#include "detail/execution_concepts.hpp"
 
-#include <memory>
+#include <utility>
 
 namespace io::execution {
 
-template <detail::Multiplexer Mux> class context {
+template <detail::Multiplexer Mux> class executor : public Mux {
   using size_type = Mux::size_type;
   using interval_type = Mux::interval_type;
 
 public:
-  static constexpr auto MUX_ERROR = Mux::MUX_ERROR;
-
   template <detail::Operation<typename Mux::event_type> Fn>
   auto submit(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return executor_->submit(event, std::forward(exec));
+    return Mux::submit(event, std::forward(exec));
   }
 
   auto run_for(interval_type interval = interval_type{-1}) -> size_type {
-    return executor_->run_for(interval);
+    return Mux::run_for(std::move(interval));
   }
 
-  auto run() -> size_type { return executor_->run(); }
-
-  auto get_executor() -> std::weak_ptr<executor<Mux>> { return executor_; }
-
-private:
-  std::shared_ptr<executor<Mux>> executor_{std::make_shared<executor<Mux>>()};
+  auto run() -> size_type { return run_for(); }
 };
 
 } // namespace io::execution
-#endif // IO_CONTEXT_HPP
+#endif // IO_EXECUTOR_HPP

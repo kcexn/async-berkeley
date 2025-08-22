@@ -12,19 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#ifndef IO_IMMOVABLE_HPP
-#define IO_IMMOVABLE_HPP
+#ifndef IO_LOCK_EXEC_HPP
+#define IO_LOCK_EXEC_HPP
+
+#include <mutex>
+#include <type_traits>
 
 namespace io::execution::detail {
-struct immovable {
-  immovable() = default;
-  immovable(immovable &&) = delete;
-  auto operator=(immovable &&) -> immovable & = delete;
-  immovable(const immovable &) = default;
-  auto operator=(const immovable &) -> immovable & = default;
-  ~immovable() = default;
-};
+
+template <typename Fn>
+  requires std::is_invocable_v<Fn>
+auto lock_exec(std::unique_lock<std::mutex> lock, Fn func) -> decltype(auto) {
+  return func();
+}
+
 } // namespace io::execution::detail
-#endif // IO_IMMOVABLE_HPP
+#endif // IO_LOCK_EXEC_HPP

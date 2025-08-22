@@ -14,17 +14,19 @@
  */
 
 #pragma once
-#ifndef IO_IMMOVABLE_HPP
-#define IO_IMMOVABLE_HPP
+#ifndef IO_UNCOPYABLE_HPP
+#define IO_UNCOPYABLE_HPP
 
 namespace io::execution::detail {
-struct immovable {
-  immovable() = default;
-  immovable(immovable &&) = delete;
-  auto operator=(immovable &&) -> immovable & = delete;
-  immovable(const immovable &) = default;
-  auto operator=(const immovable &) -> immovable & = default;
-  ~immovable() = default;
+
+struct uncopyable {
+  uncopyable() = default;
+  uncopyable(uncopyable &&) = default;
+  auto operator=(uncopyable &&) -> uncopyable & = default;
+  uncopyable(const uncopyable &) = delete;
+  auto operator=(const uncopyable &) -> uncopyable & = delete;
+  ~uncopyable() = default;
 };
+
 } // namespace io::execution::detail
-#endif // IO_IMMOVABLE_HPP
+#endif // IO_UNCOPYABLE_HPP

@@ -38,7 +38,9 @@ namespace io::execution {
 class poll_multiplexer {
 
 public:
+  // type definitions
   using size_type = std::size_t;
+  static constexpr size_type MUX_ERROR = std::numeric_limits<size_type>::max();
   using interval_type = std::chrono::milliseconds;
   using event_base = struct pollfd;
   struct event_type : public event_base {
@@ -46,12 +48,12 @@ public:
   };
   using interest_list = std::list<event_type>;
 
-  struct op_ : detail::immovable {
-    op_() = default;
-    op_(const op_ &) = default;
-    auto operator=(const op_ &) -> op_ & = default;
-    op_(op_ &&) = delete;
-    auto operator=(op_ &&) -> op_ & = delete;
+  struct operation : detail::immovable {
+    operation() = default;
+    operation(const operation &) = default;
+    auto operator=(const operation &) -> operation & = default;
+    operation(operation &&) = delete;
+    auto operator=(operation &&) -> operation & = delete;
 
     event_type *event{};
     interest_list *interest{};
@@ -59,22 +61,18 @@ public:
 
     virtual auto complete() -> void = 0;
 
-    virtual ~op_() = default;
+    virtual ~operation() = default;
   };
 
-  struct op_queues_ {
-    std::queue<op_ *> read_queue;
-    std::queue<op_ *> write_queue;
+  struct op_queues {
+    std::queue<operation *> read_queue;
+    std::queue<operation *> write_queue;
   };
-  using events_type = std::map<decltype(event_type{}.key()), op_queues_>;
 
-  template <typename Fn>
-    requires std::is_invocable_v<Fn>
-  static auto lock_exec(std::unique_lock<std::mutex> lock,
-                        Fn func) -> decltype(auto);
+  using events_type = std::map<decltype(event_type{}.key()), op_queues>;
 
   template <typename Receiver, detail::Operation<event_type> Fn>
-  struct poll_op : public op_ {
+  struct poll_op : public operation {
     Receiver receiver;
     events_type *events{};
     Fn &&func;
@@ -101,7 +99,6 @@ public:
 
   template <detail::Operation<event_type> Fn>
   auto submit(event_type event, Fn func) -> poll_sender<Fn>;
-
   auto run_for(interval_type interval = interval_type{-1}) -> size_type;
 
 private:

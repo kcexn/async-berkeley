@@ -17,6 +17,8 @@
 #ifndef IO_EXECUTION_CONCEPTS_HPP
 #define IO_EXECUTION_CONCEPTS_HPP
 
+#include <type_traits>
+
 namespace io::execution::detail {
 
 template <typename T>
@@ -30,10 +32,15 @@ concept Operation = requires(F func) {
 
 template <typename T>
 concept Multiplexer = requires(T mux) {
+  requires !std::is_copy_constructible_v<T>;
+  requires !std::is_copy_assignable_v<T>;
+  requires !std::is_move_constructible_v<T>;
+  requires !std::is_move_assignable_v<T>;
+  requires Event<typename T::event_type>;
   typename T::event_type;
   typename T::size_type;
   typename T::interval_type;
-  requires Event<typename T::event_type>;
+  T::MUX_ERROR;
   mux.submit(typename T::event_type{}, [](typename T::event_type) {});
   mux.run_for(typename T::interval_type{});
 };
