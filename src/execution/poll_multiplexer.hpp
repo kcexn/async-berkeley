@@ -74,8 +74,8 @@ public:
   template <typename Receiver, detail::Operation<event_type> Fn>
   struct poll_op : public operation {
     Receiver receiver;
-    events_type *events{};
     Fn &&func;
+    events_type *events{};
 
     auto complete() -> void override;
     auto start() -> void;
