@@ -35,7 +35,7 @@ concept Multiplexer = requires(T mux) {
   typename T::interval_type;
   requires Event<typename T::event_type>;
   mux.submit(typename T::event_type{}, [](typename T::event_type) {});
-  mux.wait(typename T::interval_type{});
+  mux.run_for(typename T::interval_type{});
 };
 
 } // namespace io::execution::detail

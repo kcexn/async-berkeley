@@ -29,5 +29,5 @@ protected:
 TEST_F(PollMultiplexerTest, IsMultiplexerTest) {
   using interval_type = poll_multiplexer::interval_type;
   context<poll_multiplexer> ctx{};
-  ctx.wait(interval_type{0});
+  ctx.run_for(interval_type{0});
 }

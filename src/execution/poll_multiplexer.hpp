@@ -102,7 +102,7 @@ public:
   template <detail::Operation<event_type> Fn>
   auto submit(event_type event, Fn func) -> poll_sender<Fn>;
 
-  auto wait(interval_type interval = interval_type{-1}) -> size_type;
+  auto run_for(interval_type interval = interval_type{-1}) -> size_type;
 
 private:
   interest_list interest_;

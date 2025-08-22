@@ -16,7 +16,7 @@
 
 namespace io::execution {
 
-auto poll_multiplexer::wait(interval_type interval) -> size_type {
+auto poll_multiplexer::run_for(interval_type interval) -> size_type {
   auto list = lock_exec(std::unique_lock{mtx_}, [&]() {
     return std::vector<event_base>(std::cbegin(interest_),
                                    std::cend(interest_));

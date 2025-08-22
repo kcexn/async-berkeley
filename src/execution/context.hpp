@@ -33,8 +33,8 @@ public:
     return Mux::submit(event, std::forward(exec));
   }
 
-  auto wait(interval_type interval = interval_type{-1}) -> size_type {
-    return Mux::wait(interval);
+  auto run_for(interval_type interval = interval_type{-1}) -> size_type {
+    return Mux::run_for(interval);
   }
 
 private:
