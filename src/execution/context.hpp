@@ -26,14 +26,11 @@
 namespace io::execution {
 
 class context_base {
-
-public:
   using native_socket_type = ::io::socket::native_socket_type;
   using socket_handle = ::io::socket::socket_handle;
   using handles_type =
       std::map<native_socket_type, std::shared_ptr<socket_handle>>;
 
-private:
   auto make_handle(std::shared_ptr<socket_handle> ptr)
       -> std::weak_ptr<socket_handle>;
 
