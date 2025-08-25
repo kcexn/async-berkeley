@@ -12,19 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 #ifndef IO_IMMOVABLE_HPP
 #define IO_IMMOVABLE_HPP
 
 namespace io::execution::detail {
+// NOLINTNEXTLINE
 struct immovable {
-  immovable() = default;
-  immovable(immovable &&) = delete;
-  auto operator=(immovable &&) -> immovable & = delete;
-  immovable(const immovable &) = default;
-  auto operator=(const immovable &) -> immovable & = default;
-  ~immovable() = default;
+private:
+  auto operator=(immovable &&) noexcept -> immovable & = default;
 };
 } // namespace io::execution::detail
+
 #endif // IO_IMMOVABLE_HPP

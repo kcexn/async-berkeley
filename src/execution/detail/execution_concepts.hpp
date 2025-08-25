@@ -21,14 +21,8 @@
 
 namespace io::execution::detail {
 
-template <typename T>
-concept Event = requires(T event) { event.key(); };
-
-template <typename F, typename E>
-concept Operation = requires(F func) {
-  func(E{});
-  requires Event<E>;
-};
+template <typename Fn, typename E>
+concept Completion = std::is_invocable_v<Fn, E *>;
 
 template <typename T>
 concept Multiplexer = requires(T mux) {
@@ -36,13 +30,12 @@ concept Multiplexer = requires(T mux) {
   requires !std::is_copy_assignable_v<T>;
   requires !std::is_move_constructible_v<T>;
   requires !std::is_move_assignable_v<T>;
-  requires Event<typename T::event_type>;
   typename T::event_type;
   typename T::size_type;
   typename T::interval_type;
   T::MUX_ERROR;
-  mux.submit(typename T::event_type{}, [](typename T::event_type) {});
-  mux.run_for(typename T::interval_type{});
+  mux.submit(typename T::event_type{}, [](typename T::event_type *) {});
+  mux.run_once_for(typename T::interval_type{});
 };
 
 } // namespace io::execution::detail

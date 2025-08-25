@@ -27,16 +27,16 @@ template <detail::Multiplexer Mux> class executor : public Mux {
   using interval_type = Mux::interval_type;
 
 public:
-  template <detail::Operation<typename Mux::event_type> Fn>
+  template <detail::Completion<typename Mux::event_type> Fn>
   auto submit(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return Mux::submit(event, std::forward<Fn>(exec));
+    return Mux::submit(std::move(event), std::forward<Fn>(exec));
   }
 
-  auto run_for(interval_type interval = interval_type{-1}) -> size_type {
-    return Mux::run_for(std::move(interval));
+  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type {
+    return Mux::run_once_for(std::move(interval));
   }
 
-  auto run() -> size_type { return run_for(); }
+  auto run_once() -> size_type { return run_once_for(); }
 };
 
 } // namespace io::execution

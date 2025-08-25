@@ -39,8 +39,7 @@ public:
   context_base(context_base &&other) noexcept;
   auto operator=(context_base &&other) noexcept -> context_base &;
 
-  template <typename K>
-  auto erase(const K &key) -> void {
+  template <typename K> auto erase(const K &key) -> void {
     std::lock_guard lock{mtx_};
 
     handles_.erase(static_cast<native_socket_type>(key));
@@ -50,7 +49,8 @@ public:
 
   template <typename... Args>
   auto emplace(Args &&...args) -> std::weak_ptr<socket_handle> {
-    return make_handle(std::make_shared<socket_handle>(std::forward<Args>(args)...));
+    return make_handle(
+        std::make_shared<socket_handle>(std::forward<Args>(args)...));
   }
 
   virtual ~context_base() = default;
@@ -76,21 +76,21 @@ template <detail::Multiplexer Mux> class basic_context : public context_base {
 public:
   static constexpr auto MUX_ERROR = Mux::MUX_ERROR;
 
-  template <detail::Operation<typename Mux::event_type> Fn>
+  template <detail::Completion<typename Mux::event_type> Fn>
   auto submit(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return executor_->submit(event, std::forward<Fn>(exec));
+    return executor_->submit(std::move(event), std::forward<Fn>(exec));
   }
 
-  auto run_for(interval_type interval = interval_type{-1}) -> size_type {
-    return executor_->run_for(interval);
+  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type {
+    return executor_->run_once_for(interval);
   }
 
-  auto run() -> size_type { return executor_->run(); }
+  auto run_once() -> size_type { return executor_->run_once(); }
 
   auto get_executor() -> std::weak_ptr<executor_type> { return executor_; }
 
   auto erase(const socket_dialog &dialog) -> void {
-    if(auto ptr = dialog.socket.lock())
+    if (auto ptr = dialog.socket.lock())
       return Base::erase(*ptr);
   }
 

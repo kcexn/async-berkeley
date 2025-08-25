@@ -16,9 +16,8 @@
 #include "../src/execution/context.hpp"
 #include "../src/execution/poll_multiplexer.hpp"
 
-#include <exec/async_scope.hpp>
-#include <stdexec/execution.hpp>
 #include <gtest/gtest.h>
+#include <stdexec/execution.hpp>
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -114,9 +113,34 @@ TEST_F(PollContextTest, EraseHandleTest) {
   EXPECT_FALSE(dialog.socket.lock());
 }
 
-// TEST_F(PollContextTest, SubmitTest) {
-//   auto send = ctx.submit({1, POLLIN, 0}, [](auto event){
-//     return 3;
-//   });
-//   EXPECT_TRUE(send.event.fd == 1);
-// }
+TEST_F(PollContextTest, SubmitTest) {
+  struct test_receiver {
+    using receiver_concept = stdexec::receiver_t;
+
+    std::streamsize len_ = -1;
+    int error_ = -1;
+
+    constexpr auto set_value(std::streamsize value) noexcept -> void { len_ = value; }
+    constexpr auto set_error(int error) noexcept -> void { error_ = error; }
+  };
+
+  std::array<int, 2> pipefds{};
+  std::array<char, 2> buf{};
+  pipe(pipefds.data());
+
+  stdexec::sender auto send =
+      ctx.submit({pipefds[0], POLLIN, 0}, [&](auto *event) {
+        return ::read(pipefds[0], buf.data(), 1);
+      });
+  auto operation = stdexec::connect(std::move(send), test_receiver{});
+  operation.start();
+
+  write(pipefds[1], "a", 1);
+  ctx.run_once();
+
+  EXPECT_EQ(operation.receiver.len_, 1);
+  EXPECT_EQ(buf[0], 'a');
+
+  for (int file : pipefds)
+    close(file);
+}
