@@ -25,9 +25,9 @@ namespace io::execution {
 
 template <typename Receiver, typename Fn>
   requires std::is_invocable_v<Fn, pollfd *>
-auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *ptr) noexcept
+auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
     -> void {
-  auto *self = static_cast<poll_op *>(ptr);
+  auto *self = static_cast<poll_op *>(task);
   std::streamsize len = self->func(self->event);
   if (len >= 0) {
     stdexec::set_value(std::move(self->receiver), len);

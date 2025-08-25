@@ -66,7 +66,7 @@ public:
     requires std::is_invocable_v<Fn, event_type *>
   struct poll_op : public detail::immovable, public poll_task {
 
-    static auto complete(poll_task *ptr) noexcept -> void;
+    static auto complete(poll_task *task) noexcept -> void;
     auto start() noexcept -> void;
 
     Receiver receiver{};
