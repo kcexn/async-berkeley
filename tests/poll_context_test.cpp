@@ -114,16 +114,6 @@ TEST_F(PollContextTest, EraseHandleTest) {
 }
 
 TEST_F(PollContextTest, SubmitTest) {
-  struct test_receiver {
-    using receiver_concept = stdexec::receiver_t;
-
-    std::streamsize len_ = -1;
-    int error_ = -1;
-
-    constexpr auto set_value(std::streamsize value) noexcept -> void { len_ = value; }
-    constexpr auto set_error(int error) noexcept -> void { error_ = error; }
-  };
-
   std::array<int, 2> pipefds{};
   std::array<char, 2> buf{};
   pipe(pipefds.data());
@@ -132,13 +122,16 @@ TEST_F(PollContextTest, SubmitTest) {
       ctx.submit({pipefds[0], POLLIN, 0}, [&](auto *event) {
         return ::read(pipefds[0], buf.data(), 1);
       });
-  auto operation = stdexec::connect(std::move(send), test_receiver{});
-  operation.start();
+
+  stdexec::sender auto started = stdexec::ensure_started(std::move(send));
+  stdexec::sender auto moved = std::move(started);
 
   write(pipefds[1], "a", 1);
   ctx.run_once();
 
-  EXPECT_EQ(operation.receiver.len_, 1);
+  auto [len] = stdexec::sync_wait(std::move(moved)).value();
+
+  EXPECT_EQ(len, 1);
   EXPECT_EQ(buf[0], 'a');
 
   for (int file : pipefds)

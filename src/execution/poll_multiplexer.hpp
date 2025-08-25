@@ -18,8 +18,6 @@
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
 #include "detail/immovable.hpp"
-#include "detail/lock_exec.hpp"
-#include <algorithm>
 #include <error.hpp>
 #include <io.hpp>
 #include <socket/socket_handle.hpp>
@@ -29,7 +27,6 @@
 #include <chrono>
 #include <ios>
 #include <list>
-#include <map>
 #include <mutex>
 #include <queue>
 
@@ -69,28 +66,9 @@ public:
   template <typename Receiver, typename Fn>
     requires std::is_invocable_v<Fn, event_type *>
   struct poll_op : public detail::immovable, public poll_task {
-    static auto complete(poll_task *ptr) noexcept -> void {
-      auto *self = static_cast<poll_op *>(ptr);
-      std::streamsize len = self->func(self->event);
-      if (len >= 0) {
-        stdexec::set_value(std::move(self->receiver), len);
-      } else {
-        stdexec::set_error(std::move(self->receiver), errno);
-      }
-    }
 
-    auto start() noexcept -> void {
-      std::lock_guard lock{*mtx};
-
-      poll_task::do_complete = poll_op::complete;
-      event->pfd.events |= events_mask;
-
-      if (events_mask & POLLIN)
-        event->read_queue.push(this);
-
-      if (events_mask & POLLOUT)
-        event->write_queue.push(this);
-    }
+    static auto complete(poll_task *ptr) noexcept -> void;
+    auto start() noexcept -> void;
 
     Receiver receiver{};
     Fn func{};
@@ -100,43 +78,15 @@ public:
   };
 
   template <typename Fn>
-    requires std::is_invocable_v<Fn, struct pollfd *>
+    requires std::is_invocable_v<Fn, pollfd *>
   struct poll_sender {
     using sender_concept = stdexec::sender_t;
     using completion_signatures =
         stdexec::completion_signatures<stdexec::set_value_t(std::streamsize),
                                        stdexec::set_error_t(int)>;
 
-    static auto
-    update_or_insert_event(interest_list *list,
-                           const poll_event &event) -> decltype(auto) {
-      auto event_it = std::ranges::lower_bound(
-          *list, event.key(), {},
-          [](const auto &event) { return event.pfd.fd; });
-
-      if (event_it != std::end(*list) && event_it->pfd.fd == event.key()) {
-        event_it->pfd.events |= event.pfd.events;
-      } else {
-        event_it = list->insert(event_it, event);
-      }
-
-      return event_it;
-    }
-
     template <typename Receiver>
-    auto connect(Receiver receiver) -> poll_op<Receiver, Fn> {
-      using detail::lock_exec;
-
-      auto event_it = lock_exec(std::unique_lock{*mtx}, [&]() {
-        return update_or_insert_event(list, event);
-      });
-
-      return {.receiver = std::move(receiver),
-              .func = std::move(func),
-              .events_mask = event.pfd.events,
-              .event = &(*event_it),
-              .mtx = mtx};
-    }
+    auto connect(Receiver receiver) -> poll_op<Receiver, Fn>;
 
     Fn func{};
     poll_event event{};
@@ -146,12 +96,7 @@ public:
 
   template <typename Fn>
     requires std::is_invocable_v<Fn, event_type *>
-  auto submit(event_type event, Fn func) -> poll_sender<Fn> {
-    return {.func = std::move(func),
-            .event = {.pfd = std::move(event)},
-            .list = &list_,
-            .mtx = &mtx_};
-  }
+  auto submit(event_type event, Fn func) -> poll_sender<Fn>;
 
   auto run_once_for(interval_type interval = interval_type{-1}) -> size_type;
 
@@ -161,5 +106,7 @@ private:
 };
 
 } // namespace io::execution
+
+#include "impl/poll_multiplexer_impl.hpp" // IWYU pragma: export
 
 #endif // IO_POLL_MULTIPLEXER_HPP
