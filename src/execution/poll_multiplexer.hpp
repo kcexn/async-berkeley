@@ -61,7 +61,6 @@ public:
   static constexpr size_type MUX_ERROR = std::numeric_limits<size_type>::max();
   using interval_type = std::chrono::milliseconds;
   using event_type = struct pollfd;
-  using interest_list = std::list<poll_event>;
 
   template <typename Receiver, typename Fn>
     requires std::is_invocable_v<Fn, event_type *>
@@ -90,7 +89,7 @@ public:
 
     Fn func{};
     poll_event event{};
-    interest_list *list = nullptr;
+    std::list<poll_event> *list = nullptr;
     std::mutex *mtx = nullptr;
   };
 
