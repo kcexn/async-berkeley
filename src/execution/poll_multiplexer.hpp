@@ -77,7 +77,7 @@ public:
   };
 
   template <typename Fn>
-    requires std::is_invocable_v<Fn, pollfd *>
+    requires std::is_invocable_v<Fn, event_type *>
   struct poll_sender {
     using sender_concept = stdexec::sender_t;
     using completion_signatures =
