@@ -93,11 +93,11 @@ public:
     std::mutex *mtx = nullptr;
   };
 
+  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type;
+
   template <typename Fn>
     requires std::is_invocable_v<Fn, event_type *>
   auto submit(event_type event, Fn func) -> poll_sender<Fn>;
-
-  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type;
 
 private:
   std::list<poll_event> list_;
