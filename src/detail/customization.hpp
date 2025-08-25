@@ -35,8 +35,7 @@ template <typename Tag> struct cpo {
    * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
-  auto operator()(Args &&...args) const
-      -> decltype(tag_invoke(Tag{}, std::forward<Args>(args)...)) {
+  constexpr auto operator()(Args &&...args) const -> decltype(auto) {
     return tag_invoke(Tag{}, std::forward<Args>(args)...);
   }
 };

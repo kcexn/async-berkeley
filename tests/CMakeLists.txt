@@ -5,6 +5,7 @@ set(TEST_NAMES
   socket_address_test
   socket_message_test
   socket_test
+  poll_context_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
@@ -18,6 +19,7 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
     PRIVATE
     GTest::gtest_main
     iosched
+    STDEXEC::stdexec
   )
 
   if(IOSCHED_ENABLE_COVERAGE)

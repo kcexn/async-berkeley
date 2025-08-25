@@ -20,6 +20,8 @@
 #pragma once
 #ifndef IO_ERROR_HPP
 #define IO_ERROR_HPP
+#include <string>
+#include <system_error>
 
 /**
  * @def IO_STRINGIFY(x)
@@ -60,4 +62,8 @@
  * @endcode
  */
 #define IO_ERROR_MESSAGE(msg) (__FILE__ ":" IO_TOSTRING(__LINE__) ": " msg)
+
+inline auto throw_system_error(const std::string &msg) -> void {
+  throw std::system_error(errno, std::generic_category(), msg);
+}
 #endif // IO_ERROR_HPP
