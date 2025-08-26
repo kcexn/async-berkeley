@@ -81,11 +81,15 @@ public:
     return executor_->submit(std::move(event), std::forward<Fn>(exec));
   }
 
-  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type {
+  constexpr auto run_once_for(int interval = -1) -> decltype(auto) {
     return executor_->run_once_for(interval);
   }
 
-  auto run_once() -> size_type { return executor_->run_once(); }
+  constexpr auto run_once() -> decltype(auto) { return executor_->run_once(); }
+
+  constexpr auto scope() const noexcept -> decltype(auto) {
+    return executor_->scope();
+  }
 
   auto get_executor() -> std::weak_ptr<executor_type> { return executor_; }
 

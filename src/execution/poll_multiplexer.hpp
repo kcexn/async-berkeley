@@ -93,7 +93,7 @@ public:
     std::mutex *mtx = nullptr;
   };
 
-  auto run_once_for(interval_type interval = interval_type{-1}) -> size_type;
+  auto run_once_for(interval_type interval) -> size_type;
 
   template <typename Fn>
     requires std::is_invocable_v<Fn, event_type *>

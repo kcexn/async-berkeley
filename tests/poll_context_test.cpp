@@ -16,6 +16,7 @@
 #include "../src/execution/context.hpp"
 #include "../src/execution/poll_multiplexer.hpp"
 
+#include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
 #include <stdexec/execution.hpp>
 
@@ -118,21 +119,19 @@ TEST_F(PollContextTest, SubmitTest) {
   std::array<char, 2> buf{};
   pipe(pipefds.data());
 
-  stdexec::sender auto send =
+  stdexec::sender auto read =
       ctx.submit({pipefds[0], POLLIN, 0}, [&](auto *event) {
         return ::read(pipefds[0], buf.data(), 1);
       });
 
-  stdexec::sender auto started = stdexec::ensure_started(std::move(send));
-  stdexec::sender auto moved = std::move(started);
-
   write(pipefds[1], "a", 1);
-  ctx.run_once();
 
-  auto [len] = stdexec::sync_wait(std::move(moved)).value();
+  auto [num, len] = stdexec::sync_wait(
+                        stdexec::when_all(ctx.run_once_for(0), std::move(read)))
+                        .value();
 
-  EXPECT_EQ(len, 1);
   EXPECT_EQ(buf[0], 'a');
+  EXPECT_EQ(len, 1);
 
   for (int file : pipefds)
     close(file);
