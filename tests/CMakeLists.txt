@@ -5,7 +5,7 @@ set(TEST_NAMES
   socket_address_test
   socket_message_test
   socket_test
-  poll_context_test
+  poll_triggers_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
@@ -18,7 +18,7 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
     ${TEST_NAME}
     PRIVATE
     GTest::gtest_main
-    iosched
+    io
     STDEXEC::stdexec
   )
 

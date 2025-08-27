@@ -13,14 +13,17 @@
  * limitations under the License.
  */
 
+/**
+ * @file poll_multiplexer.hpp
+ * @brief This file defines a multiplexer that uses the `poll` system call.
+ */
 #pragma once
-
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
+#include "detail/execution_concepts.hpp"
 #include "detail/immovable.hpp"
-#include <error.hpp>
-#include <io.hpp>
-#include <socket/socket_handle.hpp>
+#include <io/error.hpp>
+#include <io/socket/socket_handle.hpp>
 
 #include <stdexec/execution.hpp>
 
@@ -32,20 +35,40 @@
 
 #include <poll.h>
 
+/**
+ * @namespace io::execution
+ * @brief Provides high-level interfaces for executors and completion triggers.
+ */
 namespace io::execution {
 
+/**
+ * @brief A task for the poll multiplexer.
+ */
 struct poll_task {
   void (*do_complete)(poll_task *) = nullptr;
 };
 
+/**
+ * @brief An event for the poll multiplexer.
+ */
 struct poll_event {
+  /**
+   * @brief Gets the key for the event.
+   * @return The key for the event.
+   */
   [[nodiscard]] constexpr auto key() const -> int { return pfd.fd; }
 
   struct pollfd pfd {};
   std::queue<poll_task *> read_queue, write_queue;
 };
 
+/**
+ * @brief A completion handler for the poll multiplexer.
+ */
 struct poll_completion {
+  /**
+   * @brief Executes the completion handler.
+   */
   auto operator()() const noexcept -> void;
 
   short revents = 0;
@@ -53,6 +76,9 @@ struct poll_completion {
   std::mutex *mtx = nullptr;
 };
 
+/**
+ * @brief A multiplexer that uses the `poll` system call.
+ */
 class poll_multiplexer {
 
 public:
@@ -62,11 +88,22 @@ public:
   using interval_type = std::chrono::milliseconds;
   using event_type = struct pollfd;
 
-  template <typename Receiver, typename Fn>
-    requires std::is_invocable_v<Fn, event_type *>
+  /**
+   * @brief An operation state for the poll multiplexer.
+   * @tparam Receiver The receiver type.
+   * @tparam Fn The function type.
+   */
+  template <typename Receiver, detail::Completion<event_type> Fn>
   struct poll_op : public detail::immovable, public poll_task {
 
+    /**
+     * @brief Completes the operation.
+     * @param task The task to complete.
+     */
     static auto complete(poll_task *task) noexcept -> void;
+    /**
+     * @brief Starts the operation.
+     */
     auto start() noexcept -> void;
 
     Receiver receiver{};
@@ -76,14 +113,21 @@ public:
     std::mutex *mtx = nullptr;
   };
 
-  template <typename Fn>
-    requires std::is_invocable_v<Fn, event_type *>
-  struct poll_sender {
+  /**
+   * @brief A sender for the poll multiplexer.
+   * @tparam Fn The function type.
+   */
+  template <detail::Completion<event_type> Fn> struct poll_sender {
     using sender_concept = stdexec::sender_t;
     using completion_signatures =
         stdexec::completion_signatures<stdexec::set_value_t(std::streamsize),
                                        stdexec::set_error_t(int)>;
 
+    /**
+     * @brief Connects the sender to a receiver.
+     * @param receiver The receiver to connect to.
+     * @return The operation state.
+     */
     template <typename Receiver>
     auto connect(Receiver receiver) -> poll_op<Receiver, Fn>;
 
@@ -93,11 +137,22 @@ public:
     std::mutex *mtx = nullptr;
   };
 
-  auto run_once_for(interval_type interval) -> size_type;
+  /**
+   * @brief Waits for events to occur.
+   * @param interval The maximum time to wait for, in milliseconds.
+   * @return The number of events that occurred.
+   */
+  auto wait_for(interval_type interval) -> size_type;
 
-  template <typename Fn>
-    requires std::is_invocable_v<Fn, event_type *>
-  auto submit(event_type event, Fn func) -> poll_sender<Fn>;
+  /**
+   * @brief Sets a completion handler for an event.
+   * @tparam Fn The function type.
+   * @param event The event to wait for.
+   * @param func The completion handler.
+   * @return A sender that will complete when the event occurs.
+   */
+  template <detail::Completion<event_type> Fn>
+  auto set(event_type event, Fn func) -> poll_sender<Fn>;
 
 private:
   std::list<poll_event> list_;

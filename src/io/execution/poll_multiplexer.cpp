@@ -14,43 +14,64 @@
  */
 #include "poll_multiplexer.hpp"
 #include "detail/lock_exec.hpp"
+#include <io/macros.h>
 
 #include <algorithm>
 #include <iterator>
 
+#ifndef NDEBUG // This is compiled for code coverage reporting.
 namespace io::execution {
+auto update_or_insert_event(std::list<poll_event> *list,
+                            const poll_event &event)
+    -> std::list<poll_event>::iterator {
+  auto event_it = std::ranges::lower_bound(
+      *list, event.key(), {}, [](const auto &event) { return event.pfd.fd; });
 
-template <typename T> static auto pop(std::queue<T> &queue) -> decltype(auto) {
+  if (event_it != std::end(*list) && event_it->pfd.fd == event.key()) {
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
+    event_it->pfd.events |= event.pfd.events;
+  } else {
+    event_it = list->insert(event_it, event);
+  }
+
+  return event_it;
+}
+} // namespace io::execution
+#endif // NDEBUG
+
+namespace io::execution {
+namespace {
+template <typename T> auto pop(std::queue<T> &queue) -> decltype(auto) {
   auto tmp = queue.front();
   queue.pop();
   return tmp;
 }
+} // namespace
 
-static auto run_queue(std::queue<poll_task *> &queue) -> void {
+IO_STATIC(auto) run_queue(std::queue<poll_task *> &queue) -> void {
   while (!queue.empty()) {
     auto *task = pop(queue);
     task->do_complete(task);
   }
 }
 
-static auto poll_(std::vector<struct pollfd> &list, int duration) -> int {
+IO_STATIC(auto) handle_poll_error(int err) -> int {
+  if (err != EINTR)
+    throw_system_error(IO_ERROR_MESSAGE("poll failed."));
+  return 0;
+}
+IO_STATIC(auto) poll_(std::vector<struct pollfd> &list, int duration) -> int {
   if (list.empty())
     return 0;
 
   auto num = poll(list.data(), list.size(), duration);
-  if (num < 0) {
-    switch (errno) {
-    case EINTR:
-      return poll_(list, duration);
-    default:
-      throw_system_error(IO_ERROR_MESSAGE("poll failed."));
-    }
-  }
+  if (num < 0 && !handle_poll_error(errno))
+    return poll_(list, duration);
   return num;
 }
 
-static auto
-make_interest_list(std::list<poll_event> &list) -> std::vector<struct pollfd> {
+IO_STATIC(auto)
+make_interest_list(std::list<poll_event> &list)->std::vector<struct pollfd> {
   std::vector<struct pollfd> tmp;
   std::erase_if(
       list, [](const auto &event) { return event.pfd.revents == POLLNVAL; });
@@ -60,8 +81,9 @@ make_interest_list(std::list<poll_event> &list) -> std::vector<struct pollfd> {
   return tmp;
 }
 
-static auto make_completion(struct pollfd pfd, std::list<poll_event> &list,
-                            std::mutex &mtx) -> poll_completion {
+IO_STATIC(auto)
+make_completion(struct pollfd pfd, std::list<poll_event> &list, std::mutex &mtx)
+    ->poll_completion {
   auto event_it = std::ranges::lower_bound(
       list, pfd.fd, {}, [](const poll_event &event) { return event.pfd.fd; });
   if (event_it != std::end(list) && event_it->pfd.fd == pfd.fd)
@@ -91,7 +113,7 @@ auto poll_completion::operator()() const noexcept -> void {
   }
 }
 
-auto poll_multiplexer::run_once_for(interval_type interval) -> size_type {
+auto poll_multiplexer::wait_for(interval_type interval) -> size_type {
   using detail::lock_exec;
   auto list = lock_exec(std::unique_lock{mtx_},
                         [&]() { return make_interest_list(list_); });

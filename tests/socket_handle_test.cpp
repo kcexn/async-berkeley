@@ -14,10 +14,8 @@
  */
 
 #include "../src/io.hpp"
-#include "../src/socket/socket_address.hpp"
-#include "../src/socket/socket_handle.hpp"
+
 #include <algorithm>
-#include <array>
 #include <cerrno>
 #include <chrono>
 #include <cstring>

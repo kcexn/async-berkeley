@@ -22,8 +22,10 @@
 #pragma once
 #ifndef IO_HPP
 #define IO_HPP
-#include "detail/customization.hpp"
-#include "socket/socket_ops.hpp"
+#include "io/detail/customization.hpp"
+#include "io/execution/multiplexers.hpp" // IWYU pragma: export
+#include "io/execution/triggers.hpp"     // IWYU pragma: export
+#include "io/socket/socket.hpp"          // IWYU pragma: export
 
 /**
  * @brief The `io` namespace contains all the functions and classes for the I/O

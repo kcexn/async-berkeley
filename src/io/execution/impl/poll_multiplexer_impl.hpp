@@ -12,23 +12,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include <execution/detail/lock_exec.hpp>
-#include <execution/poll_multiplexer.hpp>
+#include <io/execution/detail/lock_exec.hpp>
+#include <io/execution/poll_multiplexer.hpp>
 
 #include <algorithm>
 
+// Forward declarations used for testing.
+#ifndef NDEBUG
+namespace io::execution {
+auto run_queue(std::queue<poll_task *> &queue) -> void;
+auto handle_poll_error(int err) -> int;
+auto poll_(std::vector<struct pollfd> &list, int duration) -> int;
+auto make_interest_list(std::list<poll_event> &list)
+    -> std::vector<struct pollfd>;
+auto make_completion(struct pollfd pfd, std::list<poll_event> &list,
+                     std::mutex &mtx) -> poll_completion;
+auto update_or_insert_event(std::list<poll_event> *list,
+                            const poll_event &event)
+    -> std::list<poll_event>::iterator;
+} // namespace io::execution
+#endif // NDEBUG
+
 namespace io::execution {
 
-template <typename Receiver, typename Fn>
-  requires std::is_invocable_v<Fn, pollfd *>
+template <typename Receiver,
+          detail::Completion<poll_multiplexer::event_type> Fn>
 auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
     -> void {
+  using detail::lock_exec;
+  using event_type = poll_multiplexer::event_type;
+
   auto *self = static_cast<poll_op *>(task);
-  std::streamsize len = self->func(self->event);
+  event_type event = lock_exec(std::unique_lock{*self->mtx},
+                               [&]() { return self->event->pfd; });
+  std::streamsize len = self->func(event);
   if (len >= 0) {
     stdexec::set_value(std::move(self->receiver), len);
   } else {
@@ -36,8 +56,8 @@ auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
   }
 }
 
-template <typename Receiver, typename Fn>
-  requires std::is_invocable_v<Fn, pollfd *>
+template <typename Receiver,
+          detail::Completion<poll_multiplexer::event_type> Fn>
 auto poll_multiplexer::poll_op<Receiver, Fn>::start() noexcept -> void {
   std::lock_guard lock{*mtx};
 
@@ -51,23 +71,25 @@ auto poll_multiplexer::poll_op<Receiver, Fn>::start() noexcept -> void {
     event->write_queue.push(this);
 }
 
+#ifdef NDEBUG // Release builds don't need code-coverage reports
 inline auto update_or_insert_event(std::list<poll_event> *list,
-                                   const poll_event &event) -> decltype(auto) {
+                                   const poll_event &event)
+    -> std::list<poll_event>::iterator {
   auto event_it = std::ranges::lower_bound(
       *list, event.key(), {}, [](const auto &event) { return event.pfd.fd; });
 
   if (event_it != std::end(*list) && event_it->pfd.fd == event.key()) {
-    // NOLINTNEXTLINE
-    event_it->pfd.events |= static_cast<short>(event.pfd.events);
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
+    event_it->pfd.events |= event.pfd.events;
   } else {
     event_it = list->insert(event_it, event);
   }
 
   return event_it;
 }
+#endif // NDEBUG
 
-template <typename Fn>
-  requires std::is_invocable_v<Fn, pollfd *>
+template <detail::Completion<poll_multiplexer::event_type> Fn>
 template <typename Receiver>
 auto poll_multiplexer::poll_sender<Fn>::connect(Receiver receiver)
     -> poll_op<Receiver, Fn> {
@@ -84,15 +106,13 @@ auto poll_multiplexer::poll_sender<Fn>::connect(Receiver receiver)
           .mtx = mtx};
 }
 
-template <typename Fn>
-  requires std::is_invocable_v<Fn, pollfd *>
-auto poll_multiplexer::submit(event_type event, Fn func) -> poll_sender<Fn> {
+template <detail::Completion<poll_multiplexer::event_type> Fn>
+auto poll_multiplexer::set(event_type event, Fn func) -> poll_sender<Fn> {
   return {.func = std::move(func),
           .event = {.pfd = std::move(event)},
           .list = &list_,
           .mtx = &mtx_};
 }
-
 } // namespace io::execution
 
 #endif // IO_POLL_MULTIPLEXER_IMPL_HPP

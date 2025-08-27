@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include "../src/execution/context.hpp"
-#include "../src/execution/poll_multiplexer.hpp"
+#include "../src/io/execution/poll_multiplexer.hpp"
+#include "../src/io/execution/triggers.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
@@ -30,58 +30,58 @@ protected:
   void SetUp() override {}
   void TearDown() override {}
 
-  basic_context<poll_multiplexer> ctx;
+  basic_triggers<poll_multiplexer> triggers;
 };
 
 TEST_F(PollContextTest, CopyConstructorTest) {
-  auto ctx2 = ctx;
-  auto ptr1 = ctx.get_executor().lock();
-  auto ptr2 = ctx2.get_executor().lock();
+  auto triggers2 = triggers;
+  auto ptr1 = triggers.get_executor().lock();
+  auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
 TEST_F(PollContextTest, CopyAssignmentTest) {
-  basic_context<poll_multiplexer> ctx2;
-  ctx2 = ctx;
-  auto ptr1 = ctx.get_executor().lock();
-  auto ptr2 = ctx2.get_executor().lock();
+  basic_triggers<poll_multiplexer> triggers2;
+  triggers2 = triggers;
+  auto ptr1 = triggers.get_executor().lock();
+  auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
 TEST_F(PollContextTest, MoveConstructorTest) {
-  basic_context<poll_multiplexer> ctx1;
-  auto ptr1 = ctx1.get_executor().lock();
+  basic_triggers<poll_multiplexer> triggers1;
+  auto ptr1 = triggers1.get_executor().lock();
   EXPECT_TRUE(ptr1);
   auto *addr1 = ptr1.get();
 
-  auto ctx2{std::move(ctx1)};
-  auto ptr2 = ctx2.get_executor().lock();
+  auto triggers2{std::move(triggers1)};
+  auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr2);
   auto *addr2 = ptr2.get();
   EXPECT_TRUE(addr1 == addr2);
 }
 
 TEST_F(PollContextTest, MoveAssignmentTest) {
-  basic_context<poll_multiplexer> ctx1, ctx2;
-  auto ptr1 = ctx1.get_executor().lock();
-  auto ptr2 = ctx2.get_executor().lock();
+  basic_triggers<poll_multiplexer> triggers1, triggers2;
+  auto ptr1 = triggers1.get_executor().lock();
+  auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr1 && ptr2);
   auto *addr1 = ptr1.get();
   auto *addr2 = ptr2.get();
   EXPECT_FALSE(addr1 == addr2);
 
-  ctx2 = std::move(ctx1);
-  ptr2 = ctx2.get_executor().lock();
+  triggers2 = std::move(triggers1);
+  ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr2);
   addr2 = ptr2.get();
   EXPECT_TRUE(addr2 == addr1);
 }
 
 TEST_F(PollContextTest, SelfSwapTest) {
-  basic_context<poll_multiplexer> ctx1;
+  basic_triggers<poll_multiplexer> triggers1;
   using std::swap;
-  swap(ctx1, ctx1);
-  EXPECT_TRUE(&ctx1 == &ctx1);
+  swap(triggers1, triggers1);
+  EXPECT_TRUE(&triggers1 == &triggers1);
 }
 
 TEST_F(PollContextTest, PushHandleTest) {
@@ -89,49 +89,56 @@ TEST_F(PollContextTest, PushHandleTest) {
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   auto sockfd = static_cast<int>(socket);
 
-  auto dialog = ctx.push(std::move(socket));
+  auto dialog = triggers.push(std::move(socket));
   auto ptr = dialog.socket.lock();
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(sockfd == *ptr);
 }
 
 TEST_F(PollContextTest, EmplaceHandleTest) {
-  auto dialog = ctx.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   auto ptr = dialog.socket.lock();
   EXPECT_TRUE(ptr);
 
   auto sockfd = static_cast<int>(*ptr);
 
-  dialog = ctx.push(std::move(*ptr));
+  dialog = triggers.push(std::move(*ptr));
   ptr = dialog.socket.lock();
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(*ptr == sockfd);
 }
 
 TEST_F(PollContextTest, EraseHandleTest) {
-  auto dialog = ctx.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  ctx.erase(dialog);
+  auto dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  triggers.erase(dialog);
   EXPECT_FALSE(dialog.socket.lock());
+}
+
+TEST_F(PollContextTest, PollErrorHandlingTest) {
+  int status = handle_poll_error(EINTR);
+  EXPECT_EQ(status, 0);
+  EXPECT_THROW(handle_poll_error(EAGAIN), std::system_error);
 }
 
 TEST_F(PollContextTest, SubmitTest) {
   std::array<int, 2> pipefds{};
-  std::array<char, 2> buf{};
+  std::array<char, 3> buf{};
   pipe(pipefds.data());
 
   stdexec::sender auto read =
-      ctx.submit({pipefds[0], POLLIN, 0}, [&](auto *event) {
+      triggers.set({pipefds[0], POLLIN, 0}, [&](auto event) {
         return ::read(pipefds[0], buf.data(), 1);
       });
-
   write(pipefds[1], "a", 1);
-
-  auto [num, len] = stdexec::sync_wait(
-                        stdexec::when_all(ctx.run_once_for(0), std::move(read)))
-                        .value();
-
+  stdexec::sync_wait(triggers.wait_for(0));
   EXPECT_EQ(buf[0], 'a');
-  EXPECT_EQ(len, 1);
+
+  stdexec::sender auto write =
+      triggers.set({pipefds[1], POLLOUT, 0},
+                   [&](auto event) { return ::write(pipefds[1], "b", 1); });
+  stdexec::sync_wait(triggers.wait_for(0));
+  ::read(pipefds[0], buf.data(), 1);
+  EXPECT_EQ(buf[0], 'b');
 
   for (int file : pipefds)
     close(file);

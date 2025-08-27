@@ -10,9 +10,10 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "CMAKE_CXX_FLAGS": "-Wall",
+                "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -std=c++20",
                 "IOSCHED_ENABLE_TESTS": true,
-                "IOSCHED_ENABLE_COVERAGE": true
+                "IOSCHED_ENABLE_COVERAGE": true,
+                "STDEXEC_BUILD_EXAMPLES": false
             }
         },
         {
@@ -23,8 +24,9 @@
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS": "-Wall",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+                "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -DNDEBUG -std=c++20",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "STDEXEC_BUILD_EXAMPLES": false
             }
         },
         {
@@ -35,10 +37,11 @@
             "binaryDir": "${sourceDir}/build/benchmark",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS": "-Wall -O3 -DNDEBUG -march=native -mtune=native -flto -fno-strict-aliasing",
+                "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -O3 -DNDEBUG -std=c++20 -march=native -mtune=native -flto -fno-strict-aliasing",
                 "CMAKE_EXE_LINKER_FLAGS": "-flto",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "IOSCHED_ENABLE_TESTS": "ON"
+                "IOSCHED_ENABLE_TESTS": "ON",
+                "STDEXEC_BUILD_EXAMPLES": false
             }
         }
     ],

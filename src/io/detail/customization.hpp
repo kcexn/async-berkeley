@@ -20,9 +20,12 @@
 #pragma once
 #ifndef IO_CUSTOMIZATION_HPP
 #define IO_CUSTOMIZATION_HPP
-
 #include <utility>
 
+/**
+ * @namespace io::detail
+ * @brief Contains implementation details for the I/O library.
+ */
 namespace io::detail {
 /**
  * @brief A generic function object that implements customization points.

@@ -13,17 +13,37 @@
  * limitations under the License.
  */
 
+/**
+ * @file execution_concepts.hpp
+ * @brief This file defines concepts for the execution components.
+ */
 #pragma once
 #ifndef IO_EXECUTION_CONCEPTS_HPP
 #define IO_EXECUTION_CONCEPTS_HPP
-
 #include <type_traits>
 
+/**
+ * @namespace io::execution::detail
+ * @brief Contains implementation details for the execution components.
+ */
 namespace io::execution::detail {
 
+/**
+ * @brief Concept for a completion handler.
+ * @tparam Fn The function type.
+ * @tparam E The event type.
+ */
 template <typename Fn, typename E>
-concept Completion = std::is_invocable_v<Fn, E *>;
+concept Completion = std::is_invocable_v<Fn, E>;
 
+/**
+ * @brief Concept for a multiplexer.
+ *
+ * A multiplexer is responsible for waiting for events and dispatching them to
+ * completion handlers.
+ *
+ * @tparam T The type to check.
+ */
 template <typename T>
 concept Multiplexer = requires(T mux) {
   requires !std::is_copy_constructible_v<T>;
@@ -34,8 +54,8 @@ concept Multiplexer = requires(T mux) {
   typename T::size_type;
   typename T::interval_type;
   T::MUX_ERROR;
-  mux.submit(typename T::event_type{}, [](typename T::event_type *) {});
-  mux.run_once_for(typename T::interval_type{});
+  mux.set(typename T::event_type{}, [](typename T::event_type) {});
+  mux.wait_for(typename T::interval_type{});
 };
 
 } // namespace io::execution::detail

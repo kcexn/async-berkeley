@@ -12,15 +12,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file immovable.hpp
+ * @brief This file defines a struct to make a class immovable.
+ */
 #pragma once
 #ifndef IO_IMMOVABLE_HPP
 #define IO_IMMOVABLE_HPP
 
+/**
+ * @namespace io::execution::detail
+ * @brief Contains implementation details for the execution components.
+ */
 namespace io::execution::detail {
-// NOLINTNEXTLINE
+/**
+ * @brief A base struct to make a class immovable.
+ *
+ * This struct deletes the move constructor and move assignment operator, making
+ * any class that inherits from it immovable.
+ */
 struct immovable {
-private:
-  auto operator=(immovable &&) noexcept -> immovable & = default;
+  immovable() = default;
+  immovable(const immovable &) = default;
+  auto operator=(const immovable &) -> immovable & = default;
+  immovable(immovable &&) = delete;
+  auto operator=(immovable &&) noexcept -> immovable & = delete;
+  ~immovable() = default;
 };
 } // namespace io::execution::detail
 
