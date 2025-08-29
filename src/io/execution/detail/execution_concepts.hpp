@@ -26,15 +26,14 @@
  * @namespace io::execution::detail
  * @brief Contains implementation details for the execution components.
  */
-namespace io::execution::detail {
+namespace io::execution {
 
 /**
  * @brief Concept for a completion handler.
  * @tparam Fn The function type.
- * @tparam E The event type.
  */
-template <typename Fn, typename E>
-concept Completion = std::is_invocable_v<Fn, E>;
+template <typename Fn>
+concept Completion = std::is_invocable_v<Fn>;
 
 /**
  * @brief Concept for a multiplexer.
@@ -53,8 +52,7 @@ concept Multiplexer = requires(T mux) {
   typename T::event_type;
   typename T::size_type;
   typename T::interval_type;
-  T::MUX_ERROR;
-  mux.set(typename T::event_type{}, [](typename T::event_type) {});
+  mux.set(typename T::event_type{}, [](){});
   mux.wait_for(typename T::interval_type{});
 };
 

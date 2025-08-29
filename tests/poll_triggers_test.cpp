@@ -17,11 +17,13 @@
 #include "../src/io/execution/triggers.hpp"
 
 #include <exec/async_scope.hpp>
+#include <exec/static_thread_pool.hpp>
 #include <gtest/gtest.h>
 #include <stdexec/execution.hpp>
 
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <thread>
 
 using namespace io::execution;
 
@@ -125,18 +127,16 @@ TEST_F(PollContextTest, SubmitTest) {
   std::array<char, 3> buf{};
   pipe(pipefds.data());
 
-  stdexec::sender auto read =
-      triggers.set({pipefds[0], POLLIN, 0}, [&](auto event) {
-        return ::read(pipefds[0], buf.data(), 1);
-      });
+  stdexec::sender auto read = triggers.set({pipefds[0], POLLIN, 0}, [&] {
+    return ::read(pipefds[0], buf.data(), 1);
+  });
   write(pipefds[1], "a", 1);
-  stdexec::sync_wait(triggers.wait_for(0));
+  triggers.wait_for(0);
   EXPECT_EQ(buf[0], 'a');
 
-  stdexec::sender auto write =
-      triggers.set({pipefds[1], POLLOUT, 0},
-                   [&](auto event) { return ::write(pipefds[1], "b", 1); });
-  stdexec::sync_wait(triggers.wait_for(0));
+  stdexec::sender auto write = triggers.set(
+      {pipefds[1], POLLOUT, 0}, [&] { return ::write(pipefds[1], "b", 1); });
+  triggers.wait_for(0);
   ::read(pipefds[0], buf.data(), 1);
   EXPECT_EQ(buf[0], 'b');
 

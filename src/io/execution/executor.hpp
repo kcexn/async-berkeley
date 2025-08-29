@@ -41,7 +41,7 @@ namespace io::execution {
  */
 template <typename Receiver, typename Fn>
   requires std::is_invocable_v<Fn>
-struct executor_op : public detail::immovable {
+struct executor_op : public immovable {
 
   /**
    * @brief Starts the operation.
@@ -82,7 +82,7 @@ struct executor_sender {
  * @brief An executor that uses a multiplexer to wait for events.
  * @tparam Mux The multiplexer type.
  */
-template <detail::Multiplexer Mux> class executor : public Mux {
+template <Multiplexer Mux> class executor : public Mux {
   using size_type = Mux::size_type;
   using interval_type = Mux::interval_type;
 
@@ -94,11 +94,11 @@ public:
    * @param exec The completion handler.
    * @return A sender that will complete when the event occurs.
    */
-  template <detail::Completion<typename Mux::event_type> Fn>
+  template <Completion Fn>
   constexpr auto set(typename Mux::event_type event,
                      Fn &&exec) -> decltype(auto) {
-    return stdexec::ensure_started(
-        scope_.nest(Mux::set(std::move(event), std::forward<Fn>(exec))));
+    return scope_.spawn_future(
+        Mux::set(std::move(event), std::forward<Fn>(exec)));
   }
 
   /**
@@ -107,8 +107,7 @@ public:
    * @return A sender that will complete when events occur.
    */
   constexpr auto wait_for(int interval = -1) -> decltype(auto) {
-    return scope_.nest(executor_sender{
-        [&, interval]() { return Mux::wait_for(interval_type{interval}); }});
+    return Mux::wait_for(interval_type{interval});
   }
 
   /**

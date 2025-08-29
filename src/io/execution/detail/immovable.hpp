@@ -22,10 +22,10 @@
 #define IO_IMMOVABLE_HPP
 
 /**
- * @namespace io::execution::detail
+ * @namespace io::execution
  * @brief Contains implementation details for the execution components.
  */
-namespace io::execution::detail {
+namespace io::execution {
 /**
  * @brief A base struct to make a class immovable.
  *
@@ -34,8 +34,8 @@ namespace io::execution::detail {
  */
 struct immovable {
   immovable() = default;
-  immovable(const immovable &) = default;
-  auto operator=(const immovable &) -> immovable & = default;
+  immovable(const immovable &) = delete;
+  auto operator=(const immovable &) -> immovable & = delete;
   immovable(immovable &&) = delete;
   auto operator=(immovable &&) noexcept -> immovable & = delete;
   ~immovable() = default;

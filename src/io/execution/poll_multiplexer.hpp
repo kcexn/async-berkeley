@@ -93,8 +93,8 @@ public:
    * @tparam Receiver The receiver type.
    * @tparam Fn The function type.
    */
-  template <typename Receiver, detail::Completion<event_type> Fn>
-  struct poll_op : public detail::immovable, public poll_task {
+  template <typename Receiver, Completion Fn>
+  struct poll_op : public immovable, public poll_task {
 
     /**
      * @brief Completes the operation.
@@ -117,7 +117,7 @@ public:
    * @brief A sender for the poll multiplexer.
    * @tparam Fn The function type.
    */
-  template <detail::Completion<event_type> Fn> struct poll_sender {
+  template <Completion Fn> struct poll_sender {
     using sender_concept = stdexec::sender_t;
     using completion_signatures =
         stdexec::completion_signatures<stdexec::set_value_t(std::streamsize),
@@ -151,7 +151,7 @@ public:
    * @param func The completion handler.
    * @return A sender that will complete when the event occurs.
    */
-  template <detail::Completion<event_type> Fn>
+  template <Completion Fn>
   auto set(event_type event, Fn func) -> poll_sender<Fn>;
 
 private:

@@ -98,7 +98,7 @@ private:
  * @brief A class that provides a high-level interface for an executor.
  * @tparam Mux The multiplexer type.
  */
-template <detail::Multiplexer Mux> class basic_triggers : public triggers_base {
+template <Multiplexer Mux> class basic_triggers : public triggers_base {
   using Base = triggers_base;
   using size_type = Mux::size_type;
   using interval_type = Mux::interval_type;
@@ -116,7 +116,7 @@ public:
    * @param exec The completion handler.
    * @return A sender that will complete when the event occurs.
    */
-  template <detail::Completion<typename Mux::event_type &> Fn>
+  template <Completion Fn>
   auto set(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
     return executor_->set(std::move(event), std::forward<Fn>(exec));
   }

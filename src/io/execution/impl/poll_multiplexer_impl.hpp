@@ -39,16 +39,11 @@ auto update_or_insert_event(std::list<poll_event> *list,
 namespace io::execution {
 
 template <typename Receiver,
-          detail::Completion<poll_multiplexer::event_type> Fn>
+          Completion Fn>
 auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
     -> void {
-  using detail::lock_exec;
-  using event_type = poll_multiplexer::event_type;
-
   auto *self = static_cast<poll_op *>(task);
-  event_type event = lock_exec(std::unique_lock{*self->mtx},
-                               [&]() { return self->event->pfd; });
-  std::streamsize len = self->func(event);
+  std::streamsize len = self->func();
   if (len >= 0) {
     stdexec::set_value(std::move(self->receiver), len);
   } else {
@@ -57,7 +52,7 @@ auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
 }
 
 template <typename Receiver,
-          detail::Completion<poll_multiplexer::event_type> Fn>
+          Completion Fn>
 auto poll_multiplexer::poll_op<Receiver, Fn>::start() noexcept -> void {
   std::lock_guard lock{*mtx};
 
@@ -89,7 +84,7 @@ inline auto update_or_insert_event(std::list<poll_event> *list,
 }
 #endif // NDEBUG
 
-template <detail::Completion<poll_multiplexer::event_type> Fn>
+template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::poll_sender<Fn>::connect(Receiver receiver)
     -> poll_op<Receiver, Fn> {
@@ -106,7 +101,7 @@ auto poll_multiplexer::poll_sender<Fn>::connect(Receiver receiver)
           .mtx = mtx};
 }
 
-template <detail::Completion<poll_multiplexer::event_type> Fn>
+template <Completion Fn>
 auto poll_multiplexer::set(event_type event, Fn func) -> poll_sender<Fn> {
   return {.func = std::move(func),
           .event = {.pfd = std::move(event)},
