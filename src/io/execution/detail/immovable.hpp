@@ -23,7 +23,7 @@
 
 /**
  * @namespace io::execution
- * @brief Contains implementation details for the execution components.
+ * @brief Provides high-level interfaces for executors and completion triggers.
  */
 namespace io::execution {
 /**
@@ -40,6 +40,6 @@ struct immovable {
   auto operator=(immovable &&) noexcept -> immovable & = delete;
   ~immovable() = default;
 };
-} // namespace io::execution::detail
+} // namespace io::execution
 
 #endif // IO_IMMOVABLE_HPP

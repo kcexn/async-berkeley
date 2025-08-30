@@ -34,9 +34,7 @@
 namespace io::execution {
 
 /**
- * @brief Base class for triggers.
- *
- * This class manages a collection of socket handles.
+ * @brief Base class for triggers that manages a collection of socket handles.
  */
 class triggers_base {
 
@@ -54,7 +52,6 @@ public:
 
   /**
    * @brief Erases a socket handle from the collection.
-   * @tparam K The key type.
    * @param key The key of the socket handle to erase.
    */
   template <typename K> auto erase(const K &key) -> void {
@@ -72,7 +69,6 @@ public:
 
   /**
    * @brief Emplaces a socket handle in the collection.
-   * @tparam ...Args The arguments to forward to the socket handle constructor.
    * @param ...args The arguments to forward to the socket handle constructor.
    * @return A weak pointer to the emplaced socket handle.
    */
@@ -107,11 +103,8 @@ template <Multiplexer Mux> class basic_triggers : public triggers_base {
   using socket_dialog = ::io::socket::socket_dialog<Mux>;
 
 public:
-  static constexpr auto MUX_ERROR = Mux::MUX_ERROR;
-
   /**
    * @brief Sets a completion handler for an event.
-   * @tparam Fn The function type.
    * @param event The event to wait for.
    * @param exec The completion handler.
    * @return A sender that will complete when the event occurs.
@@ -170,7 +163,6 @@ public:
 
   /**
    * @brief Emplaces a socket handle in the collection.
-   * @tparam ...Args The arguments to forward to the socket handle constructor.
    * @param ...args The arguments to forward to the socket handle constructor.
    * @return The created socket dialog.
    */

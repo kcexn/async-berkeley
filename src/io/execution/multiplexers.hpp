@@ -16,6 +16,9 @@
 /**
  * @file multiplexers.hpp
  * @brief This file includes all available multiplexers.
+ *
+ * This file is a convenience header that includes all available multiplexers.
+ * Currently, only the poll_multiplexer is available.
  */
 #pragma once
 #ifndef IO_MULTIPLEXERS_HPP

@@ -37,9 +37,9 @@ auto swap(triggers_base &lhs, triggers_base &rhs) noexcept -> void {
   swap(lhs.handles_, rhs.handles_);
 }
 
-triggers_base::triggers_base(const triggers_base &other) : triggers_base() {
+triggers_base::triggers_base(const triggers_base &other) {
   std::lock_guard lock{other.mtx_};
-
+  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   handles_ = other.handles_;
 }
 

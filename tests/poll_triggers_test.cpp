@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "../src/io/execution/poll_multiplexer.hpp"
 #include "../src/io/execution/triggers.hpp"
 
@@ -23,7 +22,6 @@
 
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <thread>
 
 using namespace io::execution;
 
@@ -117,8 +115,7 @@ TEST_F(PollContextTest, EraseHandleTest) {
 }
 
 TEST_F(PollContextTest, PollErrorHandlingTest) {
-  int status = handle_poll_error(EINTR);
-  EXPECT_EQ(status, 0);
+  handle_poll_error(EINTR);
   EXPECT_THROW(handle_poll_error(EAGAIN), std::system_error);
 }
 

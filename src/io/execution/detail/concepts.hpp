@@ -14,19 +14,40 @@
  */
 
 /**
- * @file execution_concepts.hpp
+ * @file concepts.hpp
  * @brief This file defines concepts for the execution components.
  */
 #pragma once
-#ifndef IO_EXECUTION_CONCEPTS_HPP
-#define IO_EXECUTION_CONCEPTS_HPP
+#ifndef IO_CONCEPTS_HPP
+#define IO_CONCEPTS_HPP
 #include <type_traits>
 
 /**
- * @namespace io::execution::detail
- * @brief Contains implementation details for the execution components.
+ * @namespace io::execution
+ * @brief Provides high-level interfaces for executors and completion triggers.
  */
 namespace io::execution {
+
+/**
+ * @brief Concept for a multiplexer tag.
+ *
+ * A multiplexer tag provides the basic types and functions required by a
+ * multiplexer.
+ *
+ * @tparam T The type to check.
+ */
+template <typename T>
+concept MuxTag = requires(T tag) {
+  typename T::event_type;    ///< The multiplexed event type.
+  typename T::interval_type; ///< The type used to specify timeouts.
+  typename T::size_type;     ///< A size type.
+  /**
+   * @brief Returns the key for a multiplexed event.
+   * @param event The multiplexed event of event_type.
+   * @return The key for the event.
+   */
+  T::key(typename T::event_type{});
+};
 
 /**
  * @brief Concept for a completion handler.
@@ -45,16 +66,9 @@ concept Completion = std::is_invocable_v<Fn>;
  */
 template <typename T>
 concept Multiplexer = requires(T mux) {
-  requires !std::is_copy_constructible_v<T>;
-  requires !std::is_copy_assignable_v<T>;
-  requires !std::is_move_constructible_v<T>;
-  requires !std::is_move_assignable_v<T>;
-  typename T::event_type;
-  typename T::size_type;
-  typename T::interval_type;
-  mux.set(typename T::event_type{}, [](){});
+  mux.set(typename T::event_type{}, []() {});
   mux.wait_for(typename T::interval_type{});
 };
 
-} // namespace io::execution::detail
-#endif // IO_EXECUTION_CONCEPTS_HPP
+} // namespace io::execution
+#endif // IO_CONCEPTS_HPP

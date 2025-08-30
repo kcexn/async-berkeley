@@ -12,37 +12,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file poll_multiplexer_impl.hpp
+ * @brief This file implements the poll_multiplexer class.
+ */
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include <io/execution/detail/lock_exec.hpp>
+#include <io/execution/detail/utilities.hpp>
 #include <io/execution/poll_multiplexer.hpp>
-
-#include <algorithm>
 
 // Forward declarations used for testing.
 #ifndef NDEBUG
 namespace io::execution {
-auto run_queue(std::queue<poll_task *> &queue) -> void;
-auto handle_poll_error(int err) -> int;
-auto poll_(std::vector<struct pollfd> &list, int duration) -> int;
-auto make_interest_list(std::list<poll_event> &list)
-    -> std::vector<struct pollfd>;
-auto make_completion(struct pollfd pfd, std::list<poll_event> &list,
-                     std::mutex &mtx) -> poll_completion;
-auto update_or_insert_event(std::list<poll_event> *list,
-                            const poll_event &event)
-    -> std::list<poll_event>::iterator;
+auto run_queue(std::queue<poll_multiplexer::task *> &queue) -> void;
+auto handle_poll_error(int err) -> void;
+auto poll_(std::vector<pollfd> list, int duration) -> std::vector<pollfd>;
 } // namespace io::execution
 #endif // NDEBUG
 
 namespace io::execution {
 
-template <typename Receiver,
-          Completion Fn>
-auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
+template <Completion Fn>
+template <typename Receiver>
+auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
     -> void {
-  auto *self = static_cast<poll_op *>(task);
+  auto *self = static_cast<state *>(task_ptr);
   std::streamsize len = self->func();
   if (len >= 0) {
     stdexec::set_value(std::move(self->receiver), len);
@@ -51,62 +47,65 @@ auto poll_multiplexer::poll_op<Receiver, Fn>::complete(poll_task *task) noexcept
   }
 }
 
-template <typename Receiver,
-          Completion Fn>
-auto poll_multiplexer::poll_op<Receiver, Fn>::start() noexcept -> void {
+template <Completion Fn>
+template <typename Receiver>
+auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
   std::lock_guard lock{*mtx};
 
-  poll_task::do_complete = poll_op::complete;
-  event->pfd.events |= events_mask;
+  task::complete = state::complete;
 
-  if (events_mask & POLLIN)
-    event->read_queue.push(this);
+  if (mask & POLLIN)
+    demux->read_queue.push(this);
 
-  if (events_mask & POLLOUT)
-    event->write_queue.push(this);
+  if (mask & POLLOUT)
+    demux->write_queue.push(this);
 }
 
-#ifdef NDEBUG // Release builds don't need code-coverage reports
-inline auto update_or_insert_event(std::list<poll_event> *list,
-                                   const poll_event &event)
-    -> std::list<poll_event>::iterator {
-  auto event_it = std::ranges::lower_bound(
-      *list, event.key(), {}, [](const auto &event) { return event.pfd.fd; });
+/**
+ * @brief Updates or inserts an event into a list of events.
+ * @param list The list of events.
+ * @param event The event to update or insert.
+ * @return A pointer to the updated or inserted event.
+ */
+inline auto
+update_or_insert_event(std::vector<pollfd> *list,
+                       const pollfd &event) -> poll_t::event_type * {
+  auto pos = std::ranges::lower_bound(
+      *list, event.fd, {}, [](const auto &event) { return event.fd; });
 
-  if (event_it != std::end(*list) && event_it->pfd.fd == event.key()) {
+  if (pos != std::end(*list) && pos->fd == event.fd) {
     // NOLINTNEXTLINE(bugprone-narrowing-conversions)
-    event_it->pfd.events |= event.pfd.events;
+    pos->events |= event.events;
   } else {
-    event_it = list->insert(event_it, event);
+    pos = list->insert(pos, event);
   }
 
-  return event_it;
+  return &*pos;
 }
-#endif // NDEBUG
 
 template <Completion Fn>
 template <typename Receiver>
-auto poll_multiplexer::poll_sender<Fn>::connect(Receiver receiver)
-    -> poll_op<Receiver, Fn> {
-  using detail::lock_exec;
+auto poll_multiplexer::sender<Fn>::connect(Receiver receiver)
+    -> state<Receiver> {
+  with_lock(std::unique_lock{*mtx},
+            [&] { update_or_insert_event(list, event); });
 
-  auto event_it = lock_exec(std::unique_lock{*mtx}, [&]() {
-    return update_or_insert_event(list, event);
-  });
-
-  return {.receiver = std::move(receiver),
-          .func = std::move(func),
-          .events_mask = event.pfd.events,
-          .event = &(*event_it),
-          .mtx = mtx};
+  return {.func = std::move(func),
+          .demux = demux,
+          .mtx = mtx,
+          .receiver = std::move(receiver),
+          .mask = event.events};
 }
 
 template <Completion Fn>
-auto poll_multiplexer::set(event_type event, Fn func) -> poll_sender<Fn> {
-  return {.func = std::move(func),
-          .event = {.pfd = std::move(event)},
-          .list = &list_,
-          .mtx = &mtx_};
+auto poll_multiplexer::set(event_type event, Fn func) -> sender<Fn> {
+  auto [demux_it, emplaced] = demux_.try_emplace(event.fd);
+
+  return sender<Fn>{.func = std::move(func),
+                    .event = std::move(event),
+                    .demux = &(demux_it->second),
+                    .list = &list_,
+                    .mtx = &mtx_};
 }
 } // namespace io::execution
 
