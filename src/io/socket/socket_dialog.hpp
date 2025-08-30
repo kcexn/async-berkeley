@@ -25,13 +25,13 @@
 // #endif
 
 #include "socket_handle.hpp"
-#include <execution/executor.hpp>
+#include <io/execution/executor.hpp>
 
 #include <memory>
 
 namespace io::socket {
 
-template <::io::execution::detail::Multiplexer Mux> struct socket_dialog {
+template <::io::execution::Multiplexer Mux> struct socket_dialog {
   using executor_ptr = std::weak_ptr<::io::execution::executor<Mux>>;
   using socket_ptr = std::weak_ptr<socket_handle>;
 

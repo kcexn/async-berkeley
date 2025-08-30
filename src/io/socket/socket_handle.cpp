@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
-#include <error.hpp>
+#include <io/error.hpp>
 
 namespace io::socket {
 

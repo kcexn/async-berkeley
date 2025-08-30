@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-#include "../src/socket/socket_address.hpp"
+#include "../src/io/socket/socket_address.hpp"
+
 #include <cstring>
 #include <gtest/gtest.h>
 #include <netinet/in.h>

@@ -14,10 +14,7 @@
  */
 
 #include "../src/io.hpp"
-#include "../src/socket/socket.hpp"
-#include "../src/socket/socket_address.hpp"
-#include "../src/socket/socket_handle.hpp"
-#include "../src/socket/socket_message.hpp"
+
 #include <array>
 #include <cerrno>
 #include <chrono>

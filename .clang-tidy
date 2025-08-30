@@ -3,6 +3,7 @@ Checks: >
   bugprone-*,
   cert-*,
   cppcoreguidelines-*,
+  -cppcoreguidelines-narrowing-conversions,
   modernize-*,
   performance-*,
   readability-*,

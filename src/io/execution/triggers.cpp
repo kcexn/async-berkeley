@@ -12,12 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include "context.hpp"
+#include "triggers.hpp"
 
 namespace io::execution {
 
-auto context_base::make_handle(std::shared_ptr<socket_handle> ptr)
+auto triggers_base::make_handle(std::shared_ptr<socket_handle> ptr)
     -> std::weak_ptr<socket_handle> {
   std::lock_guard lock{mtx_};
 
@@ -29,7 +28,7 @@ auto context_base::make_handle(std::shared_ptr<socket_handle> ptr)
   return handles_it->second;
 }
 
-auto swap(context_base &lhs, context_base &rhs) noexcept -> void {
+auto swap(triggers_base &lhs, triggers_base &rhs) noexcept -> void {
   using std::swap;
   if (&lhs == &rhs)
     return;
@@ -38,13 +37,13 @@ auto swap(context_base &lhs, context_base &rhs) noexcept -> void {
   swap(lhs.handles_, rhs.handles_);
 }
 
-context_base::context_base(const context_base &other) : context_base() {
+triggers_base::triggers_base(const triggers_base &other) {
   std::lock_guard lock{other.mtx_};
-
+  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   handles_ = other.handles_;
 }
 
-auto context_base::operator=(const context_base &other) -> context_base & {
+auto triggers_base::operator=(const triggers_base &other) -> triggers_base & {
   using std::swap;
 
   auto tmp = other;
@@ -52,17 +51,18 @@ auto context_base::operator=(const context_base &other) -> context_base & {
   return *this;
 }
 
-context_base::context_base(context_base &&other) noexcept : context_base() {
+triggers_base::triggers_base(triggers_base &&other) noexcept : triggers_base() {
   swap(*this, other);
 }
 
-auto context_base::operator=(context_base &&other) noexcept -> context_base & {
+auto triggers_base::operator=(triggers_base &&other) noexcept
+    -> triggers_base & {
   using std::swap;
   swap(*this, other);
   return *this;
 }
 
-auto context_base::push(socket_handle &&handle)
+auto triggers_base::push(socket_handle &&handle)
     -> std::weak_ptr<socket_handle> {
   return make_handle(std::make_shared<socket_handle>(std::move(handle)));
 }

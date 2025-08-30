@@ -25,11 +25,10 @@
 #pragma once
 #ifndef IO_SOCKET_HPP
 #define IO_SOCKET_HPP
-
-#include "socket_address.hpp"
-#include "socket_handle.hpp"
-#include "socket_message.hpp"
-#include "socket_ops.hpp"
+#include "socket_address.hpp" // IWYU pragma: export
+#include "socket_handle.hpp"  // IWYU pragma: export
+#include "socket_message.hpp" // IWYU pragma: export
+#include "socket_ops.hpp"     // IWYU pragma: export
 
 /**
  * @brief The `io::socket` namespace provides a cross-platform abstraction for

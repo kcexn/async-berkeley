@@ -12,16 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file multiplexers.hpp
+ * @brief This file includes all available multiplexers.
+ *
+ * This file is a convenience header that includes all available multiplexers.
+ * Currently, only the poll_multiplexer is available.
+ */
 #pragma once
-#ifndef IO_IMMOVABLE_HPP
-#define IO_IMMOVABLE_HPP
-
-namespace io::execution::detail {
-// NOLINTNEXTLINE
-struct immovable {
-private:
-  auto operator=(immovable &&) noexcept -> immovable & = default;
-};
-} // namespace io::execution::detail
-
-#endif // IO_IMMOVABLE_HPP
+#ifndef IO_MULTIPLEXERS_HPP
+#define IO_MULTIPLEXERS_HPP
+#include "poll_multiplexer.hpp" // IWYU pragma: export
+#endif                          // IO_MULTIPLEXERS_HPP

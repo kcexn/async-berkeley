@@ -12,20 +12,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
-#ifndef IO_LOCK_EXEC_HPP
-#define IO_LOCK_EXEC_HPP
 
+/**
+ * @file utilities.hpp
+ * @brief This file provides utility functions for the execution components.
+ */
+#pragma once
+#ifndef IO_UTILITIES_HPP
+#define IO_UTILITIES_HPP
 #include <mutex>
 #include <type_traits>
 
-namespace io::execution::detail {
+/**
+ * @namespace io::execution
+ * @brief Provides high-level interfaces for executors and completion triggers.
+ */
+namespace io::execution {
+
+/**
+ * @brief Executes a function with a lock.
+ * @tparam Fn The function type.
+ * @param lock The lock to use.
+ * @param func The function to execute.
+ * @return The result of the function.
+ */
 
 template <typename Fn>
   requires std::is_invocable_v<Fn>
-auto lock_exec(std::unique_lock<std::mutex> lock, Fn func) -> decltype(auto) {
+auto with_lock(std::unique_lock<std::mutex> lock, Fn func) -> decltype(auto) {
   return func();
 }
 
-} // namespace io::execution::detail
-#endif // IO_LOCK_EXEC_HPP
+} // namespace io::execution
+#endif // IO_UTILITIES_HPP

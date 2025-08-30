@@ -1,0 +1,112 @@
+/* Copyright 2025 Kevin Exton
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @file poll_multiplexer_impl.hpp
+ * @brief This file implements the poll_multiplexer class.
+ */
+#pragma once
+#ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
+#define IO_POLL_MULTIPLEXER_IMPL_HPP
+#include <io/execution/detail/utilities.hpp>
+#include <io/execution/poll_multiplexer.hpp>
+
+// Forward declarations used for testing.
+#ifndef NDEBUG
+namespace io::execution {
+auto run_queue(std::queue<poll_multiplexer::task *> &queue) -> void;
+auto handle_poll_error(int err) -> void;
+auto poll_(std::vector<pollfd> list, int duration) -> std::vector<pollfd>;
+} // namespace io::execution
+#endif // NDEBUG
+
+namespace io::execution {
+
+template <Completion Fn>
+template <typename Receiver>
+auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
+    -> void {
+  auto *self = static_cast<state *>(task_ptr);
+  std::streamsize len = self->func();
+  if (len >= 0) {
+    stdexec::set_value(std::move(self->receiver), len);
+  } else {
+    stdexec::set_error(std::move(self->receiver), errno);
+  }
+}
+
+template <Completion Fn>
+template <typename Receiver>
+auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
+  std::lock_guard lock{*mtx};
+
+  task::complete = state::complete;
+
+  if (mask & POLLIN)
+    demux->read_queue.push(this);
+
+  if (mask & POLLOUT)
+    demux->write_queue.push(this);
+}
+
+/**
+ * @brief Updates or inserts an event into a list of events.
+ * @param list The list of events.
+ * @param event The event to update or insert.
+ * @return A pointer to the updated or inserted event.
+ */
+inline auto
+update_or_insert_event(std::vector<pollfd> *list,
+                       const pollfd &event) -> poll_t::event_type * {
+  auto pos = std::ranges::lower_bound(
+      *list, event.fd, {}, [](const auto &event) { return event.fd; });
+
+  if (pos != std::end(*list) && pos->fd == event.fd) {
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
+    pos->events |= event.events;
+  } else {
+    pos = list->insert(pos, event);
+  }
+
+  return &*pos;
+}
+
+template <Completion Fn>
+template <typename Receiver>
+auto poll_multiplexer::sender<Fn>::connect(Receiver receiver)
+    -> state<Receiver> {
+  with_lock(std::unique_lock{*mtx},
+            [&] { update_or_insert_event(list, event); });
+
+  return {.func = std::move(func),
+          .demux = demux,
+          .mtx = mtx,
+          .receiver = std::move(receiver),
+          .mask = event.events};
+}
+
+template <Completion Fn>
+auto poll_multiplexer::set(event_type event, Fn func) -> sender<Fn> {
+  auto [demux_it, emplaced] = demux_.try_emplace(event.fd);
+
+  return sender<Fn>{.func = std::move(func),
+                    .event = std::move(event),
+                    .demux = &(demux_it->second),
+                    .list = &list_,
+                    .mtx = &mtx_};
+}
+} // namespace io::execution
+
+#endif // IO_POLL_MULTIPLEXER_IMPL_HPP

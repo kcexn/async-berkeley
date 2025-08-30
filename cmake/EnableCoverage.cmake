@@ -21,7 +21,7 @@ if(NOT GCOVR_EXECUTABLE)
 endif()
 
 # Add coverage flags
-set(COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage -O0")
+set(COVERAGE_FLAGS "--coverage -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage -lgcov")
