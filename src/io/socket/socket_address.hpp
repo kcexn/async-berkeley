@@ -163,7 +163,13 @@ public:
   ~socket_address() = default;
 
 private:
+  /**
+   * @brief The underlying socket address storage.
+   */
   sockaddr_storage_type storage_{};
+  /**
+   * @brief The size of the socket address.
+   */
   socklen_type size_{sizeof(storage_)};
 };
 

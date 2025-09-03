@@ -13,10 +13,32 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
+#include <atomic>
 #include <io/error.hpp>
 
 namespace io::socket {
+namespace {
+/**
+ * @brief Swaps the values of two atomic variables.
+ * @tparam T The type of the atomic variables.
+ * @param lhs The first atomic variable.
+ * @param rhs The second atomic variable.
+ * @param order The memory ordering to use.
+ */
+template <typename T>
+auto atomic_swap(std::atomic<T> &lhs, std::atomic<T> &rhs,
+                 std::memory_order order = std::memory_order_relaxed) noexcept
+    -> void {
+  auto tmp = lhs.exchange(rhs.load(order), order);
+  rhs.store(tmp, order);
+}
+} // namespace
 
+/**
+ * @brief Checks if a native socket handle is valid.
+ * @param handle The native socket handle to check.
+ * @return `true` if the socket handle is valid, `false` otherwise.
+ */
 static auto is_valid_socket(native_socket_type handle) -> bool {
   if (handle == INVALID_SOCKET)
     return false;
@@ -58,14 +80,13 @@ socket_handle::operator native_socket_type() const noexcept {
 }
 
 auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void {
+  using std::swap;
   if (&lhs == &rhs)
     return;
 
   std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
-
-  using std::swap;
-  auto temp = lhs.socket_.exchange(rhs.socket_);
-  rhs.socket_.store(temp);
+  atomic_swap(lhs.socket_, rhs.socket_);
+  atomic_swap(lhs.error_, rhs.error_);
 }
 
 socket_handle::operator bool() const noexcept {
@@ -90,6 +111,14 @@ auto socket_handle::operator<=>(native_socket_type other) const noexcept
 auto socket_handle::operator==(native_socket_type other) const noexcept
     -> bool {
   return (*this <=> other) == 0;
+}
+
+auto socket_handle::set_error(int error) noexcept -> void {
+  error_.store(error, std::memory_order_relaxed);
+}
+
+auto socket_handle::get_error() const noexcept -> std::error_code {
+  return {error_.load(std::memory_order_relaxed), std::system_category()};
 }
 
 socket_handle::~socket_handle() { close(); }

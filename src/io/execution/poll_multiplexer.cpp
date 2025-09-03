@@ -16,25 +16,44 @@
 #include "detail/utilities.hpp"
 #include <io/error.hpp>
 #include <io/macros.h>
+#include <io/socket/socket_handle.hpp>
+
+#include <sys/socket.h>
 
 namespace io::execution {
 namespace {
+/**
+ * @brief Pops an element from a queue and returns it.
+ * @tparam T The type of the elements in the queue.
+ * @param queue The queue to pop from.
+ * @return The popped element.
+ */
 template <typename T> auto pop(std::queue<T> &queue) -> decltype(auto) {
   auto tmp = queue.front();
   queue.pop();
   return tmp;
 }
 
-template <typename T, typename Predicate>
-  requires std::is_invocable_v<Predicate, const T &>
-auto filter(std::vector<T> list, Predicate &&pred) -> std::vector<T> {
-  auto [begin, end] =
-      std::ranges::remove_if(list, std::forward<Predicate>(pred));
+/**
+ * @brief Filters a range by removing elements that satisfy a predicate.
+ * @tparam R The type of the range.
+ * @tparam P The type of the predicate.
+ * @param list The range to filter.
+ * @param pred The predicate to use for filtering.
+ * @return The filtered range.
+ */
+template <std::ranges::range R, std::predicate<typename R::value_type> P>
+auto filter(R list, P &&pred) -> decltype(auto) {
+  auto [begin, end] = std::ranges::remove_if(list, std::forward<P>(pred));
   list.erase(begin, end);
   return list;
 }
 } // namespace
 
+/**
+ * @brief Executes all tasks in a queue.
+ * @param queue The queue of tasks to execute.
+ */
 IO_STATIC(auto) run_queue(std::queue<poll_multiplexer::task *> &queue) -> void {
   while (!queue.empty()) {
     auto *task = pop(queue);
@@ -42,11 +61,21 @@ IO_STATIC(auto) run_queue(std::queue<poll_multiplexer::task *> &queue) -> void {
   }
 }
 
-IO_STATIC(auto) handle_poll_error(int err) -> void {
-  if (err != EINTR)
+/**
+ * @brief Handles errors from the poll system call.
+ * @param error The error code to handle.
+ */
+IO_STATIC(auto) handle_poll_error(int error) -> void {
+  if (error != EINTR)
     throw_system_error(IO_ERROR_MESSAGE("poll failed."));
 }
 
+/**
+ * @brief A wrapper around the poll system call.
+ * @param list The list of file descriptors to poll.
+ * @param duration The timeout for the poll call.
+ * @return The list of file descriptors that have events.
+ */
 IO_STATIC(auto)
 poll_(std::vector<pollfd> list, int duration)->std::vector<pollfd> {
   if (list.empty())
@@ -54,50 +83,114 @@ poll_(std::vector<pollfd> list, int duration)->std::vector<pollfd> {
 
   int num = 0;
   while ((num = poll(list.data(), list.size(), duration)) < 0) {
-    handle_poll_error(errno);
+    handle_poll_error(errno); // GCOVR_EXCL_LINE
   }
 
-  return filter(std::move(list), [](const auto &event) {
-    return (event.revents & POLLNVAL) || (event.revents == 0);
-  });
+  return filter(std::move(list),
+                [](const auto &event) { return event.revents == 0; });
 }
 
-auto poll_multiplexer::wait_for(interval_type interval) -> size_type {
-  auto list = with_lock(std::unique_lock{mtx_}, [&] {
-    auto tmp = list_;
+/**
+ * @brief Gets the socket error and sets it on the socket handle.
+ * @param socket The socket handle to set the error on.
+ */
+IO_STATIC(auto)
+set_error(::io::socket::socket_handle &socket)->void {
+  using native_socket_type = ::io::socket::native_socket_type;
+  using socklen_type = ::io::socket::socklen_type;
 
-    for (auto &event : list_) {
-      event.events = 0;
+  int error = 0;
+  socklen_type len = sizeof(error);
+  if (::getsockopt(static_cast<native_socket_type>(socket), SOL_SOCKET,
+                   SO_ERROR, &error, &len)) {
+    switch (error = errno) {
+    case EBADF:
+    case ENOTSOCK:
+      break;
+
+    default:                                       // GCOVR_EXCL_LINE
+      throw_system_error(                          // GCOVR_EXCL_LINE
+          IO_ERROR_MESSAGE("getsockopt failed.")); // GCOVR_EXCL_LINE
     }
+  }
+  socket.set_error(error);
+}
 
-    return tmp;
-  });
+/**
+ * @brief Prepares the read and write queues for a demultiplexer based on the
+ * returned events.
+ * @param revents The returned events from the poll call.
+ * @param demux The demultiplexer to prepare.
+ * @return A vector of queues of tasks to be executed.
+ */
+IO_STATIC(auto)
+prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
+    ->std::vector<std::queue<poll_multiplexer::task *>> {
+  std::array<std::queue<poll_multiplexer::task *>, 2> tmp{};
+
+  if (revents & (POLLERR | POLLNVAL))
+    set_error(*demux.socket);
+
+  // NOLINTNEXTLINE(readability-qualified-auto)
+  auto pos = std::begin(tmp);
+  if ((revents & (POLLOUT | POLLERR | POLLNVAL)) &&
+      !(demux.write_queue.empty()))
+    *(pos++) = std::exchange(demux.write_queue, {});
+
+  if ((revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) &&
+      !(demux.read_queue.empty()))
+    *(pos++) = std::exchange(demux.read_queue, {});
+
+  return {std::begin(tmp), pos};
+}
+
+/**
+ * @brief Copies a list of pollfds and clears the events in the original list.
+ * @param list The list of pollfds to copy and clear.
+ * @return A copy of the list.
+ */
+static auto copy_and_clear(std::vector<pollfd> &list) {
+  auto tmp = list;
+
+  for (auto &event : list) {
+    event.events = 0;
+  }
+
+  return tmp;
+}
+
+/**
+ * @brief Creates a vector of ready queues from a list of pollfds.
+ * @param list The list of pollfds that have events.
+ * @param demux The map of demultiplexers.
+ * @return A vector of queues of tasks to be executed.
+ */
+IO_STATIC(auto)
+make_ready_queues(const std::vector<pollfd> &list,
+                  std::map<int, poll_multiplexer::demultiplexer> &demux)
+    ->std::vector<std::queue<poll_multiplexer::task *>> {
+  std::vector<std::queue<poll_multiplexer::task *>> tmp{};
+  tmp.reserve(2 * list.size());
+
+  for (const auto &event : list) {
+    auto demux_it = demux.find(event.fd);
+    if (demux_it != std::end(demux)) {
+      auto prepared = prepare_handles(event.revents, demux_it->second);
+      tmp.insert(std::end(tmp), std::begin(prepared), std::end(prepared));
+    }
+  }
+
+  return tmp;
+} // GCOVR_EXCL_LINE
+
+auto poll_multiplexer::wait_for(interval_type interval) -> size_type {
+  auto list =
+      with_lock(std::unique_lock{mtx_}, [&] { return copy_and_clear(list_); });
 
   list = poll_(std::move(list), static_cast<int>(interval.count()));
 
-  auto ready_queues = with_lock(std::unique_lock{mtx_}, [&] {
-    std::vector<std::queue<task *>> tmp{};
-    tmp.reserve(2 * list.size());
-
-    for (const auto &event : list) {
-      auto demux_it = demux_.find(event.fd);
-      if (demux_it != std::end(demux_)) {
-        auto &demux = demux_it->second;
-
-        if ((event.revents & (POLLOUT | POLLERR)) &&
-            !(demux.write_queue.empty())) {
-          tmp.push_back(std::exchange(demux.write_queue, {}));
-        }
-
-        if ((event.revents & (POLLIN | POLLHUP | POLLERR)) &&
-            !(demux.read_queue.empty())) {
-          tmp.push_back(std::exchange(demux.read_queue, {}));
-        }
-      }
-    }
-
-    return tmp;
-  });
+  auto ready_queues = with_lock(
+      std::unique_lock{mtx_}, [&] { return make_ready_queues(list, demux_); });
 
   for (auto &queue : ready_queues) {
     run_queue(queue);

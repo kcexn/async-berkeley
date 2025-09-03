@@ -31,14 +31,30 @@
 
 namespace io::socket {
 
+/**
+ * @brief A dialog between a socket and an executor.
+ * @tparam Mux The multiplexer type.
+ */
 template <::io::execution::Multiplexer Mux> struct socket_dialog {
+  /**
+   * @brief A weak pointer to the executor.
+   */
   using executor_ptr = std::weak_ptr<::io::execution::executor<Mux>>;
+  /**
+   * @brief A weak pointer to the socket handle.
+   */
   using socket_ptr = std::weak_ptr<socket_handle>;
 
+  /**
+   * @brief The executor for the dialog.
+   */
   executor_ptr executor;
+  /**
+   * @brief The socket for the dialog.
+   */
   socket_ptr socket;
 };
 
 } // namespace io::socket
 
-#endif // IO_SOCKET_ADDRESS_HPP
+#endif // IO_SOCKET_DIALOG_HPP

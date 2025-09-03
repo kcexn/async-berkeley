@@ -44,10 +44,31 @@ public:
   using handles_type =
       std::map<native_socket_type, std::shared_ptr<socket_handle>>;
 
+  /**
+   * @brief Default constructor.
+   */
   triggers_base() = default;
+  /**
+   * @brief Copy constructor.
+   * @param other The other triggers_base to copy from.
+   */
   triggers_base(const triggers_base &other);
+  /**
+   * @brief Copy assignment operator.
+   * @param other The other triggers_base to copy from.
+   * @return A reference to this triggers_base.
+   */
   auto operator=(const triggers_base &other) -> triggers_base &;
+  /**
+   * @brief Move constructor.
+   * @param other The other triggers_base to move from.
+   */
   triggers_base(triggers_base &&other) noexcept;
+  /**
+   * @brief Move assignment operator.
+   * @param other The other triggers_base to move from.
+   * @return A reference to this triggers_base.
+   */
   auto operator=(triggers_base &&other) noexcept -> triggers_base &;
 
   /**
@@ -81,12 +102,31 @@ public:
   virtual ~triggers_base() = default;
 
 private:
+  /**
+   * @brief The collection of socket handles.
+   */
   handles_type handles_;
+  /**
+   * @brief The mutex for thread safety.
+   */
+  /**
+   * @brief The mutex for thread safety.
+   */
   mutable std::mutex mtx_;
 
+  /**
+   * @brief Makes a socket handle and adds it to the collection.
+   * @param ptr The shared pointer to the socket handle.
+   * @return A weak pointer to the socket handle.
+   */
   auto make_handle(std::shared_ptr<socket_handle> ptr)
       -> std::weak_ptr<socket_handle>;
 
+  /**
+   * @brief Swaps two triggers_base objects.
+   * @param lhs The left-hand side object.
+   * @param rhs The right-hand side object.
+   */
   friend auto swap(triggers_base &lhs, triggers_base &rhs) noexcept -> void;
 };
 
@@ -110,8 +150,10 @@ public:
    * @return A sender that will complete when the event occurs.
    */
   template <Completion Fn>
-  auto set(typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return executor_->set(std::move(event), std::forward<Fn>(exec));
+  auto set(std::shared_ptr<socket_handle> socket,
+           typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
+    return executor_->set(std::move(socket), std::move(event),
+                          std::forward<Fn>(exec));
   }
 
   /**
@@ -128,14 +170,6 @@ public:
    * @return A sender that will complete when events occur.
    */
   constexpr auto wait() -> decltype(auto) { return executor_->wait(); }
-
-  /**
-   * @brief Gets the async scope.
-   * @return The async scope.
-   */
-  constexpr auto scope() const noexcept -> decltype(auto) {
-    return executor_->scope();
-  }
 
   /**
    * @brief Gets the executor.
@@ -171,6 +205,9 @@ public:
   }
 
 private:
+  /**
+   * @brief The executor for the triggers.
+   */
   std::shared_ptr<executor_type> executor_{std::make_shared<executor_type>()};
 };
 

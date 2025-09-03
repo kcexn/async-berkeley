@@ -597,3 +597,82 @@ TEST_F(SocketHandleTest, StressTestConcurrentOperations) {
   EXPECT_TRUE(static_cast<bool>(handle1));
   EXPECT_TRUE(static_cast<bool>(handle2));
 }
+
+TEST_F(SocketHandleTest, SetErrorAndGetError) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  // Initially, no error should be set (error code 0)
+  auto initial_error = handle.get_error();
+  EXPECT_EQ(initial_error.value(), 0);
+  EXPECT_EQ(initial_error.category(), std::system_category());
+
+  // Set a specific error code
+  constexpr int test_error_code = ECONNREFUSED;
+  handle.set_error(test_error_code);
+
+  // Retrieve and verify the error
+  auto retrieved_error = handle.get_error();
+  EXPECT_EQ(retrieved_error.value(), test_error_code);
+  EXPECT_EQ(retrieved_error.category(), std::system_category());
+
+  // Set a different error code
+  constexpr int another_error_code = ETIMEDOUT;
+  handle.set_error(another_error_code);
+
+  // Verify the new error overwrites the old one
+  auto new_error = handle.get_error();
+  EXPECT_EQ(new_error.value(), another_error_code);
+  EXPECT_EQ(new_error.category(), std::system_category());
+
+  // Reset error to 0
+  handle.set_error(0);
+  auto reset_error = handle.get_error();
+  EXPECT_EQ(reset_error.value(), 0);
+}
+
+TEST_F(SocketHandleTest, ErrorHandlingThreadSafety) {
+  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  constexpr int num_threads = 10;
+  constexpr int operations_per_thread = 100;
+  std::vector<std::thread> threads;
+  std::atomic<int> successful_operations{0};
+
+  // Test concurrent set_error and get_error operations
+  for (int t = 0; t < num_threads; ++t) {
+    threads.emplace_back(
+        [&handle, &successful_operations, t, operations_per_thread] {
+          for (int i = 0; i < operations_per_thread; ++i) {
+            try {
+              // Set error with thread-specific value to detect races
+              int error_value = (t * operations_per_thread + i) % 256;
+              handle.set_error(error_value);
+
+              // Immediately read back the error
+              auto error = handle.get_error();
+
+              // Verify the error code is valid (though may not match exactly
+              // due to races)
+              if (error.category() == std::system_category()) {
+                successful_operations.fetch_add(1, std::memory_order_relaxed);
+              }
+
+              std::this_thread::sleep_for(std::chrono::microseconds(1));
+            } catch (...) {
+              // Unexpected exception
+            }
+          }
+        });
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  // All operations should complete successfully (no crashes or exceptions)
+  EXPECT_EQ(successful_operations.load(), num_threads * operations_per_thread);
+
+  // Final error should be some valid value set by one of the threads
+  auto final_error = handle.get_error();
+  EXPECT_EQ(final_error.category(), std::system_category());
+}

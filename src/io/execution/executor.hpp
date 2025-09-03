@@ -28,52 +28,16 @@
 
 #include <utility>
 
+// forward declarations
+namespace io::socket {
+class socket_handle;
+} // namespace io::socket
+
 /**
  * @namespace io::execution
  * @brief Provides high-level interfaces for executors and completion triggers.
  */
 namespace io::execution {
-
-/**
- * @brief A sender for the executor.
- * @tparam Fn The function type.
- */
-template <typename Fn>
-  requires std::is_invocable_v<Fn>
-struct executor_sender {
-  using sender_concept = stdexec::sender_t;
-  using completion_signatures =
-      stdexec::completion_signatures<stdexec::set_value_t(std::size_t)>;
-
-  /**
-   * @brief An operation state for the executor.
-   * @tparam Receiver The receiver type.
-   */
-  template <typename Receiver> struct state : public immovable {
-    /**
-     * @brief Starts the operation.
-     */
-    auto start() noexcept -> void {
-      stdexec::set_value(std::move(receiver), func());
-    }
-
-    Receiver receiver{};
-    Fn func{};
-  };
-
-  /**
-   * @brief Connects the sender to a receiver.
-   * @param receiver The receiver to connect to.
-   * @return The operation state.
-   */
-  template <typename Receiver>
-  auto connect(Receiver receiver) -> state<Receiver> {
-    return {.receiver = std::move(receiver), .func = std::move(func)};
-  }
-
-  Fn func{};
-};
-
 /**
  * @brief An executor that uses a multiplexer to wait for events.
  * @tparam Mux The multiplexer type.
@@ -90,10 +54,10 @@ public:
    * @return A future that will complete when the event occurs.
    */
   template <Completion Fn>
-  constexpr auto set(typename Mux::event_type event,
-                     Fn &&exec) -> decltype(auto) {
+  auto set(std::shared_ptr<::io::socket::socket_handle> socket,
+           typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
     return scope_.spawn_future(
-        Mux::set(std::move(event), std::forward<Fn>(exec)));
+        Mux::set(std::move(socket), std::move(event), std::forward<Fn>(exec)));
   }
 
   /**
@@ -111,13 +75,10 @@ public:
    */
   constexpr auto wait() -> decltype(auto) { return wait_for(); }
 
-  /**
-   * @brief Gets the async scope.
-   * @return The async scope.
-   */
-  [[nodiscard]] auto scope() noexcept -> exec::async_scope & { return scope_; }
-
 private:
+  /**
+   * @brief The async scope for the executor.
+   */
   exec::async_scope scope_;
 };
 

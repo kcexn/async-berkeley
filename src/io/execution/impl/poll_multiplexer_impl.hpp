@@ -27,8 +27,14 @@
 #ifndef NDEBUG
 namespace io::execution {
 auto run_queue(std::queue<poll_multiplexer::task *> &queue) -> void;
-auto handle_poll_error(int err) -> void;
+auto handle_poll_error(int error) -> void;
 auto poll_(std::vector<pollfd> list, int duration) -> std::vector<pollfd>;
+auto set_error(::io::socket::socket_handle &socket) -> void;
+auto prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
+    -> std::vector<std::queue<poll_multiplexer::task *>>;
+auto make_ready_queues(const std::vector<pollfd> &list,
+                       std::map<int, poll_multiplexer::demultiplexer> &demux)
+    -> std::vector<std::queue<poll_multiplexer::task *>>;
 } // namespace io::execution
 #endif // NDEBUG
 
@@ -59,6 +65,8 @@ auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
 
   if (mask & POLLOUT)
     demux->write_queue.push(this);
+
+  demux->socket = socket.get();
 }
 
 /**
@@ -85,27 +93,31 @@ update_or_insert_event(std::vector<pollfd> *list,
 
 template <Completion Fn>
 template <typename Receiver>
-auto poll_multiplexer::sender<Fn>::connect(Receiver receiver)
-    -> state<Receiver> {
+auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
+    -> state<std::decay_t<Receiver>> {
   with_lock(std::unique_lock{*mtx},
             [&] { update_or_insert_event(list, event); });
 
-  return {.func = std::move(func),
+  return {.socket = std::move(socket),
+          .func = std::move(func),
           .demux = demux,
           .mtx = mtx,
-          .receiver = std::move(receiver),
+          .receiver = std::forward<Receiver>(receiver),
           .mask = event.events};
 }
 
 template <Completion Fn>
-auto poll_multiplexer::set(event_type event, Fn func) -> sender<Fn> {
+auto poll_multiplexer::set(std::shared_ptr<::io::socket::socket_handle> socket,
+                           event_type event,
+                           Fn &&func) -> sender<std::decay_t<Fn>> {
   auto [demux_it, emplaced] = demux_.try_emplace(event.fd);
 
-  return sender<Fn>{.func = std::move(func),
-                    .event = std::move(event),
-                    .demux = &(demux_it->second),
-                    .list = &list_,
-                    .mtx = &mtx_};
+  return {.socket = std::move(socket),
+          .func = std::forward<Fn>(func),
+          .event = std::move(event),
+          .demux = &(demux_it->second),
+          .list = &list_,
+          .mtx = &mtx_};
 }
 } // namespace io::execution
 

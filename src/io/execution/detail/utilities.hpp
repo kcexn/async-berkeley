@@ -36,11 +36,10 @@ namespace io::execution {
  * @param func The function to execute.
  * @return The result of the function.
  */
-
 template <typename Fn>
   requires std::is_invocable_v<Fn>
-auto with_lock(std::unique_lock<std::mutex> lock, Fn func) -> decltype(auto) {
-  return func();
+auto with_lock(std::unique_lock<std::mutex> lock, Fn &&func) -> decltype(auto) {
+  return std::forward<Fn>(func)();
 }
 
 } // namespace io::execution

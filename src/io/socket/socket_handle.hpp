@@ -15,8 +15,8 @@
 
 /**
  * @file socket_handle.hpp
- * @brief This file defines the `socket_handle` class, a cross-platform,
- * thread-safe RAII wrapper for native socket handles.
+ * @brief Defines the `socket_handle` class, a cross-platform, thread-safe RAII
+ * wrapper for native socket handles.
  */
 #pragma once
 #ifndef IO_SOCKET_HANDLE_HPP
@@ -36,73 +36,52 @@ namespace io::socket {
 /**
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
  *
- * This class is the cornerstone of socket lifetime management in this library.
- * It wraps a native socket handle, ensuring it is automatically closed upon
- * destruction. By deleting the copy constructor and copy assignment operator,
- * it enforces unique ownership, preventing common errors related to resource
- * duplication. All access to the handle is protected by a mutex, ensuring
- * thread-safe operations.
+ * Wraps a native socket handle, ensuring it is automatically closed upon
+ * destruction. Enforces unique ownership by deleting copy operations. All
+ * access to the handle is thread-safe.
  */
 class socket_handle {
 
 public:
   /**
-   * @brief Default constructor. Initializes an invalid socket handle.
-   *
-   * A default-constructed handle does not represent a valid socket.
+   * @brief Initializes an invalid socket handle.
    */
   socket_handle() = default;
 
   /**
-   * @brief Deleted copy constructor.
-   *
-   * `socket_handle` is a unique, resource-owning type and cannot be copied.
+   * @brief Deleted copy constructor. A `socket_handle` cannot be copied.
    */
   socket_handle(const socket_handle &other) = delete;
 
   /**
-   * @brief Deleted copy assignment operator.
-   *
-   * `socket_handle` is a unique, resource-owning type and cannot be copied.
+   * @brief Deleted copy assignment. A `socket_handle` cannot be copied.
    */
   auto operator=(const socket_handle &other) -> socket_handle & = delete;
 
   /**
-   * @brief Move constructor.
-   *
-   * Transfers ownership of a socket from another `socket_handle`. After the
-   * move, `other` is left in an invalid state. This operation is thread-safe.
-   *
+   * @brief Move constructor. Transfers ownership of a socket from `other`.
+   * `other` becomes invalid.
    * @param other The `socket_handle` to move from.
    */
   socket_handle(socket_handle &&other) noexcept;
 
   /**
-   * @brief Move assignment operator.
-   *
-   * Transfers ownership of a socket from another `socket_handle`. If this
-   * handle already owns a socket, it is closed before the new socket is
-   * acquired. After the move, `other` is left in an invalid state. This
-   * operation is thread-safe.
-   *
+   * @brief Move assignment. Transfers ownership of a socket from `other`. The
+   * existing socket is closed. `other` becomes invalid.
    * @param other The `socket_handle` to move from.
    * @return A reference to this `socket_handle`.
    */
   auto operator=(socket_handle &&other) noexcept -> socket_handle &;
 
   /**
-   * @brief Constructs a `socket_handle` from an existing native socket.
-   *
-   * Takes ownership of the provided native handle.
-   *
+   * @brief Constructs from a native socket handle.
    * @param handle The native socket handle to wrap.
    * @throws std::system_error if the handle is not a valid socket.
    */
   explicit socket_handle(native_socket_type handle);
 
   /**
-   * @brief Constructs a `socket_handle` by creating a new socket.
-   *
+   * @brief Constructs a new socket.
    * @param domain The communication domain (e.g., `AF_INET`).
    * @param type The socket type (e.g., `SOCK_STREAM`).
    * @param protocol The protocol (e.g., `IPPROTO_TCP`).
@@ -111,41 +90,26 @@ public:
   socket_handle(int domain, int type, int protocol);
 
   /**
-   * @brief Explicitly converts the `socket_handle` to its underlying native
-   * socket representation.
-   *
-   * This operation is thread-safe.
-   *
+   * @brief Gets the underlying native socket handle.
    * @return The raw native socket handle.
    */
   explicit operator native_socket_type() const noexcept;
 
   /**
-   * @brief Swaps the contents of two `socket_handle` objects.
-   *
-   * This operation is thread-safe.
-   *
+   * @brief Swaps two `socket_handle` objects.
    * @param lhs The first `socket_handle`.
    * @param rhs The second `socket_handle`.
    */
   friend auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
 
   /**
-   * @brief Checks if the handle owns a valid, open socket.
-   *
-   * This operation is thread-safe and allows the handle to be used in boolean
-   * contexts (e.g., `if (handle)`).
-   *
+   * @brief Checks if the socket handle is valid.
    * @return `true` if the socket handle is valid, `false` otherwise.
    */
   [[nodiscard]] explicit operator bool() const noexcept;
 
   /**
-   * @brief Three-way compares two `socket_handle` objects.
-   *
-   * The comparison is based on the underlying native socket values. This
-   * operation is thread-safe.
-   *
+   * @brief Compares two `socket_handle` objects.
    * @param other The `socket_handle` to compare against.
    * @return A `std::strong_ordering` value.
    */
@@ -154,9 +118,6 @@ public:
 
   /**
    * @brief Checks for equality between two `socket_handle` objects.
-   *
-   * This operation is thread-safe.
-   *
    * @param other The `socket_handle` to compare against.
    * @return `true` if the underlying native socket handles are equal, `false`
    * otherwise.
@@ -164,10 +125,7 @@ public:
   auto operator==(const socket_handle &other) const noexcept -> bool;
 
   /**
-   * @brief Three-way compares the `socket_handle` with a native socket handle.
-   *
-   * This operation is thread-safe.
-   *
+   * @brief Compares with a native socket handle.
    * @param other The native socket handle to compare against.
    * @return A `std::strong_ordering` value.
    */
@@ -175,11 +133,7 @@ public:
   operator<=>(native_socket_type other) const noexcept -> std::strong_ordering;
 
   /**
-   * @brief Checks for equality between a `socket_handle` and a native socket
-   * handle.
-   *
-   * This operation is thread-safe.
-   *
+   * @brief Checks for equality with a native socket handle.
    * @param other The native socket handle to compare against.
    * @return `true` if the underlying native socket handles are equal, `false`
    * otherwise.
@@ -187,33 +141,38 @@ public:
   auto operator==(native_socket_type other) const noexcept -> bool;
 
   /**
-   * @brief Destructor.
-   *
-   * Closes the managed socket if it is valid, ensuring RAII compliance.
+   * @brief Sets a socket error.
+   * @param error The error code to set.
+   */
+  auto set_error(int error) noexcept -> void;
+
+  /**
+   * @brief Gets the last socket error.
+   * @return The last error code.
+   */
+  auto get_error() const noexcept -> std::error_code;
+
+  /**
+   * @brief Closes the managed socket.
    */
   ~socket_handle();
 
 private:
   /**
-   * @brief Closes the managed socket if it is valid.
-   *
-   * This is a helper function called by the destructor and move assignment
-   * operator.
+   * @brief Closes the managed socket.
    */
   auto close() noexcept -> void;
 
   /**
    * @brief The underlying native socket handle.
-   *
-   * It is stored as an atomic type to allow for thread-safe reads of its value,
-   * though modifications are protected by the mutex. Initialized to
-   * `INVALID_SOCKET` by default.
    */
   std::atomic<native_socket_type> socket_{INVALID_SOCKET};
-
   /**
-   * @brief A mutex to synchronize access to the socket handle for operations
-   * that are not inherently atomic (e.g., closing, swapping).
+   * @brief The last error code on the socket.
+   */
+  std::atomic<int> error_;
+  /**
+   * @brief The mutex for thread safety.
    */
   mutable std::mutex mtx_;
 };

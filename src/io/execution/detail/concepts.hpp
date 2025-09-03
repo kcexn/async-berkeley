@@ -65,10 +65,8 @@ concept Completion = std::is_invocable_v<Fn>;
  * @tparam T The type to check.
  */
 template <typename T>
-concept Multiplexer = requires(T mux) {
-  mux.set(typename T::event_type{}, []() {});
-  mux.wait_for(typename T::interval_type{});
-};
+concept Multiplexer =
+    requires(T mux) { mux.wait_for(typename T::interval_type{}); };
 
 } // namespace io::execution
 #endif // IO_CONCEPTS_HPP
