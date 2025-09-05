@@ -50,10 +50,7 @@ inline static constexpr native_socket_type INVALID_SOCKET = -1;
  */
 inline static constexpr int SOCKET_ERROR = -1;
 
-/**
- * @brief The socket buffer type for POSIX systems.
- */
-using socket_buffer_type = std::span<char, std::dynamic_extent>;
+using buffer_type = struct iovec;
 
 /**
  * @brief The socket message type for POSIX systems.

@@ -13,46 +13,46 @@
  * limitations under the License.
  */
 
+/**
+ * @file socket_dialog.hpp
+ * @brief Defines the `socket_dialog` struct.
+ */
 #pragma once
 #ifndef IO_SOCKET_DIALOG_HPP
 #define IO_SOCKET_DIALOG_HPP
-// #include <boost/predef.h>
-
-// #if BOOST_OS_WINDOWS
-// #include "platforms/windows/socket.hpp"
-// #else
-// #include "platforms/posix/socket.hpp"
-// #endif
-
-#include "socket_handle.hpp"
-#include <io/execution/executor.hpp>
+#include "io/execution/detail/concepts.hpp"
 
 #include <memory>
 
-namespace io::socket {
+// Forward declarations
+namespace io::execution {
+template <Multiplexer Mux> class executor;
+} // namespace io::execution
 
+namespace io::socket {
+class socket_handle;
+} // namespace io::socket
+
+/**
+ * @namespace io::socket
+ * @brief The `io::socket` namespace provides a cross-platform abstraction for
+ * socket-level I/O operations.
+ */
+namespace io::socket {
 /**
  * @brief A dialog between a socket and an executor.
  * @tparam Mux The multiplexer type.
  */
 template <::io::execution::Multiplexer Mux> struct socket_dialog {
-  /**
-   * @brief A weak pointer to the executor.
-   */
-  using executor_ptr = std::weak_ptr<::io::execution::executor<Mux>>;
-  /**
-   * @brief A weak pointer to the socket handle.
-   */
-  using socket_ptr = std::weak_ptr<socket_handle>;
-
+  using executor_type = ::io::execution::executor<Mux>;
   /**
    * @brief The executor for the dialog.
    */
-  executor_ptr executor;
+  std::weak_ptr<executor_type> executor;
   /**
    * @brief The socket for the dialog.
    */
-  socket_ptr socket;
+  std::shared_ptr<socket_handle> socket;
 };
 
 } // namespace io::socket

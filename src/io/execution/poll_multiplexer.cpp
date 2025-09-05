@@ -128,6 +128,15 @@ prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
     ->std::vector<std::queue<poll_multiplexer::task *>> {
   std::array<std::queue<poll_multiplexer::task *>, 2> tmp{};
 
+  /* A POLLNVAL condition can be returned on the socket
+   * if the user of the library has statically cast
+   * the socket_handle to a native_socket_type and
+   * subsequently called `close`. Under normal
+   * circumstances, it is impossible for a socket
+   * to be invalid after the sender has been constructed
+   * constructed as the sender takes shared ownership
+   * of the underlying socket.
+   */
   if (revents & (POLLERR | POLLNVAL))
     set_error(*demux.socket);
 

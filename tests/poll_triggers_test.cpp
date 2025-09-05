@@ -26,7 +26,7 @@
 
 using namespace io::execution;
 
-class PollContextTest : public ::testing::Test {
+class PollTriggersTest : public ::testing::Test {
 protected:
   void SetUp() override {}
   void TearDown() override {}
@@ -34,14 +34,14 @@ protected:
   basic_triggers<poll_multiplexer> triggers;
 };
 
-TEST_F(PollContextTest, CopyConstructorTest) {
+TEST_F(PollTriggersTest, CopyConstructorTest) {
   auto triggers2 = triggers;
   auto ptr1 = triggers.get_executor().lock();
   auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
-TEST_F(PollContextTest, CopyAssignmentTest) {
+TEST_F(PollTriggersTest, CopyAssignmentTest) {
   basic_triggers<poll_multiplexer> triggers2;
   triggers2 = triggers;
   auto ptr1 = triggers.get_executor().lock();
@@ -49,7 +49,7 @@ TEST_F(PollContextTest, CopyAssignmentTest) {
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
-TEST_F(PollContextTest, MoveConstructorTest) {
+TEST_F(PollTriggersTest, MoveConstructorTest) {
   basic_triggers<poll_multiplexer> triggers1;
   auto ptr1 = triggers1.get_executor().lock();
   EXPECT_TRUE(ptr1);
@@ -62,7 +62,7 @@ TEST_F(PollContextTest, MoveConstructorTest) {
   EXPECT_TRUE(addr1 == addr2);
 }
 
-TEST_F(PollContextTest, MoveAssignmentTest) {
+TEST_F(PollTriggersTest, MoveAssignmentTest) {
   basic_triggers<poll_multiplexer> triggers1, triggers2;
   auto ptr1 = triggers1.get_executor().lock();
   auto ptr2 = triggers2.get_executor().lock();
@@ -78,54 +78,48 @@ TEST_F(PollContextTest, MoveAssignmentTest) {
   EXPECT_TRUE(addr2 == addr1);
 }
 
-TEST_F(PollContextTest, SelfSwapTest) {
+TEST_F(PollTriggersTest, SelfSwapTest) {
   basic_triggers<poll_multiplexer> triggers1;
   using std::swap;
   swap(triggers1, triggers1);
   EXPECT_TRUE(&triggers1 == &triggers1);
 }
 
-TEST_F(PollContextTest, PushHandleTest) {
+TEST_F(PollTriggersTest, PushHandleTest) {
   using socket_handle = ::io::socket::socket_handle;
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   auto sockfd = static_cast<int>(socket);
 
   auto dialog = triggers.push(std::move(socket));
-  auto ptr = dialog.socket.lock();
+  auto ptr = dialog.socket;
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(sockfd == *ptr);
 }
 
-TEST_F(PollContextTest, EmplaceHandleTest) {
+TEST_F(PollTriggersTest, EmplaceHandleTest) {
   auto dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  auto ptr = dialog.socket.lock();
+  auto ptr = dialog.socket;
   EXPECT_TRUE(ptr);
 
   auto sockfd = static_cast<int>(*ptr);
 
   dialog = triggers.push(std::move(*ptr));
-  ptr = dialog.socket.lock();
+  ptr = dialog.socket;
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(*ptr == sockfd);
 }
 
-TEST_F(PollContextTest, EraseHandleTest) {
-  auto dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  triggers.erase(dialog);
-  EXPECT_FALSE(dialog.socket.lock());
-}
-
-TEST_F(PollContextTest, PollErrorHandlingTest) {
+TEST_F(PollTriggersTest, PollErrorHandlingTest) {
   handle_poll_error(EINTR);
   EXPECT_THROW(handle_poll_error(EAGAIN), std::system_error);
 }
 
-TEST_F(PollContextTest, PollTest) {
+TEST_F(PollTriggersTest, PollTest) {
   auto list = poll_({}, 0);
   EXPECT_TRUE(list.empty());
 }
 
-TEST_F(PollContextTest, PollSetErrorTest) {
+TEST_F(PollTriggersTest, PollSetErrorTest) {
   using socket_handle = ::io::socket::socket_handle;
 
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
@@ -138,7 +132,7 @@ TEST_F(PollContextTest, PollSetErrorTest) {
   EXPECT_EQ(socket2.get_error().value(), EBADF);
 }
 
-TEST_F(PollContextTest, PollPrepareHandlesTest) {
+TEST_F(PollTriggersTest, PollPrepareHandlesTest) {
   using socket_handle = ::io::socket::socket_handle;
 
   poll_multiplexer::demultiplexer demux{};
@@ -169,7 +163,7 @@ TEST_F(PollContextTest, PollPrepareHandlesTest) {
   EXPECT_EQ(queues[0].size(), 1);
 }
 
-TEST_F(PollContextTest, MakeReadyQueuesTest) {
+TEST_F(PollTriggersTest, MakeReadyQueuesTest) {
   std::vector<pollfd> list{{.fd = 1, .events = POLLIN, .revents = 0}};
   std::map<int, poll_multiplexer::demultiplexer> demux{};
 
@@ -177,7 +171,7 @@ TEST_F(PollContextTest, MakeReadyQueuesTest) {
   EXPECT_TRUE(ready.empty());
 }
 
-TEST_F(PollContextTest, SubmitTest) {
+TEST_F(PollTriggersTest, SubmitTest) {
   std::array<int, 2> pipefds{};
   std::array<char, 3> buf{};
   pipe(pipefds.data());

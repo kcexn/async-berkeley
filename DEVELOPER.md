@@ -1,6 +1,6 @@
 # DEVELOPER.md
 
-Developer setup guide for the iosched C++20 I/O scheduling library with asynchronous execution framework.
+Developer setup guide for the iosched C++20 I/O scheduling library with asynchronous execution framework, persistent socket error tracking, and sender/receiver patterns.
 
 ## Prerequisites
 
@@ -14,6 +14,15 @@ Developer setup guide for the iosched C++20 I/O scheduling library with asynchro
   - MSVC 19.29+ (Visual Studio 2019 16.10+) or MinGW-w64 for Windows
 - **Build System**: Ninja (recommended) or Unix Makefiles
 - **Git**: For repository cloning
+
+### Project Dependencies
+
+This project uses several modern C++ libraries and tools:
+
+- **GoogleTest**: Auto-fetched via CMake FetchContent for comprehensive unit testing
+- **NVIDIA stdexec**: Auto-fetched via CPM for sender/receiver execution patterns and asynchronous operations
+- **Boost.Predef**: Header-only library used for cross-platform compiler and OS detection
+- **CPM.cmake**: CMake package manager for automatic dependency fetching and management
 
 ### Installing Dependencies
 
@@ -142,7 +151,7 @@ ctest --preset debug
 ./build/debug/tests/socket_handle_test
 ./build/debug/tests/socket_message_test
 ./build/debug/tests/socket_address_test
-./build/debug/tests/socket_test
+./build/debug/tests/socket_option_test
 ./build/debug/tests/poll_triggers_test  # Execution framework tests
 ```
 
@@ -200,7 +209,8 @@ ctest
 ./tests/socket_handle_test
 ./tests/socket_message_test
 ./tests/socket_address_test
-./tests/socket_test
+./tests/socket_option_test
+./tests/poll_triggers_test
 ```
 
 #### Build with Tests and Coverage
@@ -416,6 +426,7 @@ ctest --preset debug -R socket_handle_test
 
 # Run test executable directly
 ./build/debug/tests/socket_handle_test
+./build/debug/tests/socket_option_test  # For socket_option wrapper tests
 
 # Run with specific test filter (if using Google Test)
 ./build/debug/tests/socket_handle_test --gtest_filter="*ConstructorTest*"
@@ -424,20 +435,22 @@ ctest --preset debug -R socket_handle_test
 ### Test Categories
 
 Current test suites:
-- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`)
+- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`) including persistent error tracking and tag-invoke operations
 - **socket_message_test**: Tests for thread-safe socket messages (`io::socket::socket_message`) with push/emplace functionality
-- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`)
-- **socket_test**: Tests for cross-platform socket operations and tag-dispatched customization points
-- **poll_triggers_test**: Tests for asynchronous execution framework including executor, poll multiplexer, and I/O triggers with sender/receiver patterns
+- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`) and `socket_option` wrapper
+- **socket_option_test**: Tests for the generic `socket_option` wrapper template used by socket_address and other socket option types
+- **poll_triggers_test**: Tests for asynchronous execution framework including executor, poll multiplexer, and I/O triggers with sender/receiver patterns and shared_ptr-based lifetime management
 
 ### High Test Coverage
 
-The project maintains **98% code coverage** through comprehensive testing including:
+The project maintains **100% code coverage** through comprehensive testing including:
 - Success and failure scenarios for all operations
 - Thread safety and concurrent access testing
 - Resource management and RAII verification
 - Cross-platform compatibility testing
 - Edge cases and error condition handling
+- Persistent socket error tracking validation
+- Asynchronous execution patterns with lifetime management
 
 ## Troubleshooting
 
@@ -546,6 +559,32 @@ Create `.vscode/settings.json`:
 ### CLion
 
 CLion automatically detects `CMakePresets.json` and provides preset selection in the IDE.
+
+## Recent Architecture Improvements
+
+### Persistent Socket Error Tracking
+
+The library now includes persistent socket error tracking in the `socket_handle` class:
+
+- Error states are maintained across asynchronous execution boundaries
+- Socket errors from poll operations (POLLERR flag) are captured and stored
+- Callbacks can check for socket errors before proceeding with system calls
+- Ensures robust error handling in asynchronous operations
+
+### Enhanced Execution Framework
+
+- I/O triggers now require `shared_ptr<socket_handle>` for lifetime management
+- Poll multiplexer passes raw pointers valid for operation lifetime
+- Demultiplexer can set socket errors reported by poll
+- Improved thread safety and resource management
+
+### Comprehensive Tag-Invoke Implementation
+
+All socket operations now fully support tag-invoke pattern:
+- `bind`, `listen`, `connect`, `accept` operations
+- `sendmsg`, `recvmsg` for message-based I/O
+- `getsockopt`, `setsockopt`, `getsockname`, `getpeername`
+- `shutdown`, `fcntl` for socket control operations
 
 ## Performance Testing
 

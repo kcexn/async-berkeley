@@ -13,125 +13,25 @@
  * limitations under the License.
  */
 
+/**
+ * @file socket_message.cpp
+ */
 #include "socket_message.hpp"
-
 namespace io::socket {
-
-socket_message::socket_message() : data_{std::make_unique<message_data>()} {}
-
-socket_message::socket_message(socket_message &&other) noexcept
-    : socket_message() {
-  swap(*this, other);
+message_header::operator socket_message_type() {
+  // TODO: Windows support.
+  return {.msg_name = name.data(),
+          .msg_namelen = static_cast<socklen_t>(name.size()),
+          .msg_iov = iov.data(),
+          .msg_iovlen = iov.size(),
+          .msg_control = control.data(),
+          .msg_controllen = control.size(),
+          .msg_flags = flags};
 }
 
-auto socket_message::operator=(socket_message &&other) noexcept
-    -> socket_message & {
-  swap(*this, other);
-  return *this;
-}
-
-auto swap(socket_message &lhs, socket_message &rhs) noexcept -> void {
-  if (&lhs == &rhs)
-    return;
-
-  std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
-
-  using std::swap;
-  swap(lhs.data_, rhs.data_);
-}
-
-auto socket_message::get() const -> message_data {
-  std::lock_guard lock{mtx_};
-
-  return *data_;
-}
-
-auto socket_message::operator=(message_data data) -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_ = std::make_unique<message_data>(std::move(data));
-  return *this;
-}
-
-auto socket_message::address() const -> socket_address {
-  std::lock_guard lock{mtx_};
-  return data_->address;
-}
-
-auto socket_message::set_address(socket_address address) -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_->address = address;
-  return *this;
-}
-
-auto socket_message::exchange_address(socket_address address)
-    -> socket_address {
-  std::lock_guard lock{mtx_};
-  using std::swap;
-  swap(data_->address, address);
-  return address;
-}
-
-auto socket_message::buffers() const -> scatter_gather_buffer {
-  std::lock_guard lock{mtx_};
-  return data_->buffers;
-}
-
-auto socket_message::set_buffers(scatter_gather_buffer buffers)
-    -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_->buffers = std::move(buffers);
-  return *this;
-}
-
-auto socket_message::exchange_buffers(scatter_gather_buffer buffers)
-    -> scatter_gather_buffer {
-  std::lock_guard lock{mtx_};
-  using std::swap;
-  swap(data_->buffers, buffers);
-  return buffers;
-}
-
-auto socket_message::push_back(socket_buffer_type buffer) -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_->buffers.push_back(buffer);
-  return *this;
-}
-
-auto socket_message::control() const -> ancillary_buffer {
-  std::lock_guard lock{mtx_};
-  return data_->control;
-}
-
-auto socket_message::set_control(ancillary_buffer control) -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_->control = std::move(control);
-  return *this;
-}
-
-auto socket_message::exchange_control(ancillary_buffer control)
-    -> ancillary_buffer {
-  std::lock_guard lock{mtx_};
-  using std::swap;
-  swap(data_->control, control);
-  return control;
-}
-
-auto socket_message::flags() const -> int {
-  std::lock_guard lock{mtx_};
-  return data_->flags;
-}
-
-auto socket_message::set_flags(int flags) -> socket_message & {
-  std::lock_guard lock{mtx_};
-  data_->flags = flags;
-  return *this;
-}
-
-auto socket_message::exchange_flags(int flags) -> int {
-  std::lock_guard lock{mtx_};
-  using std::swap;
-  swap(data_->flags, flags);
-  return flags;
+socket_message::operator socket_message_type() {
+  Base::operator=({.iov = buffers, .control = control});
+  return Base::operator socket_message_type();
 }
 
 } // namespace io::socket

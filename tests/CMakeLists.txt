@@ -3,9 +3,9 @@ include(GoogleTest)
 set(TEST_NAMES
   socket_handle_test
   socket_address_test
-  socket_message_test
-  socket_test
   poll_triggers_test
+  socket_option_test
+  socket_message_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

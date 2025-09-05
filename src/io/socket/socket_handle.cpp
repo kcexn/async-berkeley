@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 #include "socket_handle.hpp"
+#include "io/error.hpp"
+
 #include <atomic>
-#include <io/error.hpp>
 
 namespace io::socket {
 namespace {
@@ -26,7 +27,7 @@ namespace {
  * @param order The memory ordering to use.
  */
 template <typename T>
-auto atomic_swap(std::atomic<T> &lhs, std::atomic<T> &rhs,
+auto swap_atomic(std::atomic<T> &lhs, std::atomic<T> &rhs,
                  std::memory_order order = std::memory_order_relaxed) noexcept
     -> void {
   auto tmp = lhs.exchange(rhs.load(order), order);
@@ -85,8 +86,8 @@ auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void {
     return;
 
   std::scoped_lock lock(lhs.mtx_, rhs.mtx_);
-  atomic_swap(lhs.socket_, rhs.socket_);
-  atomic_swap(lhs.error_, rhs.error_);
+  swap_atomic(lhs.socket_, rhs.socket_);
+  swap_atomic(lhs.error_, rhs.error_);
 }
 
 socket_handle::operator bool() const noexcept {
@@ -124,11 +125,9 @@ auto socket_handle::get_error() const noexcept -> std::error_code {
 socket_handle::~socket_handle() { close(); }
 
 auto socket_handle::close() noexcept -> void {
-  std::lock_guard lock{mtx_};
-  if (socket_ != INVALID_SOCKET) {
-    ::io::socket::close(socket_);
-    socket_ = INVALID_SOCKET;
-  }
+  auto handle = socket_.exchange(INVALID_SOCKET, std::memory_order_relaxed);
+  if (handle != INVALID_SOCKET)
+    ::io::socket::close(handle);
 }
 
 } // namespace io::socket

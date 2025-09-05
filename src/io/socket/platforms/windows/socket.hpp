@@ -50,10 +50,7 @@ inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
  */
 inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
 
-/**
- * @brief The socket buffer type for Windows systems.
- */
-using socket_buffer_type = std::span<char, std::dynamic_extent>;
+using buffer_type = ::WSABUF;
 
 /**
  * @brief The socket message type for Windows systems.

@@ -21,10 +21,9 @@
 #ifndef IO_TRIGGERS_HPP
 #define IO_TRIGGERS_HPP
 #include "executor.hpp"
-#include <io/socket/socket_dialog.hpp>
-#include <io/socket/socket_handle.hpp>
+#include "io/socket/socket_dialog.hpp"
+#include "io/socket/socket_handle.hpp"
 
-#include <map>
 #include <memory>
 
 /**
@@ -36,98 +35,26 @@ namespace io::execution {
 /**
  * @brief Base class for triggers that manages a collection of socket handles.
  */
-class triggers_base {
-
-public:
+struct triggers_base {
   using native_socket_type = ::io::socket::native_socket_type;
   using socket_handle = ::io::socket::socket_handle;
-  using handles_type =
-      std::map<native_socket_type, std::shared_ptr<socket_handle>>;
-
-  /**
-   * @brief Default constructor.
-   */
-  triggers_base() = default;
-  /**
-   * @brief Copy constructor.
-   * @param other The other triggers_base to copy from.
-   */
-  triggers_base(const triggers_base &other);
-  /**
-   * @brief Copy assignment operator.
-   * @param other The other triggers_base to copy from.
-   * @return A reference to this triggers_base.
-   */
-  auto operator=(const triggers_base &other) -> triggers_base &;
-  /**
-   * @brief Move constructor.
-   * @param other The other triggers_base to move from.
-   */
-  triggers_base(triggers_base &&other) noexcept;
-  /**
-   * @brief Move assignment operator.
-   * @param other The other triggers_base to move from.
-   * @return A reference to this triggers_base.
-   */
-  auto operator=(triggers_base &&other) noexcept -> triggers_base &;
-
-  /**
-   * @brief Erases a socket handle from the collection.
-   * @param key The key of the socket handle to erase.
-   */
-  template <typename K> auto erase(const K &key) -> void {
-    std::lock_guard lock{mtx_};
-
-    handles_.erase(static_cast<native_socket_type>(key));
-  }
 
   /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  auto push(socket_handle &&handle) -> std::weak_ptr<socket_handle>;
+  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle>;
 
   /**
    * @brief Emplaces a socket handle in the collection.
    * @param ...args The arguments to forward to the socket handle constructor.
-   * @return A weak pointer to the emplaced socket handle.
+   * @return A shared pointer to the emplaced socket handle.
    */
   template <typename... Args>
-  auto emplace(Args &&...args) -> std::weak_ptr<socket_handle> {
-    return make_handle(
-        std::make_shared<socket_handle>(std::forward<Args>(args)...));
+  static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle> {
+    return std::make_shared<socket_handle>(std::forward<Args>(args)...);
   }
-
-  virtual ~triggers_base() = default;
-
-private:
-  /**
-   * @brief The collection of socket handles.
-   */
-  handles_type handles_;
-  /**
-   * @brief The mutex for thread safety.
-   */
-  /**
-   * @brief The mutex for thread safety.
-   */
-  mutable std::mutex mtx_;
-
-  /**
-   * @brief Makes a socket handle and adds it to the collection.
-   * @param ptr The shared pointer to the socket handle.
-   * @return A weak pointer to the socket handle.
-   */
-  auto make_handle(std::shared_ptr<socket_handle> ptr)
-      -> std::weak_ptr<socket_handle>;
-
-  /**
-   * @brief Swaps two triggers_base objects.
-   * @param lhs The left-hand side object.
-   * @param rhs The right-hand side object.
-   */
-  friend auto swap(triggers_base &lhs, triggers_base &rhs) noexcept -> void;
 };
 
 /**
@@ -175,15 +102,8 @@ public:
    * @brief Gets the executor.
    * @return A weak pointer to the executor.
    */
-  auto get_executor() -> std::weak_ptr<executor_type> { return executor_; }
-
-  /**
-   * @brief Erases a socket dialog from the collection.
-   * @param dialog The socket dialog to erase.
-   */
-  auto erase(const socket_dialog &dialog) -> void {
-    if (auto ptr = dialog.socket.lock())
-      return Base::erase(*ptr);
+  [[nodiscard]] auto get_executor() -> std::weak_ptr<executor_type> {
+    return executor_;
   }
 
   /**

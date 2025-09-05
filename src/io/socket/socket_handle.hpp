@@ -15,14 +15,12 @@
 
 /**
  * @file socket_handle.hpp
- * @brief Defines the `socket_handle` class, a cross-platform, thread-safe RAII
- * wrapper for native socket handles.
+ * @brief Cross-platform, thread-safe RAII socket wrapper.
  */
 #pragma once
 #ifndef IO_SOCKET_HANDLE_HPP
 #define IO_SOCKET_HANDLE_HPP
 #include <boost/predef.h>
-
 #if BOOST_OS_WINDOWS
 #include "platforms/windows/socket.hpp"
 #else
@@ -36,9 +34,7 @@ namespace io::socket {
 /**
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
  *
- * Wraps a native socket handle, ensuring it is automatically closed upon
- * destruction. Enforces unique ownership by deleting copy operations. All
- * access to the handle is thread-safe.
+ * Ensures unique ownership and automatic closing of a native socket handle.
  */
 class socket_handle {
 
@@ -49,26 +45,24 @@ public:
   socket_handle() = default;
 
   /**
-   * @brief Deleted copy constructor. A `socket_handle` cannot be copied.
+   * @brief Deleted copy constructor.
    */
   socket_handle(const socket_handle &other) = delete;
 
   /**
-   * @brief Deleted copy assignment. A `socket_handle` cannot be copied.
+   * @brief Deleted copy assignment.
    */
   auto operator=(const socket_handle &other) -> socket_handle & = delete;
 
   /**
-   * @brief Move constructor. Transfers ownership of a socket from `other`.
-   * `other` becomes invalid.
-   * @param other The `socket_handle` to move from.
+   * @brief Move constructor.
+   * @param other The `socket_handle` to move from. `other` becomes invalid.
    */
   socket_handle(socket_handle &&other) noexcept;
 
   /**
-   * @brief Move assignment. Transfers ownership of a socket from `other`. The
-   * existing socket is closed. `other` becomes invalid.
-   * @param other The `socket_handle` to move from.
+   * @brief Move assignment.
+   * @param other The `socket_handle` to move from. `other` becomes invalid.
    * @return A reference to this `socket_handle`.
    */
   auto operator=(socket_handle &&other) noexcept -> socket_handle &;
@@ -76,7 +70,7 @@ public:
   /**
    * @brief Constructs from a native socket handle.
    * @param handle The native socket handle to wrap.
-   * @throws std::system_error if the handle is not a valid socket.
+   * @throws std::system_error on invalid handle.
    */
   explicit socket_handle(native_socket_type handle);
 
@@ -85,70 +79,54 @@ public:
    * @param domain The communication domain (e.g., `AF_INET`).
    * @param type The socket type (e.g., `SOCK_STREAM`).
    * @param protocol The protocol (e.g., `IPPROTO_TCP`).
-   * @throws std::system_error if socket creation fails.
+   * @throws std::system_error on failure.
    */
   socket_handle(int domain, int type, int protocol);
 
   /**
    * @brief Gets the underlying native socket handle.
-   * @return The raw native socket handle.
    */
   explicit operator native_socket_type() const noexcept;
 
   /**
    * @brief Swaps two `socket_handle` objects.
-   * @param lhs The first `socket_handle`.
-   * @param rhs The second `socket_handle`.
    */
   friend auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
 
   /**
    * @brief Checks if the socket handle is valid.
-   * @return `true` if the socket handle is valid, `false` otherwise.
    */
   [[nodiscard]] explicit operator bool() const noexcept;
 
   /**
    * @brief Compares two `socket_handle` objects.
-   * @param other The `socket_handle` to compare against.
-   * @return A `std::strong_ordering` value.
    */
   auto operator<=>(const socket_handle &other) const noexcept
       -> std::strong_ordering;
 
   /**
    * @brief Checks for equality between two `socket_handle` objects.
-   * @param other The `socket_handle` to compare against.
-   * @return `true` if the underlying native socket handles are equal, `false`
-   * otherwise.
    */
   auto operator==(const socket_handle &other) const noexcept -> bool;
 
   /**
    * @brief Compares with a native socket handle.
-   * @param other The native socket handle to compare against.
-   * @return A `std::strong_ordering` value.
    */
   auto
   operator<=>(native_socket_type other) const noexcept -> std::strong_ordering;
 
   /**
    * @brief Checks for equality with a native socket handle.
-   * @param other The native socket handle to compare against.
-   * @return `true` if the underlying native socket handles are equal, `false`
-   * otherwise.
    */
   auto operator==(native_socket_type other) const noexcept -> bool;
 
   /**
    * @brief Sets a socket error.
-   * @param error The error code to set.
    */
   auto set_error(int error) noexcept -> void;
 
   /**
    * @brief Gets the last socket error.
-   * @return The last error code.
    */
   auto get_error() const noexcept -> std::error_code;
 

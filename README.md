@@ -5,16 +5,16 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-A modern C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, streaming interfaces, and execution framework with sender/receiver patterns. Built with advanced C++ patterns including tag-dispatched customization points, RAII resource management, thread-safe design patterns, and asynchronous execution with poll multiplexing.
+A modern C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, streaming interfaces, and execution framework with sender/receiver patterns. Built with advanced C++ patterns including tag-dispatched customization points, RAII resource management, persistent socket error tracking, and asynchronous execution with poll multiplexing.
 
 ## Features
 
 - **Tag-Dispatched Operations**: Type-safe, extensible socket operations using the `tag_invoke` customization point pattern
 - **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations with platform-specific implementations
-- **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage and mutex-protected operations
+- **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage, mutex-protected operations, and persistent error tracking across asynchronous boundaries
 - **Advanced Message Handling**: Thread-safe `socket_message` class for scatter-gather I/O and ancillary data with `push()` and `emplace()` methods for efficient data appending
 - **Asynchronous Execution Framework**: Sender/receiver pattern implementation with poll multiplexer for scalable I/O operations
-- **Event Polling and Triggers**: High-performance I/O event handling with configurable triggers and execution contexts
+- **Event Polling and Triggers**: High-performance I/O event handling with shared_ptr-based lifetime management and execution triggers
 - **Move-Only Semantics**: Clear resource ownership preventing double-free errors and resource leaks
 - **Comprehensive Socket Operations**: Full set of socket operations (bind, listen, connect, accept, sendmsg, recvmsg, etc.) through customization points
 - **Exception Safety**: Robust error handling with automatic resource cleanup and strong exception guarantees
@@ -71,34 +71,26 @@ cmake --build --preset debug --target docs-deploy  # Deploy to docs/html/ for Gi
 // Create a RAII socket handle
 io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-// Bind to address using tag-dispatched operation
-sockaddr_in addr{};
-addr.sin_family = AF_INET;
-addr.sin_addr.s_addr = INADDR_ANY;
-addr.sin_port = 0;  // Let system choose port
+// Create socket address using the new socket_option-based API
+struct sockaddr_in native_addr{};
+native_addr.sin_family = AF_INET;
+native_addr.sin_addr.s_addr = INADDR_ANY;
+native_addr.sin_port = 0;  // Let system choose port
 
-io::bind(server_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
+// Create a socket_address wrapper
+auto server_addr = io::socket::make_address(&native_addr);
+
+// Bind using the socket_address wrapper
+io::bind(server_socket, server_addr);
 
 // Start listening
 io::listen(server_socket, 5);
 
-// Accept incoming connections (low-level API)
-sockaddr_in client_addr{};
-socklen_t client_len = sizeof(client_addr);
-auto client_fd = io::accept(server_socket,
-                           reinterpret_cast<sockaddr*>(&client_addr),
-                           &client_len);
-
-if (client_fd != -1) {
-  // Handle client connection
-  io::socket::socket_handle client_socket(client_fd);
-  // Socket automatically closed when handle goes out of scope
-}
-
-// Alternative: Higher-level API returning socket_handle and socket_address
+// Accept incoming connections - high-level API returns managed objects
 auto [client_socket, client_address] = io::accept(server_socket);
 // Both client_socket and client_address are automatically managed
-// Access client address: client_address.data() and *client_address.size()
+// Access client address data: *client_address contains the sockaddr_storage
+// Access as specific type: reinterpret_cast<const sockaddr_in*>(&(*client_address))
 ```
 
 ### Client Socket Connection
@@ -106,19 +98,21 @@ auto [client_socket, client_address] = io::accept(server_socket);
 ```cpp
 #include <io.hpp>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 // Create client socket
 io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-// Connect to server
-sockaddr_in server_addr{};
-server_addr.sin_family = AF_INET;
-server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-server_addr.sin_port = htons(8080);
+// Create server address using socket_address wrapper
+struct sockaddr_in native_server_addr{};
+native_server_addr.sin_family = AF_INET;
+native_server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+native_server_addr.sin_port = htons(8080);
 
-int result = io::connect(client_socket,
-                        reinterpret_cast<const sockaddr*>(&server_addr),
-                        sizeof(server_addr));
+auto server_addr = io::socket::make_address(&native_server_addr);
+
+// Connect using socket_address
+int result = io::connect(client_socket, server_addr);
 
 if (result == 0) {
   // Connected successfully - send/receive data
@@ -176,7 +170,7 @@ auto bytes_received = io::recvmsg(client_socket, recv_msg.native(), 0);
 #include <io.hpp>
 #include <netinet/in.h>
 
-// Create a socket address wrapper
+// Create a socket address wrapper using make_address
 struct sockaddr_in native_addr{};
 native_addr.sin_family = AF_INET;
 native_addr.sin_addr.s_addr = INADDR_ANY;
@@ -184,9 +178,14 @@ native_addr.sin_port = htons(8080);
 
 // Wrap in platform-independent socket_address
 auto addr = io::socket::make_address(&native_addr);
-// Use with socket operations
+
+// Use with socket operations - socket_address works directly with tag-invoke operations
 io::socket::socket_handle socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-io::bind(socket, addr.data(), *addr.size());
+io::bind(socket, addr);
+
+// Access underlying data when needed
+// Access as sockaddr_storage: *addr
+// Access as specific type: reinterpret_cast<const sockaddr_in*>(&(*addr))
 
 // Copy and move semantics work as expected
 auto addr_copy = addr;  // Deep copy
@@ -199,19 +198,28 @@ The library provides high-level operations that return managed objects for easie
 
 ```cpp
 #include <io.hpp>
+#include <netinet/in.h>
 
 // Server setup
 io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-// Bind using socket_address helper
-auto server_addr = io::socket::make_address<struct sockaddr_in>();
-auto *bind_addr = reinterpret_cast<struct sockaddr_in*>(server_addr.data());
+// Create socket address - two ways:
+
+// Method 1: Create from existing sockaddr structure
+struct sockaddr_in native_addr{};
+native_addr.sin_family = AF_INET;
+native_addr.sin_addr.s_addr = INADDR_ANY;
+native_addr.sin_port = htons(80);
+auto server_addr = io::socket::make_address(&native_addr);
+
+// Method 2: Create empty socket_address and configure
+auto server_addr2 = io::socket::make_address<struct sockaddr_in>();
+auto *bind_addr = reinterpret_cast<struct sockaddr_in*>(&(*server_addr2));
 bind_addr->sin_family = AF_INET;
 bind_addr->sin_addr.s_addr = INADDR_ANY;
-bind_addr->sin_port = 80;
+bind_addr->sin_port = htons(80);
 
 io::bind(server_socket, server_addr);
-
 io::listen(server_socket, 5);
 
 // Accept using high-level API that returns managed objects
@@ -221,7 +229,7 @@ try {
     // client_socket is a fully managed socket_handle
     // client_addr is a socket_address with the client's address information
 
-    const auto* addr_info = reinterpret_cast<const sockaddr_in*>(client_addr.data());
+    const auto* addr_info = reinterpret_cast<const sockaddr_in*>(&(*client_addr));
     std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std::endl;
 
     // Both objects are automatically cleaned up when they go out of scope
@@ -234,20 +242,20 @@ try {
 
 ### Core Components
 
-- **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage and mutex-protected operations
+- **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage, mutex-protected operations, and persistent error tracking for asynchronous operations
 - **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
 - **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns with efficient `push()` and `emplace()` methods for data management
-- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and I/O triggers supporting sender/receiver patterns
+- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and I/O triggers supporting sender/receiver patterns with shared_ptr-based socket lifetime management, implemented in `src/io/execution/` with modular design
 - **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with multiple overloads using the `tag_invoke` pattern
 - **Cross-Platform Abstraction**: Platform-specific implementations in `src/io/socket/platforms/` with unified interfaces
-- **Error Handling**: Structured exception handling with `std::system_error` for high-level operations and return codes for low-level operations
+- **Error Handling**: Structured exception handling with `std::system_error` for high-level operations, return codes for low-level operations, and persistent error state tracking in socket handles
 
 ### Design Principles
 
 - **Tag-Dispatched Customization**: Type-safe, extensible operations using `tag_invoke` pattern for compile-time dispatch
 - **Cross-Platform Compatibility**: Unified API with platform-specific implementations using conditional compilation
 - **RAII Resource Management**: Automatic socket cleanup with exception-safe constructors and destructors
-- **Thread Safety**: Atomic socket storage with mutex protection for modification operations
+- **Thread Safety**: Atomic socket storage with mutex protection for modification operations and shared_ptr-based lifetime management for asynchronous operations
 - **Move-Only Semantics**: Clear resource ownership preventing accidental copies and resource leaks
 - **Exception Safety**: Robust error handling with proper cleanup guaranteed in all failure scenarios
 - **Asynchronous Execution**: Sender/receiver pattern implementation for scalable, non-blocking I/O operations
@@ -265,6 +273,7 @@ try {
 ### Dependencies
 
 - **GoogleTest**: Auto-fetched via CMake FetchContent for unit testing
+- **NVIDIA stdexec**: Auto-fetched via CPM for sender/receiver execution patterns
 - **Boost.Predef**: Used for cross-platform compiler and OS detection (header-only)
 
 ### Code Quality
