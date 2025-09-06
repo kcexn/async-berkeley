@@ -14,26 +14,32 @@
  */
 
 /**
- * @file socket_message.cpp
+ * @file tags.hpp
+ * @brief Defines the available socket operations using the tag_invoke
+ * customization point.
  */
-#include "socket_message.hpp"
+#pragma once
+#ifndef IO_TAGS_HPP
+#define IO_TAGS_HPP
 namespace io::socket {
-message_header::operator socket_message_type() {
-  // TODO: Windows support.
-  return {.msg_name = name.data(),
-          .msg_namelen = static_cast<socklen_t>(name.size()),
-          .msg_iov = iov.data(),
-          .msg_iovlen = iov.size(),
-          .msg_control = control.data(),
-          .msg_controllen = control.size(),
-          .msg_flags = flags};
-}
 
-socket_message::operator socket_message_type() {
-  Base::operator=({.name = {}, .iov = buffers, .control = control});
-  if (address)
-    Base::name = *address;
-  return Base::operator socket_message_type();
-}
+struct accept_t {};
+struct bind_t {};
+struct connect_t {};
+struct fcntl_t {};
+struct getpeername_t {};
+struct getsockname_t {};
+struct getsockopt_t {};
+struct listen_t {};
+struct recvmsg_t {};
+struct sendmsg_t {};
+struct setsockopt_t {};
+struct shutdown_t {};
 
+// TODO: Implement free-standing functions in the berkeley sockets APIs
+// - send
+// - sendto
+// - recv
+// - recvfrom
 } // namespace io::socket
+#endif // IO_TAGS_HPP

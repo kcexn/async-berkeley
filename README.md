@@ -86,8 +86,11 @@ io::bind(server_socket, server_addr);
 // Start listening
 io::listen(server_socket, 5);
 
+auto client_address = io::socket::make_address<sockaddr_in>();
 // Accept incoming connections - high-level API returns managed objects
-auto [client_socket, client_address] = io::accept(server_socket);
+auto [client_socket, addr] = io::accept(server_socket, client_address);
+if(client_address != addr)
+  client_adddress = addr;
 // Both client_socket and client_address are automatically managed
 // Access client address data: *client_address contains the sockaddr_storage
 // Access as specific type: reinterpret_cast<const sockaddr_in*>(&(*client_address))
@@ -118,15 +121,10 @@ if (result == 0) {
   // Connected successfully - send/receive data
   const char *message = "Hello, server!";
 
-  struct iovec iov {};
-  iov.iov_base = const_cast<char *>(message);
-  iov.iov_len = strlen(message);
+  io::socket::socket_message msg;
+  msg.buffers.emplace_back(message, strlen(message));
 
-  struct msghdr msg {};
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-
-  io::sendmsg(client_socket, &msg, 0);
+  io::sendmsg(client_socket, msg, 0);
 }
 ```
 
@@ -143,25 +141,23 @@ io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 // Create a socket message for scatter-gather I/O
 io::socket::socket_message msg;
 
-// Add multiple data buffers using thread-safe methods
 std::string header = "HTTP/1.1 200 OK\r\n";
 std::string content = "Hello, World!";
-msg.push(header.data(), header.size());  // Thread-safe append
-msg.push(content.data(), content.size());
-
-// Alternative: Use emplace for in-place construction
-msg.emplace("Connection: close\r\n\r\n");
+msg.buffers.emplace_back(header.data(), header.size());
+msg.buffers.emplace_back(content.data(), content.size());
+msg.buffers.emplace("Connection: close\r\n\r\n");
 
 // Send using scatter-gather I/O
-auto bytes_sent = io::sendmsg(client_socket, msg.native(), MSG_NOSIGNAL);
+auto bytes_sent = io::sendmsg(client_socket, msg, MSG_NOSIGNAL);
 if (bytes_sent > 0) {
     std::cout << "Sent " << bytes_sent << " bytes\n";
 }
 
 // Receive into message buffer
 io::socket::socket_message recv_msg;
-recv_msg.reserve_buffer(1024);  // Pre-allocate receive buffer
-auto bytes_received = io::recvmsg(client_socket, recv_msg.native(), 0);
+std::vector<std::byte> buffer(1024);
+recv_msg.buffers.emplace_back(buffer.data(), buffer.size());
+auto bytes_received = io::recvmsg(client_socket, recv_msg, 0);
 ```
 
 ### Socket Address Management
@@ -222,20 +218,16 @@ bind_addr->sin_port = htons(80);
 io::bind(server_socket, server_addr);
 io::listen(server_socket, 5);
 
+auto client_address = io::socket::make_address<sockaddr_in>();
 // Accept using high-level API that returns managed objects
-try {
-    auto [client_socket, client_addr] = io::accept(server_socket);
+auto [client_socket, addr] = io::accept(server_socket, client_address);
+if (!client_socket)
+  throw std::system_error(errno, "Accept failed.");
 
-    // client_socket is a fully managed socket_handle
-    // client_addr is a socket_address with the client's address information
-
-    const auto* addr_info = reinterpret_cast<const sockaddr_in*>(&(*client_addr));
-    std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std::endl;
-
-    // Both objects are automatically cleaned up when they go out of scope
-} catch (const std::system_error& e) {
-    std::cerr << "Accept failed: " << e.what() << std::endl;
-}
+// client_socket is a fully managed socket_handle
+// client_addr is a socket_address with the client's address information
+const auto* addr_info = reinterpret_cast<const sockaddr_in*>(&(*client_addr));
+std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std::endl;
 ```
 
 ## Architecture

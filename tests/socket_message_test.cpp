@@ -39,7 +39,14 @@ TEST_F(SocketMessageTest, SendRecvMsgTest) {
   auto len = ::io::sendmsg(sender, message, 0);
   EXPECT_EQ(len, 14);
   msg = {};
-  EXPECT_NE(std::strncmp(msg.data(), "Hello, world!", 13), 0);
+  EXPECT_NE(std::strncmp(msg.data(), "Hello, world!", 14), 0);
+
+  socket_address addr{};
+  auto result = ::io::getsockname(sender, addr);
+  ASSERT_NE(result.data(), nullptr);
+  addr = result;
+  message.address = addr;
+
   len = ::io::recvmsg(receiver, message, 0);
   EXPECT_EQ(len, 14);
   EXPECT_EQ(std::strncmp(msg.data(), "Hello, world!", 14), 0);

@@ -100,6 +100,7 @@ public:
     return reinterpret_cast<value_type *>(storage_.data());
   }
 
+  // GCOVR_EXCL_START
   /**
    * @brief Gets an iterator to the beginning of the option's byte
    * representation.
@@ -116,6 +117,7 @@ public:
   [[nodiscard]] constexpr auto end() noexcept -> std::byte * {
     return storage_.begin() + size_;
   }
+  // GCOVR_EXCL_STOP
 
   /**
    * @brief Compares two socket_option objects for equality.

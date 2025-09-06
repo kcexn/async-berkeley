@@ -25,7 +25,9 @@
 #else
 #include "io/socket/platforms/posix/socket.hpp"
 #endif
+#include "socket_address.hpp"
 
+#include <optional>
 #include <vector>
 namespace io::socket {
 /**
@@ -66,7 +68,10 @@ struct message_header {
  */
 struct socket_message : public message_header {
   using Base = message_header;
-
+  /**
+   * @brief The socket address.
+   */
+  std::optional<socket_address> address;
   /**
    * @brief The I/O buffers.
    */

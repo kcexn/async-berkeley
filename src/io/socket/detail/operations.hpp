@@ -27,25 +27,12 @@
 #else
 #include "io/socket/platforms/posix/socket.hpp"
 #endif
+#include "tags.hpp"
 
 #include <cerrno>
 #include <type_traits>
 
 namespace io::socket {
-
-struct accept_t {};
-struct bind_t {};
-struct connect_t {};
-struct fcntl_t {};
-struct getpeername_t {};
-struct getsockname_t {};
-struct getsockopt_t {};
-struct listen_t {};
-struct recvmsg_t {};
-struct sendmsg_t {};
-struct setsockopt_t {};
-struct shutdown_t {};
-
 /**
  * @brief Concept for types that behave like a socket.
  * @tparam Socket The type to check.
@@ -239,33 +226,14 @@ auto tag_invoke([[maybe_unused]] recvmsg_t tag, const Socket &socket,
                 Message &msg, int flags) -> std::streamsize {
   std::streamsize len = -1;
   auto msghdr = static_cast<socket_message_type>(msg);
+
   while ((len = ::recvmsg(static_cast<native_socket_type>(socket), &msghdr,
-                          flags)) == -1) {
+                          flags)) < 0) {
     if (errno != EINTR)
       break;
   }
-  return len;
-}
 
-/**
- * @internal
- * @brief Calculates the total size of a set of buffers.
- * @param bufs A pointer to the first buffer.
- * @param count The number of buffers.
- * @return The total size of the buffers in bytes.
- */
-inline auto total_(buffer_type *bufs, std::size_t count) -> std::streamsize {
-  std::streamsize total = 0;
-  for (std::size_t i = 0; i < count; ++i) {
-#if BOOST_OS_WINDOWS
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    total += static_cast<std::streamsize>(bufs[i].len);
-#else
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    total += static_cast<std::streamsize>(bufs[i].iov_len);
-#endif
-  }
-  return total;
+  return len;
 }
 
 /**
@@ -280,27 +248,16 @@ inline auto total_(buffer_type *bufs, std::size_t count) -> std::streamsize {
 template <SocketLike Socket, MessageLike Message>
 auto tag_invoke([[maybe_unused]] sendmsg_t tag, const Socket &socket,
                 Message &msg, int flags) -> std::streamsize {
-  std::streamsize len = -1;
-  std::streamsize sent = 0;
+  std::streamsize len = 0;
   auto msghdr = static_cast<socket_message_type>(msg);
 
-#if BOOST_OS_WINDOWS
-  auto total = total_(msghdr.lpBuffers, msghdr.dwBufferCount);
-#else
-  auto total = total_(msghdr.msg_iov, msghdr.msg_iovlen);
-#endif
-
   while ((len = ::sendmsg(static_cast<native_socket_type>(socket), &msghdr,
-                          flags)) != 0) {
-    if (len < 0 && errno != EINTR)
-      break;
-
-    // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
-    if ((sent += len) == total)
+                          flags)) < 0) {
+    if (errno != EINTR)
       break;
   }
 
-  return sent;
+  return len;
 }
 
 /**

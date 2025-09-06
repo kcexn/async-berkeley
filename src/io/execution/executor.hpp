@@ -21,7 +21,6 @@
 #ifndef IO_EXECUTOR_HPP
 #define IO_EXECUTOR_HPP
 #include "detail/concepts.hpp"
-#include "detail/immovable.hpp"
 
 #include <exec/async_scope.hpp>
 #include <stdexec/execution.hpp>

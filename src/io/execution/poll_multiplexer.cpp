@@ -158,15 +158,19 @@ prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
  * @param list The list of pollfds to copy and clear.
  * @return A copy of the list.
  */
-static auto copy_and_clear(std::vector<pollfd> &list) {
-  auto tmp = list;
+static auto copy_and_clear(std::vector<pollfd> &list) -> std::vector<pollfd> {
+  std::vector<pollfd> tmp{};
+  tmp.reserve(list.size());
 
   for (auto &event : list) {
-    event.events = 0;
+    if (event.events) {
+      tmp.push_back(event);
+      event.events = 0;
+    }
   }
 
   return tmp;
-}
+} // GCOVR_EXCL_LINE
 
 /**
  * @brief Creates a vector of ready queues from a list of pollfds.

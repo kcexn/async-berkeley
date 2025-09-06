@@ -45,11 +45,18 @@ template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
     -> void {
   auto *self = static_cast<state *>(task_ptr);
-  std::streamsize len = self->func();
-  if (len >= 0) {
-    stdexec::set_value(std::move(self->receiver), len);
+
+  auto error = self->socket->get_error();
+  if (error) {
+    stdexec::set_error(std::move(self->receiver), error.value());
+
   } else {
-    stdexec::set_error(std::move(self->receiver), errno);
+    std::streamsize len = self->func();
+    if (len >= 0) {
+      stdexec::set_value(std::move(self->receiver), len);
+    } else {
+      stdexec::set_error(std::move(self->receiver), errno);
+    }
   }
 }
 
@@ -107,6 +114,7 @@ auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
 }
 
 template <Completion Fn>
+//NOLINTNEXTLINE(performance-unnecessary-value-param)
 auto poll_multiplexer::set(std::shared_ptr<::io::socket::socket_handle> socket,
                            event_type event,
                            Fn &&func) -> sender<std::decay_t<Fn>> {
