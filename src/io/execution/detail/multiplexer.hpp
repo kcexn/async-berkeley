@@ -20,8 +20,8 @@
 #pragma once
 #ifndef IO_MULTIPLEXER_HPP
 #define IO_MULTIPLEXER_HPP
-#include "concepts.hpp"
 #include "immovable.hpp"
+#include "io/detail/concepts.hpp"
 
 #include <cassert>
 /**
@@ -35,6 +35,7 @@ namespace io::execution {
  * @tparam Tag The tag type for the multiplexer.
  */
 template <MuxTag Tag> struct basic_multiplexer : public Tag {
+  using multiplexer_type = Tag;
   /**
    * @brief A task that can be executed by the multiplexer.
    */

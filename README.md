@@ -90,7 +90,7 @@ auto client_address = io::socket::make_address<sockaddr_in>();
 // Accept incoming connections - high-level API returns managed objects
 auto [client_socket, addr] = io::accept(server_socket, client_address);
 if(client_address != addr)
-  client_adddress = addr;
+  client_address = addr;
 // Both client_socket and client_address are automatically managed
 // Access client address data: *client_address contains the sockaddr_storage
 // Access as specific type: reinterpret_cast<const sockaddr_in*>(&(*client_address))
@@ -225,8 +225,8 @@ if (!client_socket)
   throw std::system_error(errno, "Accept failed.");
 
 // client_socket is a fully managed socket_handle
-// client_addr is a socket_address with the client's address information
-const auto* addr_info = reinterpret_cast<const sockaddr_in*>(&(*client_addr));
+// addr is a socket_address with the client's address information
+const auto* addr_info = reinterpret_cast<const sockaddr_in*>(&(*addr));
 std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std::endl;
 ```
 
@@ -237,8 +237,9 @@ std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std
 - **`io::socket::socket_handle`**: Thread-safe RAII socket wrapper with atomic storage, mutex-protected operations, and persistent error tracking for asynchronous operations
 - **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
 - **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns with efficient `push()` and `emplace()` methods for data management
-- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and I/O triggers supporting sender/receiver patterns with shared_ptr-based socket lifetime management, implemented in `src/io/execution/` with modular design
-- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with multiple overloads using the `tag_invoke` pattern
+- **`io::socket::socket_dialog`**: Unified interface for asynchronous socket operations combining socket handles with multiplexers, providing executor management and socket lifetime coordination for async operations
+- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and execution triggers supporting sender/receiver patterns with shared_ptr-based socket lifetime management, implemented in `src/io/execution/` with modular design including separate template implementations (`impl/`) and utilities (`detail/`)
+- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with dual synchronous and asynchronous implementations using the `tag_invoke` pattern, organized in `src/io/socket/detail/` for clear separation of concerns
 - **Cross-Platform Abstraction**: Platform-specific implementations in `src/io/socket/platforms/` with unified interfaces
 - **Error Handling**: Structured exception handling with `std::system_error` for high-level operations, return codes for low-level operations, and persistent error state tracking in socket handles
 

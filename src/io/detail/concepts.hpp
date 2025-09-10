@@ -20,13 +20,22 @@
 #pragma once
 #ifndef IO_CONCEPTS_HPP
 #define IO_CONCEPTS_HPP
+#include <boost/predef.h>
+#if BOOST_OS_WINDOWS
+#include "io/socket/platforms/windows/socket.hpp"
+#else
+#include "io/socket/platforms/posix/socket.hpp"
+#include "platforms/posix/concepts_posix.hpp" // IWYU pragma: export
+#endif
+
+#include <optional>
 #include <type_traits>
 
 /**
- * @namespace io::execution
+ * @namespace io
  * @brief Provides high-level interfaces for executors and completion triggers.
  */
-namespace io::execution {
+namespace io {
 
 /**
  * @brief Concept for a multiplexer tag.
@@ -41,12 +50,6 @@ concept MuxTag = requires(T tag) {
   typename T::event_type;    ///< The multiplexed event type.
   typename T::interval_type; ///< The type used to specify timeouts.
   typename T::size_type;     ///< A size type.
-  /**
-   * @brief Returns the key for a multiplexed event.
-   * @param event The multiplexed event of event_type.
-   * @return The key for the event.
-   */
-  T::key(typename T::event_type{});
 };
 
 /**
@@ -54,7 +57,13 @@ concept MuxTag = requires(T tag) {
  * @tparam Fn The function type.
  */
 template <typename Fn>
-concept Completion = std::is_invocable_v<Fn>;
+concept Completion = requires(Fn &&func) {
+  requires std::is_invocable_v<Fn>;
+  typename std::invoke_result_t<Fn>::value_type;
+  requires std::is_same_v<
+      std::invoke_result_t<Fn>,
+      std::optional<typename std::invoke_result_t<Fn>::value_type>>;
+};
 
 /**
  * @brief Concept for a multiplexer.
@@ -65,8 +74,28 @@ concept Completion = std::is_invocable_v<Fn>;
  * @tparam T The type to check.
  */
 template <typename T>
-concept Multiplexer =
-    requires(T mux) { mux.wait_for(typename T::interval_type{}); };
+concept Multiplexer = requires(T mux) {
+  requires MuxTag<typename T::multiplexer_type>;
+  mux.wait_for(typename T::interval_type{});
+};
 
-} // namespace io::execution
+/**
+ * @brief Concept for types that behave like a socket.
+ * @tparam Socket The type to check.
+ */
+template <typename Socket>
+concept SocketLike = requires {
+  Socket{socket::native_socket_type{}};
+  std::is_convertible_v<Socket, socket::native_socket_type>;
+};
+
+/**
+ * @brief Concept for types that behave like a socket message.
+ * @tparam Message The type to check.
+ */
+template <typename Message>
+concept MessageLike =
+    requires { std::is_convertible_v<Message, socket::socket_message_type>; };
+
+} // namespace io
 #endif // IO_CONCEPTS_HPP

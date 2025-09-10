@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_SOCKET_DIALOG_HPP
 #define IO_SOCKET_DIALOG_HPP
-#include "io/execution/detail/concepts.hpp"
+#include "io/detail/concepts.hpp"
 
 #include <memory>
 
@@ -40,18 +40,14 @@ class socket_handle;
  */
 namespace io::socket {
 /**
- * @brief A dialog between a socket and an executor.
+ * @brief A dialog that facilitates asynchronous operations on the
+ * socket by the executor.
  * @tparam Mux The multiplexer type.
  */
-template <::io::execution::Multiplexer Mux> struct socket_dialog {
+template <Multiplexer Mux> struct socket_dialog {
   using executor_type = ::io::execution::executor<Mux>;
-  /**
-   * @brief The executor for the dialog.
-   */
+
   std::weak_ptr<executor_type> executor;
-  /**
-   * @brief The socket for the dialog.
-   */
   std::shared_ptr<socket_handle> socket;
 };
 

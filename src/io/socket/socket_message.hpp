@@ -15,6 +15,7 @@
 
 /**
  * @file socket_message.hpp
+ * @brief Defines structures for handling socket messages.
  */
 #pragma once
 #ifndef IO_SOCKET_MESSAGE_HPP
@@ -37,27 +38,15 @@ namespace io::socket {
  * address, I/O vectors, and control data.
  */
 struct message_header {
-  /**
-   * @brief The socket address.
-   */
   std::span<std::byte> name;
-  /**
-   * @brief The I/O vectors.
-   */
   std::span<buffer_type> iov;
-  /**
-   * @brief The control data.
-   */
   std::span<std::byte> control;
-  /**
-   * @brief The message flags.
-   */
   int flags{};
 
   /**
    * @brief Converts the message header to the native socket message type.
    */
-  explicit operator socket_message_type();
+  explicit operator socket_message_type() noexcept;
 };
 
 /**
@@ -66,25 +55,16 @@ struct message_header {
  * This structure extends `message_header` with storage for buffers and
  * control data.
  */
-struct socket_message : public message_header {
-  using Base = message_header;
-  /**
-   * @brief The socket address.
-   */
-  std::optional<socket_address> address;
-  /**
-   * @brief The I/O buffers.
-   */
+struct socket_message {
+  std::optional<socket_address_storage> address;
   std::vector<buffer_type> buffers;
-  /**
-   * @brief The control data.
-   */
   std::vector<std::byte> control;
+  int flags{};
 
   /**
    * @brief Converts the socket message to the native socket message type.
    */
-  explicit operator socket_message_type();
+  explicit operator socket_message_type() noexcept;
 };
 
 } // namespace io::socket

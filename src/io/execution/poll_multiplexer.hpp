@@ -21,6 +21,7 @@
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
 #include "detail/multiplexer.hpp"
+#include "io/execution/detail/execution_trigger.hpp"
 
 #include <stdexec/execution.hpp>
 
@@ -29,6 +30,9 @@
 
 #include <poll.h>
 // Forward declarations.
+namespace io {
+struct accept_t;
+} // namespace io
 namespace io::socket {
 class socket_handle;
 } // namespace io::socket
@@ -45,16 +49,6 @@ struct poll_t {
   using event_type = struct pollfd;
   using interval_type = std::chrono::milliseconds;
   using size_type = std::size_t;
-
-  /**
-   * @brief Returns the key for a multiplexed event.
-   * @param event The multiplexed event of event_type.
-   * @return The key for the event.
-   */
-  [[nodiscard]] static constexpr auto
-  key(const event_type &event) noexcept -> int {
-    return event.fd;
-  }
 };
 
 /**
@@ -63,7 +57,6 @@ struct poll_t {
 struct poll_multiplexer : public basic_multiplexer<poll_t> {
   using Base = basic_multiplexer<poll_t>;
   using socket_handle = ::io::socket::socket_handle;
-
   /**
    * @brief Demultiplexes I/O operations for a socket.
    */
@@ -89,9 +82,9 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
    */
   template <Completion Fn> struct sender {
     using sender_concept = stdexec::sender_t;
-    using completion_signatures =
-        stdexec::completion_signatures<stdexec::set_value_t(std::streamsize),
-                                       stdexec::set_error_t(int)>;
+    using completion_signatures = stdexec::completion_signatures<
+        stdexec::set_value_t(typename std::invoke_result_t<Fn>::value_type),
+        stdexec::set_error_t(int)>;
 
     /**
      * @brief An operation state for the poll multiplexer.
@@ -108,29 +101,11 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
        */
       auto start() noexcept -> void;
 
-      /**
-       * @brief The socket to operate on.
-       */
       std::shared_ptr<socket_handle> socket;
-      /**
-       * @brief The completion handler.
-       */
       Fn func{};
-      /**
-       * @brief The demultiplexer for the socket.
-       */
       demultiplexer *demux = nullptr;
-      /**
-       * @brief The mutex for thread safety.
-       */
       std::mutex *mtx = nullptr;
-      /**
-       * @brief The receiver to complete.
-       */
       Receiver receiver{};
-      /**
-       * @brief The event mask to wait for.
-       */
       short mask = 0;
     };
 
@@ -142,29 +117,11 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
     template <typename Receiver>
     auto connect(Receiver &&receiver) -> state<std::decay_t<Receiver>>;
 
-    /**
-     * @brief The socket to operate on.
-     */
     std::shared_ptr<socket_handle> socket;
-    /**
-     * @brief The completion handler.
-     */
     Fn func{};
-    /**
-     * @brief The event to wait for.
-     */
     event_type event{};
-    /**
-     * @brief The demultiplexer for the socket.
-     */
     demultiplexer *demux = nullptr;
-    /**
-     * @brief The list of events to poll.
-     */
     std::vector<event_type> *list = nullptr;
-    /**
-     * @brief The mutex for thread safety.
-     */
     std::mutex *mtx = nullptr;
   };
 
@@ -183,21 +140,12 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
    * @return A sender that will complete when the event occurs.
    */
   template <Completion Fn>
-  auto set(std::shared_ptr<socket_handle> socket, event_type event,
+  auto set(std::shared_ptr<socket_handle> socket, execution_trigger trigger,
            Fn &&func) -> sender<std::decay_t<Fn>>;
 
 private:
-  /**
-   * @brief Map of file descriptors to demultiplexers.
-   */
   std::map<int, demultiplexer> demux_;
-  /**
-   * @brief List of events to poll.
-   */
   std::vector<event_type> list_;
-  /**
-   * @brief Mutex for thread safety.
-   */
   mutable std::mutex mtx_;
 };
 

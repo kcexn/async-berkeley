@@ -20,18 +20,16 @@
 #pragma once
 #ifndef IO_EXECUTOR_HPP
 #define IO_EXECUTOR_HPP
-#include "detail/concepts.hpp"
+#include "detail/execution_trigger.hpp"
+#include "io/detail/concepts.hpp"
+#include "io/detail/customization.hpp"
+#include "io/error.hpp"
+#include "io/socket/socket.hpp"
 
 #include <exec/async_scope.hpp>
 #include <stdexec/execution.hpp>
 
 #include <utility>
-
-// forward declarations
-namespace io::socket {
-class socket_handle;
-} // namespace io::socket
-
 /**
  * @namespace io::execution
  * @brief Provides high-level interfaces for executors and completion triggers.
@@ -46,6 +44,32 @@ template <Multiplexer Mux> class executor : public Mux {
   using interval_type = Mux::interval_type;
 
 public:
+  using socket_handle = ::io::socket::socket_handle;
+
+  /**
+   * @brief Pushes a socket handle to the collection.
+   * @param handle The socket handle to push.
+   * @return A weak pointer to the pushed socket handle.
+   */
+  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle> {
+    if (::io::fcntl(handle, F_SETFL, ::io::fcntl(handle, F_GETFL) | O_NONBLOCK))
+      throw_system_error("fcntl failed.");
+    return std::make_shared<socket_handle>(std::move(handle));
+  }
+
+  /**
+   * @brief Emplaces a socket handle in the collection.
+   * @param ...args The arguments to forward to the socket handle constructor.
+   * @return A shared pointer to the emplaced socket handle.
+   */
+  template <typename... Args>
+  static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle> {
+    auto ptr = std::make_shared<socket_handle>(std::forward<Args>(args)...);
+    if (::io::fcntl(*ptr, F_SETFL, ::io::fcntl(*ptr, F_GETFL) | O_NONBLOCK))
+      throw_system_error("fcntl failed.");
+    return std::move(ptr);
+  }
+
   /**
    * @brief Sets a completion handler for an event.
    * @param event The event to wait for.
@@ -54,9 +78,9 @@ public:
    */
   template <Completion Fn>
   auto set(std::shared_ptr<::io::socket::socket_handle> socket,
-           typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
+           execution_trigger event, Fn &&exec) -> decltype(auto) {
     return scope_.spawn_future(
-        Mux::set(std::move(socket), std::move(event), std::forward<Fn>(exec)));
+        Mux::set(std::move(socket), event, std::forward<Fn>(exec)));
   }
 
   /**

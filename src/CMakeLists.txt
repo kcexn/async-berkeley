@@ -2,7 +2,6 @@ add_library(io
   io/socket/socket_handle.cpp
   io/socket/socket_message.cpp
   io/execution/poll_multiplexer.cpp
-  io/execution/triggers.cpp
 )
 
 target_include_directories(io

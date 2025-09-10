@@ -27,6 +27,7 @@
 #else
 #include "platforms/posix/socket.hpp"
 #endif
+#include "io/detail/concepts.hpp"
 #include "socket_option.hpp"
 
 namespace io::socket {
@@ -36,8 +37,9 @@ namespace io::socket {
  * This class inherits from `socket_option` to provide a generic way to handle
  * different socket address types.
  */
-struct socket_address : public socket_option<sockaddr_storage_type> {
-  using Base = socket_option<sockaddr_storage_type>;
+template <SocketAddress Addr = sockaddr_storage_type>
+struct socket_address : public socket_option<Addr> {
+  using Base = socket_option<Addr>;
   using Base::Base;
 
   /**
@@ -47,12 +49,22 @@ struct socket_address : public socket_option<sockaddr_storage_type> {
    * @param addr A pointer to the raw socket address structure.
    * @param size The size of the socket address structure.
    */
-  template <socklen_type Size = sizeof(sockaddr_storage_type)>
-    requires(Size <= sizeof(sockaddr_storage_type))
+  template <socklen_type Size = sizeof(Addr)>
+    requires(Size <= sizeof(Addr))
   socket_address(const sockaddr_type *addr, socklen_type size = Size) noexcept
       : Base(std::span<const std::byte, Size>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const std::byte *>(addr), size)) {}
+
+  /**
+   * @brief Constructs a socket_address from another socket_address.
+   *
+   * @tparam OtherAddr The type of the other socket address.
+   * @param other The other socket_address to construct from.
+   */
+  template <SocketAddress OtherAddr>
+  socket_address(const socket_address<OtherAddr> &other) noexcept
+      : Base(std::span<const std::byte, sizeof(OtherAddr)>(other)) {}
 };
 
 /**
@@ -61,15 +73,16 @@ struct socket_address : public socket_option<sockaddr_storage_type> {
  * @param addr A pointer to the socket address structure.
  * @return A `socket_address` object.
  */
-template <typename SockAddr>
-  requires(sizeof(SockAddr) <= sizeof(sockaddr_storage_type))
-auto make_address(const SockAddr *addr = nullptr) -> socket_address {
+template <SocketAddress Addr = sockaddr_storage_type>
+auto make_address(const Addr *addr = nullptr) -> socket_address<Addr> {
   if (!addr)
-    return {sizeof(SockAddr)};
+    return {};
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  return {reinterpret_cast<const sockaddr_type *>(addr), sizeof(SockAddr)};
+  return {reinterpret_cast<const sockaddr_type *>(addr), sizeof(Addr)};
 }
+
+using socket_address_storage = socket_address<sockaddr_storage_type>;
 
 } // namespace io::socket
 #endif // IO_SOCKET_ADDRESS_HPP

@@ -18,7 +18,7 @@
  */
 #include "socket_message.hpp"
 namespace io::socket {
-message_header::operator socket_message_type() {
+message_header::operator socket_message_type() noexcept {
   // TODO: Windows support.
   return {.msg_name = name.data(),
           .msg_namelen = static_cast<socklen_t>(name.size()),
@@ -29,11 +29,11 @@ message_header::operator socket_message_type() {
           .msg_flags = flags};
 }
 
-socket_message::operator socket_message_type() {
-  Base::operator=({.name = {}, .iov = buffers, .control = control});
+socket_message::operator socket_message_type() noexcept {
+  message_header header = {.iov = buffers, .control = control};
   if (address)
-    Base::name = *address;
-  return Base::operator socket_message_type();
+    header.name = *address;
+  return static_cast<socket_message_type>(header);
 }
 
 } // namespace io::socket

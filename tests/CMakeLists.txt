@@ -6,6 +6,7 @@ set(TEST_NAMES
   poll_triggers_test
   socket_option_test
   socket_message_test
+  socket_dialog_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

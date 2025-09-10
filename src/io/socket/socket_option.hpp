@@ -39,8 +39,8 @@ public:
    * @tparam Size The size of the option.
    * @param size The size of the option in bytes.
    */
-  template <size_type Size = sizeof(T)>
-    requires(Size <= sizeof(T))
+  template <size_type Size = sizeof(value_type)>
+    requires(Size <= sizeof(value_type))
   constexpr socket_option(size_type size = Size) noexcept : size_{size} {}
 
   socket_option(const socket_option &) = default;
@@ -63,10 +63,11 @@ public:
    * @param option The span of bytes representing the option.
    */
   template <size_type Size>
-    requires(Size <= sizeof(T) || Size == std::dynamic_extent)
+    requires(Size <= sizeof(value_type) || Size == std::dynamic_extent)
   socket_option(std::span<const std::byte, Size> option) noexcept
       : size_{option.size()} {
-    assert(option.size() <= sizeof(T) && "option.size() must be <= sizeof(T)");
+    assert(option.size() <= sizeof(value_type) &&
+           "option.size() must be <= sizeof(value_type)");
     assert(option.size() > 0 && option.data() != nullptr &&
            "If option.size() > 0 then option.data() must not be NULL.");
     std::memcpy(storage_.data(), option.data(), size_);
@@ -78,7 +79,7 @@ public:
    * @param option The span of bytes representing the option.
    */
   template <size_type Size>
-    requires(Size <= sizeof(T) || Size == std::dynamic_extent)
+    requires(Size <= sizeof(value_type) || Size == std::dynamic_extent)
   socket_option(std::span<std::byte, Size> option) noexcept
       : socket_option(std::span<const std::byte, Size>(option)) {}
 
@@ -111,11 +112,29 @@ public:
   }
 
   /**
+   * @brief Gets a const iterator to the beginning of the option's byte
+   * representation.
+   * @return A const pointer to the beginning of the byte storage.
+   */
+  [[nodiscard]] constexpr auto begin() const noexcept -> const std::byte * {
+    return storage_.cbegin();
+  }
+
+  /**
    * @brief Gets an iterator to the end of the option's byte representation.
    * @return A pointer to the end of the byte storage.
    */
   [[nodiscard]] constexpr auto end() noexcept -> std::byte * {
     return storage_.begin() + size_;
+  }
+
+  /**
+   * @brief Gets a const iterator to the end of the option's byte
+   * representation.
+   * @return A const pointer to the end of the byte storage.
+   */
+  [[nodiscard]] constexpr auto end() const noexcept -> const std::byte * {
+    return storage_.cbegin() + size_;
   }
   // GCOVR_EXCL_STOP
 

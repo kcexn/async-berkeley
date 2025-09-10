@@ -27,6 +27,7 @@
 #define IO_SOCKET_HPP
 #include "detail/operations.hpp" // IWYU pragma: export
 #include "socket_address.hpp"    // IWYU pragma: export
+#include "socket_dialog.hpp"     // IWYU pragma: export
 #include "socket_handle.hpp"     // IWYU pragma: export
 #include "socket_message.hpp"    // IWYU pragma: export
 #include "socket_option.hpp"     // IWYU pragma: export

@@ -22,7 +22,6 @@
 #define IO_TRIGGERS_HPP
 #include "executor.hpp"
 #include "io/socket/socket_dialog.hpp"
-#include "io/socket/socket_handle.hpp"
 
 #include <memory>
 
@@ -31,45 +30,36 @@
  * @brief Provides high-level interfaces for executors and completion triggers.
  */
 namespace io::execution {
-
 /**
- * @brief Base class for triggers that manages a collection of socket handles.
+ * @brief A class that provides a high-level interface for an executor.
+ * @tparam Mux The multiplexer type.
  */
-struct triggers_base {
-  using native_socket_type = ::io::socket::native_socket_type;
-  using socket_handle = ::io::socket::socket_handle;
+template <Multiplexer Mux> class basic_triggers {
+  using size_type = Mux::size_type;
+  using interval_type = Mux::interval_type;
+  using executor_type = executor<Mux>;
+  using socket_handle = executor_type::socket_handle;
+  using socket_dialog = ::io::socket::socket_dialog<Mux>;
 
+public:
   /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle>;
+  auto push(socket_handle &&handle) -> socket_dialog {
+    return {executor_, executor_type::push(std::move(handle))};
+  }
 
   /**
    * @brief Emplaces a socket handle in the collection.
    * @param ...args The arguments to forward to the socket handle constructor.
    * @return A shared pointer to the emplaced socket handle.
    */
-  template <typename... Args>
-  static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle> {
-    return std::make_shared<socket_handle>(std::forward<Args>(args)...);
+  template <typename... Args> auto emplace(Args &&...args) -> socket_dialog {
+    return {executor_, executor_type::emplace(std::forward<Args>(args)...)};
   }
-};
 
-/**
- * @brief A class that provides a high-level interface for an executor.
- * @tparam Mux The multiplexer type.
- */
-template <Multiplexer Mux> class basic_triggers : public triggers_base {
-  using Base = triggers_base;
-  using size_type = Mux::size_type;
-  using interval_type = Mux::interval_type;
-  using executor_type = executor<Mux>;
-  using socket_handle = Base::socket_handle;
-  using socket_dialog = ::io::socket::socket_dialog<Mux>;
-
-public:
   /**
    * @brief Sets a completion handler for an event.
    * @param event The event to wait for.
@@ -77,10 +67,9 @@ public:
    * @return A sender that will complete when the event occurs.
    */
   template <Completion Fn>
-  auto set(std::shared_ptr<socket_handle> socket,
-           typename Mux::event_type event, Fn &&exec) -> decltype(auto) {
-    return executor_->set(std::move(socket), std::move(event),
-                          std::forward<Fn>(exec));
+  auto set(std::shared_ptr<socket_handle> socket, execution_trigger event,
+           Fn &&exec) -> decltype(auto) {
+    return executor_->set(std::move(socket), event, std::forward<Fn>(exec));
   }
 
   /**
@@ -106,28 +95,7 @@ public:
     return executor_;
   }
 
-  /**
-   * @brief Pushes a socket handle to the collection.
-   * @param handle The socket handle to push.
-   * @return The created socket dialog.
-   */
-  auto push(socket_handle &&handle) -> socket_dialog {
-    return {executor_, Base::push(std::move(handle))};
-  }
-
-  /**
-   * @brief Emplaces a socket handle in the collection.
-   * @param ...args The arguments to forward to the socket handle constructor.
-   * @return The created socket dialog.
-   */
-  template <typename... Args> auto emplace(Args &&...args) -> socket_dialog {
-    return {executor_, Base::emplace(std::forward<Args>(args)...)};
-  }
-
 private:
-  /**
-   * @brief The executor for the triggers.
-   */
   std::shared_ptr<executor_type> executor_{std::make_shared<executor_type>()};
 };
 

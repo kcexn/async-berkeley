@@ -468,7 +468,7 @@ protected:
   }
   void TearDown() override {}
 
-  socket_address in_address{sizeof(sockaddr_in)};
+  socket_address<sockaddr_in> in_address{};
 };
 
 TEST_F(SocketHandleOperationsTest, AcceptTagInvoke) {
@@ -488,13 +488,11 @@ TEST_F(SocketHandleOperationsTest, AcceptTagInvoke) {
     ASSERT_EQ(::io::connect(client, bound_address), 0);
   });
 
-  socket_address client_addr{};
+  auto client_addr = make_address<sockaddr_in>();
   auto [server_handle, addr] = ::io::accept(server, client_addr);
   ASSERT_NE(server_handle, INVALID_SOCKET);
   connect_thread.join();
 
-  EXPECT_NE(client_addr, addr);
-  client_addr = addr;
   EXPECT_EQ(client_addr, addr);
 }
 
@@ -513,11 +511,9 @@ TEST_F(SocketHandleOperationsTest, ConnectTagInvoke) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   auto address = make_address<sockaddr_in>();
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  auto *addr = reinterpret_cast<sockaddr_in *>(std::ranges::data(address));
-  addr->sin_family = AF_INET;
-  addr->sin_addr.s_addr = inet_addr("127.0.0.1");
-  addr->sin_port = htons(12345);
+  address->sin_family = AF_INET;
+  address->sin_addr.s_addr = inet_addr("127.0.0.1");
+  address->sin_port = htons(12345);
 
   EXPECT_EQ(::io::connect(handle, address), -1);
   EXPECT_TRUE(errno == ECONNREFUSED || errno == EADDRNOTAVAIL);
@@ -540,7 +536,7 @@ TEST_F(SocketHandleOperationsTest, FcntlTagInvoke) {
 TEST_F(SocketHandleOperationsTest, GetpeernameTagInvoke) {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  socket_address address{};
+  auto address = make_address<sockaddr_in>();
   auto result = ::io::getpeername(handle, address);
   EXPECT_EQ(result.data(), nullptr);
 }
@@ -550,7 +546,7 @@ TEST_F(SocketHandleOperationsTest, GetsocknameTagInvoke) {
 
   ASSERT_EQ(::io::bind(handle, in_address), 0);
 
-  socket_address address{};
+  auto address = make_address<sockaddr_in>();
   auto result = ::io::getsockname(handle, address);
   EXPECT_EQ(std::ranges::data(address), result.data());
   EXPECT_LT(result.size(), sizeof(sockaddr_storage_type));
@@ -577,57 +573,3 @@ TEST_F(SocketHandleOperationsTest, SetsockoptTagInvoke) {
   EXPECT_EQ(reuse, optval);
   EXPECT_EQ(*reuse, 1);
 }
-
-// TEST_F(SocketHandleTest, SendmsgTagInvoke) {
-//   socket_handle handle(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-//   sockaddr_in addr{};
-//   addr.sin_family = AF_INET;
-//   addr.sin_addr.s_addr = INADDR_ANY;
-//   addr.sin_port = 0;
-
-//   ASSERT_EQ(::io::bind(handle, reinterpret_cast<sockaddr_type*>(&addr),
-//   sizeof(addr)), 0);
-
-//   sockaddr_in dest_addr{};
-//   dest_addr.sin_family = AF_INET;
-//   dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-//   dest_addr.sin_port = htons(12345);
-
-//   socket_message_type msg{};
-//   std::string data = "test";
-//   iovec iov{};
-//   iov.iov_base = data.data();
-//   iov.iov_len = data.size();
-//   msg.msg_iov = &iov;
-//   msg.msg_iovlen = 1;
-//   msg.msg_name = &dest_addr;
-//   msg.msg_namelen = sizeof(dest_addr);
-
-//   std::streamsize result = ::io::sendmsg(handle, &msg, MSG_DONTWAIT);
-//   EXPECT_GT(result, 0);
-// }
-
-// TEST_F(SocketHandleTest, RecvmsgTagInvoke) {
-//   socket_handle handle(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-//   sockaddr_in addr{};
-//   addr.sin_family = AF_INET;
-//   addr.sin_addr.s_addr = INADDR_ANY;
-//   addr.sin_port = 0;
-
-//   ASSERT_EQ(::io::bind(handle, reinterpret_cast<sockaddr_type*>(&addr),
-//   sizeof(addr)), 0);
-
-//   socket_message_type msg{};
-//   char buffer[1024];
-//   iovec iov{};
-//   iov.iov_base = buffer;
-//   iov.iov_len = sizeof(buffer);
-//   msg.msg_iov = &iov;
-//   msg.msg_iovlen = 1;
-
-//   std::streamsize result = ::io::recvmsg(handle, &msg, MSG_DONTWAIT);
-//   EXPECT_EQ(result, -1);
-//   EXPECT_TRUE(errno == EAGAIN || errno == EWOULDBLOCK);
-// }

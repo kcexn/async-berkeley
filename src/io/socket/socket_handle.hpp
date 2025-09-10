@@ -44,14 +44,7 @@ public:
    */
   socket_handle() = default;
 
-  /**
-   * @brief Deleted copy constructor.
-   */
   socket_handle(const socket_handle &other) = delete;
-
-  /**
-   * @brief Deleted copy assignment.
-   */
   auto operator=(const socket_handle &other) -> socket_handle & = delete;
 
   /**
@@ -81,7 +74,7 @@ public:
    * @param protocol The protocol (e.g., `IPPROTO_TCP`).
    * @throws std::system_error on failure.
    */
-  socket_handle(int domain, int type, int protocol);
+  explicit socket_handle(int domain, int type, int protocol);
 
   /**
    * @brief Gets the underlying native socket handle.
@@ -141,17 +134,8 @@ private:
    */
   auto close() noexcept -> void;
 
-  /**
-   * @brief The underlying native socket handle.
-   */
   std::atomic<native_socket_type> socket_{INVALID_SOCKET};
-  /**
-   * @brief The last error code on the socket.
-   */
   std::atomic<int> error_;
-  /**
-   * @brief The mutex for thread safety.
-   */
   mutable std::mutex mtx_;
 };
 

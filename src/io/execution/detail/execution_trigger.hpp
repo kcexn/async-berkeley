@@ -14,32 +14,32 @@
  */
 
 /**
- * @file tags.hpp
- * @brief Defines the available socket operations using the tag_invoke
- * customization point.
+ * @file execution_trigger.hpp
+ * @brief Defines the execution_trigger enum for specifying I/O events.
  */
 #pragma once
-#ifndef IO_TAGS_HPP
-#define IO_TAGS_HPP
-namespace io::socket {
+#ifndef IO_EXECUTION_TRIGGER_HPP
+#define IO_EXECUTION_TRIGGER_HPP
+#include <cstdint>
+/**
+ * @namespace io::execution
+ * @brief Provides high-level interfaces for executors and completion triggers.
+ */
+namespace io::execution {
 
-struct accept_t {};
-struct bind_t {};
-struct connect_t {};
-struct fcntl_t {};
-struct getpeername_t {};
-struct getsockname_t {};
-struct getsockopt_t {};
-struct listen_t {};
-struct recvmsg_t {};
-struct sendmsg_t {};
-struct setsockopt_t {};
-struct shutdown_t {};
+/**
+ * @brief An enum for specifying I/O events.
+ */
+enum struct execution_trigger : std::uint8_t {
+  /**
+   * @brief A read event.
+   */
+  READ = 1 << 0,
+  /**
+   * @brief A write event.
+   */
+  WRITE = 1 << 1
+};
 
-// TODO: Implement free-standing functions in the berkeley sockets APIs
-// - send
-// - sendto
-// - recv
-// - recvfrom
-} // namespace io::socket
-#endif // IO_TAGS_HPP
+} // namespace io::execution
+#endif // IO_EXECUTION_TRIGGER_HPP

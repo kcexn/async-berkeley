@@ -33,6 +33,7 @@ TEST_F(SocketMessageTest, SendRecvMsgTest) {
   socket_handle sender{pair[0]};
   socket_handle receiver{pair[1]};
 
+  // NOLINTNEXTLINE
   std::array<char, 14> msg{"Hello, world!"};
   message.buffers.emplace_back(msg.data(), msg.size());
 
@@ -41,10 +42,12 @@ TEST_F(SocketMessageTest, SendRecvMsgTest) {
   msg = {};
   EXPECT_NE(std::strncmp(msg.data(), "Hello, world!", 14), 0);
 
-  socket_address addr{};
+  auto addr = make_address<sockaddr_un>();
   auto result = ::io::getsockname(sender, addr);
   ASSERT_NE(result.data(), nullptr);
+  ASSERT_NE(addr, result);
   addr = result;
+  ASSERT_EQ(addr, result);
   message.address = addr;
 
   len = ::io::recvmsg(receiver, message, 0);

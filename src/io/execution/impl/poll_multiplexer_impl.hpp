@@ -20,8 +20,15 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include <io/execution/detail/utilities.hpp>
-#include <io/execution/poll_multiplexer.hpp>
+#include <boost/predef.h>
+#if BOOST_OS_WINDOWS
+#include "io/socket/platforms/windows/socket.hpp"
+#else
+#include "io/socket/platforms/posix/socket.hpp"
+#endif
+#include "io/execution/detail/utilities.hpp"
+#include "io/execution/poll_multiplexer.hpp"
+#include "io/socket/socket_handle.hpp"
 
 // Forward declarations used for testing.
 #ifndef NDEBUG
@@ -46,33 +53,28 @@ auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
     -> void {
   auto *self = static_cast<state *>(task_ptr);
 
-  auto error = self->socket->get_error();
-  if (error) {
-    stdexec::set_error(std::move(self->receiver), error.value());
+  if (auto error = self->socket->get_error())
+    return stdexec::set_error(std::move(self->receiver), error.value());
 
-  } else {
-    std::streamsize len = self->func();
-    if (len >= 0) {
-      stdexec::set_value(std::move(self->receiver), len);
-    } else {
-      stdexec::set_error(std::move(self->receiver), errno);
-    }
-  }
+  if (auto result = self->func())
+    return stdexec::set_value(std::move(self->receiver), std::move(*result));
+
+  return stdexec::set_error(std::move(self->receiver), errno);
 }
 
 template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
+  if (auto error = socket->get_error())
+    return stdexec::set_error(std::move(receiver), error.value());
+
   std::lock_guard lock{*mtx};
-
   task::complete = state::complete;
-
-  if (mask & POLLIN)
-    demux->read_queue.push(this);
-
-  if (mask & POLLOUT)
+  if (mask & POLLOUT) {
     demux->write_queue.push(this);
-
+  } else if (mask & POLLIN) {
+    demux->read_queue.push(this);
+  }
   demux->socket = socket.get();
 }
 
@@ -102,8 +104,10 @@ template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
     -> state<std::decay_t<Receiver>> {
-  with_lock(std::unique_lock{*mtx},
-            [&] { update_or_insert_event(list, event); });
+  if (!socket->get_error()) {
+    with_lock(std::unique_lock{*mtx},
+              [&] { update_or_insert_event(list, event); });
+  }
 
   return {.socket = std::move(socket),
           .func = std::move(func),
@@ -114,19 +118,32 @@ auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
 }
 
 template <Completion Fn>
-//NOLINTNEXTLINE(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 auto poll_multiplexer::set(std::shared_ptr<::io::socket::socket_handle> socket,
-                           event_type event,
+                           execution_trigger trigger,
                            Fn &&func) -> sender<std::decay_t<Fn>> {
-  auto [demux_it, emplaced] = demux_.try_emplace(event.fd);
+  using native_socket_type = ::io::socket::native_socket_type;
+
+  auto key = static_cast<native_socket_type>(*socket);
+  auto [demux_it, emplaced] = demux_.try_emplace(key);
+
+  auto flags = static_cast<std::uint8_t>(trigger);
+  struct pollfd event {
+    .fd = key
+  };
+
+  if (flags & static_cast<std::uint8_t>(execution_trigger::READ))
+    event.events |= POLLIN;
+
+  if (flags & static_cast<std::uint8_t>(execution_trigger::WRITE))
+    event.events |= POLLOUT;
 
   return {.socket = std::move(socket),
           .func = std::forward<Fn>(func),
-          .event = std::move(event),
+          .event = event,
           .demux = &(demux_it->second),
           .list = &list_,
           .mtx = &mtx_};
 }
 } // namespace io::execution
-
 #endif // IO_POLL_MULTIPLEXER_IMPL_HPP

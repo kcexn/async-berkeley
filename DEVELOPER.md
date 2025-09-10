@@ -435,11 +435,11 @@ ctest --preset debug -R socket_handle_test
 ### Test Categories
 
 Current test suites:
-- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`) including persistent error tracking and tag-invoke operations
-- **socket_message_test**: Tests for thread-safe socket messages (`io::socket::socket_message`) with push/emplace functionality
-- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`) and `socket_option` wrapper
+- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`) including persistent error tracking and comprehensive tag-invoke operations (both sync and async variants)
+- **socket_message_test**: Tests for thread-safe socket messages (`io::socket::socket_message`) with push/emplace functionality and scatter-gather I/O support
+- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`) and `socket_option` wrapper with template-based construction
 - **socket_option_test**: Tests for the generic `socket_option` wrapper template used by socket_address and other socket option types
-- **poll_triggers_test**: Tests for asynchronous execution framework including executor, poll multiplexer, and I/O triggers with sender/receiver patterns and shared_ptr-based lifetime management
+- **poll_triggers_test**: Tests for asynchronous execution framework including executor, poll multiplexer, execution triggers, and socket dialog interface with sender/receiver patterns and shared_ptr-based lifetime management
 
 ### High Test Coverage
 
@@ -451,6 +451,8 @@ The project maintains **100% code coverage** through comprehensive testing inclu
 - Edge cases and error condition handling
 - Persistent socket error tracking validation
 - Asynchronous execution patterns with lifetime management
+- Socket dialog interface testing for async operations
+- Dual sync/async operation implementations
 
 ## Troubleshooting
 
@@ -514,7 +516,7 @@ cmake --build --preset debug
 
 ### 2. Make Changes
 
-Edit source files in `src/` directory, add tests in `tests/` directory.
+Edit source files in `src/` directory (organized by component: `src/io/socket/`, `src/io/execution/`, `src/io/detail/`), add tests in `tests/` directory.
 
 ### 3. Build and Test
 
@@ -541,6 +543,17 @@ clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
 # Format code (if clang-format is configured)
 find src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
 ```
+
+### 5. Source Code Organization
+
+When adding new features, follow the established structure:
+
+- **Socket Operations**: Add synchronous implementations to `src/io/socket/detail/sync_operations.hpp` and asynchronous versions to `src/io/socket/detail/async_operations.hpp`
+- **Socket Components**: Place socket-related classes in `src/io/socket/` (handles, addresses, messages, dialogs)
+- **Execution Framework**: Add execution-related components to `src/io/execution/` with utilities in `detail/` and implementations in `impl/`
+- **Tag-Invoke CPOs**: Define customization point objects in `src/io/detail/customization.hpp`
+- **Platform Support**: Add platform-specific code to `src/io/socket/platforms/` or `src/io/detail/platforms/`
+- **Tests**: Create corresponding test files in `tests/` following the existing naming pattern
 
 ## IDE Integration
 
@@ -573,18 +586,22 @@ The library now includes persistent socket error tracking in the `socket_handle`
 
 ### Enhanced Execution Framework
 
-- I/O triggers now require `shared_ptr<socket_handle>` for lifetime management
-- Poll multiplexer passes raw pointers valid for operation lifetime
-- Demultiplexer can set socket errors reported by poll
-- Improved thread safety and resource management
+- **Execution Triggers** (`src/io/execution/detail/execution_trigger.hpp`): Enum-based I/O event system (READ, WRITE) replacing previous trigger abstractions
+- **Socket Dialog Interface** (`src/io/socket/socket_dialog.hpp`): Unified interface combining socket handles with multiplexers for async operations
+- **Lifetime Management**: I/O triggers now require `shared_ptr<socket_handle>` for proper socket lifetime management
+- **Error Propagation**: Poll multiplexer passes raw pointers valid for operation lifetime, demultiplexer can set socket errors reported by poll
+- **Modular Architecture**: Separate template implementations (`impl/`) and utility functions (`detail/`) for better organization
+- **Improved Thread Safety**: Enhanced resource management and error handling across asynchronous boundaries
 
 ### Comprehensive Tag-Invoke Implementation
 
-All socket operations now fully support tag-invoke pattern:
-- `bind`, `listen`, `connect`, `accept` operations
-- `sendmsg`, `recvmsg` for message-based I/O
-- `getsockopt`, `setsockopt`, `getsockname`, `getpeername`
-- `shutdown`, `fcntl` for socket control operations
+All socket operations now fully support tag-invoke pattern with dual implementation approach:
+- **Synchronous Operations** (`src/io/socket/detail/sync_operations.hpp`): Direct system call implementations with EINTR retry logic
+- **Asynchronous Operations** (`src/io/socket/detail/async_operations.hpp`): Sender/receiver pattern implementations using execution triggers and socket dialog interface
+- **Core Operations**: `bind`, `listen`, `connect`, `accept` operations
+- **Message I/O**: `sendmsg`, `recvmsg` for scatter-gather I/O
+- **Socket Control**: `getsockopt`, `setsockopt`, `getsockname`, `getpeername`, `shutdown`, `fcntl`
+- **Unified Interface**: All operations accessible through the same tag-invoke API regardless of sync/async implementation
 
 ## Performance Testing
 
