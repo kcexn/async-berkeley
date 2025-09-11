@@ -2,11 +2,6 @@
 #
 # This module configures GoogleTest when IOSCHED_ENABLE_TESTS is enabled.
 # It handles fetching GoogleTest, setting up testing, and adding the tests subdirectory.
-
-if(NOT IOSCHED_ENABLE_TESTS)
-    return()
-endif()
-
 message(STATUS "Configuring tests with GoogleTest")
 
 # Fetch GoogleTest using FetchContent
@@ -21,9 +16,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Make GoogleTest available
 FetchContent_MakeAvailable(googletest)
-
-# Enable CTest testing framework
-enable_testing()
 
 # Add the tests subdirectory
 add_subdirectory(tests)

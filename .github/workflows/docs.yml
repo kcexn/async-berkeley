@@ -66,7 +66,7 @@ jobs:
       run: pip install gcovr==7.0
 
     - name: Configure CMake
-      run: cmake --preset debug -DIOSCHED_ENABLE_DOCS=ON
+      run: cmake --preset debug -DIO_ENABLE_DOCS=ON
 
     - name: Build documentation
       run: cmake --build --preset debug --target docs

@@ -2,11 +2,6 @@
 #
 # This module configures gcovr-based code coverage when IOSCHED_ENABLE_COVERAGE is enabled.
 # It handles coverage compiler flags, linker settings, and creates coverage targets.
-
-if(NOT IOSCHED_ENABLE_COVERAGE)
-    return()
-endif()
-
 message(STATUS "Configuring code coverage with gcovr")
 
 # Warn if not using Debug build type

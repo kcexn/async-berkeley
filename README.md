@@ -1,15 +1,16 @@
-# iosched
+# io
 
 [![Build](https://github.com/kcexn/iosched/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/build.yml)
 [![Tests](https://github.com/kcexn/iosched/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/iosched/actions/workflows/tests.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/iosched/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-A modern C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, streaming interfaces, and execution framework with sender/receiver patterns. Built with advanced C++ patterns including tag-dispatched customization points, RAII resource management, persistent socket error tracking, and asynchronous execution with poll multiplexing.
+A modern C++20 I/O scheduling library providing cross-platform asynchronous socket operations, event polling, streaming interfaces, and execution framework with sender/receiver patterns. Built with advanced C++ patterns including tag-dispatched customization points, RAII resource management, persistent socket error tracking, and asynchronous execution with poll multiplexing. Features a clean public interface with 25 header files in `include/` and minimal implementation in `src/`.
 
 ## Features
 
-- **Tag-Dispatched Operations**: Type-safe, extensible socket operations using the `tag_invoke` customization point pattern
+- **Clean Public Interface**: Well-organized header structure with complete public API in `include/io.hpp` and modular components
+- **Tag-Dispatched Operations**: Type-safe, extensible socket operations using refined `tag_invoke` customization point pattern with generic CPO template
 - **Cross-Platform Socket Abstraction**: Unified API for Windows (WinSock2) and POSIX socket operations with platform-specific implementations
 - **Thread-Safe Socket Handles**: RAII socket wrappers with atomic storage, mutex-protected operations, and persistent error tracking across asynchronous boundaries
 - **Advanced Message Handling**: Thread-safe `socket_message` class for scatter-gather I/O and ancillary data with `push()` and `emplace()` methods for efficient data appending
@@ -65,7 +66,7 @@ cmake --build --preset debug --target docs-deploy  # Deploy to docs/html/ for Gi
 ### Basic Socket Operations
 
 ```cpp
-#include <io.hpp>
+#include <io.hpp>  // Single header includes complete public API
 #include <netinet/in.h>
 
 // Create a RAII socket handle
@@ -238,14 +239,21 @@ std::cout << "Client connected from port: " << ntohs(addr_info->sin_port) << std
 - **`io::socket::socket_address`**: Platform-independent socket address abstraction with safe data access via `data()` and `size()` methods
 - **`io::socket::socket_message`**: Thread-safe message container supporting scatter-gather I/O, ancillary data, and advanced messaging patterns with efficient `push()` and `emplace()` methods for data management
 - **`io::socket::socket_dialog`**: Unified interface for asynchronous socket operations combining socket handles with multiplexers, providing executor management and socket lifetime coordination for async operations
-- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and execution triggers supporting sender/receiver patterns with shared_ptr-based socket lifetime management, implemented in `src/io/execution/` with modular design including separate template implementations (`impl/`) and utilities (`detail/`)
-- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with dual synchronous and asynchronous implementations using the `tag_invoke` pattern, organized in `src/io/socket/detail/` for clear separation of concerns
-- **Cross-Platform Abstraction**: Platform-specific implementations in `src/io/socket/platforms/` with unified interfaces
+- **Execution Framework**: Asynchronous execution system with executor, poll multiplexer, and execution triggers supporting sender/receiver patterns with shared_ptr-based socket lifetime management, implemented with clean public interface in `include/io/execution/` and core implementation in `src/poll_multiplexer.cpp`
+- **Tag-Dispatched Operations**: Extensible socket operations (`io::bind`, `io::connect`, `io::accept`, `io::sendmsg`, `io::recvmsg`, etc.) with dual synchronous and asynchronous implementations using refined `tag_invoke` pattern with generic CPO template, organized in `include/io/socket/detail/` for clear separation of concerns
+- **Cross-Platform Abstraction**: Platform-specific implementations in `include/io/socket/platforms/` with unified interfaces and proper public API separation
 - **Error Handling**: Structured exception handling with `std::system_error` for high-level operations, return codes for low-level operations, and persistent error state tracking in socket handles
+
+### Recent Architecture Improvements
+
+- **Header Reorganization**: Clean separation between public interface (`include/` with 25 headers) and implementation (`src/` with 3 `.cpp` files)
+- **Refined CPO Pattern**: Enhanced customization point objects with generic `cpo<T>` template and simplified function object design
+- **Improved Documentation**: Comprehensive API documentation generated from the clean public interface structure
+- **Enhanced Build System**: Updated CMake configuration with proper file set management and include directory handling
 
 ### Design Principles
 
-- **Tag-Dispatched Customization**: Type-safe, extensible operations using `tag_invoke` pattern for compile-time dispatch
+- **Tag-Dispatched Customization**: Type-safe, extensible operations using refined `tag_invoke` pattern with generic CPO template for compile-time dispatch
 - **Cross-Platform Compatibility**: Unified API with platform-specific implementations using conditional compilation
 - **RAII Resource Management**: Automatic socket cleanup with exception-safe constructors and destructors
 - **Thread Safety**: Atomic socket storage with mutex protection for modification operations and shared_ptr-based lifetime management for asynchronous operations
@@ -275,7 +283,7 @@ The project uses comprehensive static analysis with clang-tidy:
 
 ```bash
 # Run clang-tidy on the entire codebase
-clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
+clang-tidy src/**/*.cpp include/**/*.hpp -- -std=c++20 -I include/
 ```
 
 Configured rules include `bugprone-*`, `cert-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, and `readability-*` checks (excludes `readability-braces-around-statements`, `readability-magic-numbers`, and `readability-implicit-bool-conversion` for flexibility).

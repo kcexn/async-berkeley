@@ -12,9 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "../src/io/execution/poll_multiplexer.hpp"
-#include "../src/io/execution/triggers.hpp"
-#include "../src/io/socket/socket.hpp"
+#include "io/execution/poll_multiplexer.hpp"
+#include "io/execution/triggers.hpp"
+#include "io/socket/socket.hpp"
 
 #include <exec/async_scope.hpp>
 #include <exec/static_thread_pool.hpp>

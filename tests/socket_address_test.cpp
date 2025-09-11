@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "../src/io/socket/socket_address.hpp"
+#include "io/socket/socket_address.hpp"
 
 #include <cstring>
 #include <gtest/gtest.h>

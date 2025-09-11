@@ -19,11 +19,16 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
     ${TEST_NAME}
     PRIVATE
     GTest::gtest_main
-    io
-    STDEXEC::stdexec
+    io_static
   )
 
-  if(IOSCHED_ENABLE_COVERAGE)
+  target_include_directories(${TEST_NAME}
+    PRIVATE
+    "${INCLUDE_DIRS}"
+    ${CMAKE_BINARY_DIR}/_deps/stdexec-src/include
+  )
+
+  if(IO_ENABLE_COVERAGE)
     target_link_libraries(${TEST_NAME} PRIVATE gcov)
   endif()
 

@@ -1,5 +1,5 @@
 {
-    "version": 3,
+    "version": 6,
     "configurePresets": [
         {
             "name": "debug",
@@ -11,10 +11,10 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -std=c++20",
-                "IOSCHED_ENABLE_TESTS": true,
-                "IOSCHED_ENABLE_COVERAGE": true,
-                "IOSCHED_ENABLE_DOCS": true,
-                "STDEXEC_BUILD_EXAMPLES": false
+                "IO_ENABLE_COVERAGE": true,
+                "IO_ENABLE_DOCS": true,
+                "STDEXEC_BUILD_EXAMPLES": false,
+                "STDEXEC_BUILD_TESTS": false
             }
         },
         {
@@ -26,8 +26,10 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -DNDEBUG -std=c++20",
+                "BUILD_TESTING": false,
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "STDEXEC_BUILD_EXAMPLES": false
+                "STDEXEC_BUILD_EXAMPLES": false,
+                "STDEXEC_BUILD_TESTS": false
             }
         },
         {
@@ -41,8 +43,8 @@
                 "CMAKE_CXX_FLAGS": "-Wall -Wpedantic -O3 -DNDEBUG -std=c++20 -march=native -mtune=native -flto -fno-strict-aliasing",
                 "CMAKE_EXE_LINKER_FLAGS": "-flto",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-                "IOSCHED_ENABLE_TESTS": "ON",
-                "STDEXEC_BUILD_EXAMPLES": false
+                "STDEXEC_BUILD_EXAMPLES": false,
+                "STDEXEC_BUILD_TESTS": false
             }
         }
     ],
@@ -78,6 +80,14 @@
             "description": "benchmark tests",
             "displayName": "Benchmark",
             "configurePreset": "benchmark"
+        }
+    ],
+    "packagePresets": [
+        {
+            "name": "release",
+            "description": "Release package",
+            "displayName": "Release",
+            "configurePreset": "release"
         }
     ]
 }

@@ -113,7 +113,7 @@ cd iosched
 
 # Verify the repository structure
 ls -la
-# Should show: src/, tests/, CMakeLists.txt, CMakePresets.json, etc.
+# Should show: include/, src/, tests/, CMakeLists.txt, CMakePresets.json, etc.
 ```
 
 ### 2. Verify Prerequisites
@@ -394,9 +394,10 @@ cmake --build . --target coverage-xml  # XML report for CI
 ### Coverage Targets
 
 The coverage analysis focuses on:
-- `src/` directory files only
-- All production code (excludes test files)
+- `src/` directory implementation files only (`.cpp` files)
+- All production code (excludes test files and header-only templates)
 - Line coverage and branch coverage metrics
+- Template instantiations through comprehensive test coverage
 
 ## Running Tests
 
@@ -516,7 +517,7 @@ cmake --build --preset debug
 
 ### 2. Make Changes
 
-Edit source files in `src/` directory (organized by component: `src/io/socket/`, `src/io/execution/`, `src/io/detail/`), add tests in `tests/` directory.
+Edit source files in `include/` directory for public headers (organized by component: `include/io/socket/`, `include/io/execution/`, `include/io/detail/`) and implementation files in `src/` directory, add tests in `tests/` directory.
 
 ### 3. Build and Test
 
@@ -538,22 +539,33 @@ cmake --build --preset debug --target docs
 
 ```bash
 # Run static analysis
-clang-tidy src/**/*.cpp src/**/*.hpp -- -std=c++20 -I src/
+clang-tidy src/**/*.cpp include/**/*.hpp -- -std=c++20 -I include/
 
 # Format code (if clang-format is configured)
-find src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
+find include src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
 ```
 
 ### 5. Source Code Organization
 
-When adding new features, follow the established structure:
+The library follows a clean separation between public interface and implementation:
 
-- **Socket Operations**: Add synchronous implementations to `src/io/socket/detail/sync_operations.hpp` and asynchronous versions to `src/io/socket/detail/async_operations.hpp`
-- **Socket Components**: Place socket-related classes in `src/io/socket/` (handles, addresses, messages, dialogs)
-- **Execution Framework**: Add execution-related components to `src/io/execution/` with utilities in `detail/` and implementations in `impl/`
-- **Tag-Invoke CPOs**: Define customization point objects in `src/io/detail/customization.hpp`
-- **Platform Support**: Add platform-specific code to `src/io/socket/platforms/` or `src/io/detail/platforms/`
-- **Tests**: Create corresponding test files in `tests/` following the existing naming pattern
+#### Public Interface (`include/` directory)
+- **Socket Components**: Place socket-related headers in `include/io/socket/` (handles, addresses, messages, dialogs)
+- **Execution Framework**: Add execution-related headers to `include/io/execution/` with utilities in `detail/` and implementations in `impl/`
+- **Tag-Invoke CPOs**: Define customization point objects in `include/io/detail/customization.hpp`
+- **Socket Operations**: Synchronous implementations in `include/io/socket/detail/sync_operations.hpp` and asynchronous versions in `include/io/socket/detail/async_operations.hpp`
+- **Platform Support**: Add platform-specific headers to `include/io/socket/platforms/` or `include/io/detail/platforms/`
+- **Main Header**: Export public API through `include/io.hpp`
+
+#### Implementation (`src/` directory)
+- **Core Implementations**: Only `.cpp` files containing actual implementations (currently: `poll_multiplexer.cpp`, `socket_handle.cpp`, `socket_message.cpp`)
+- **New Implementations**: Add new `.cpp` files for components requiring implementation code
+
+#### Tests (`tests/` directory)
+- **Test Files**: Create corresponding test files following the existing naming pattern
+- **Coverage**: Maintain 100% code coverage by testing all public API functionality
+
+When adding new features, follow the established structure and ensure proper separation between interface and implementation.
 
 ## IDE Integration
 
@@ -575,9 +587,28 @@ CLion automatically detects `CMakePresets.json` and provides preset selection in
 
 ## Recent Architecture Improvements
 
+### Header Reorganization and Public Interface
+
+The library has undergone a major reorganization to establish a clean public interface:
+
+- **Public Headers**: All 25 public headers moved to `include/` directory for proper API separation
+- **Implementation Separation**: Only 3 implementation files (`.cpp`) remain in `src/` directory
+- **Clean Interface**: Comprehensive socket and execution framework APIs properly exposed through public headers
+- **CMake Integration**: Updated build system with proper include directory configuration and file set management
+- **Documentation Integration**: Doxygen configured to document the public API from `include/io.hpp`
+
+### Refined Tag-Invoke Implementation
+
+Enhanced customization point object pattern with improved design:
+
+- **Generic CPO Template**: Unified `cpo<T>` template for consistent customization point implementation
+- **Simplified Function Objects**: Inline auto functions with static CPO instances for better performance
+- **Tag Type Simplification**: Clean tag types (`accept_t`, `bind_t`, `connect_t`, etc.) for all operations
+- **Type-Safe Dispatch**: Template-based dispatch mechanism with proper forwarding semantics
+
 ### Persistent Socket Error Tracking
 
-The library now includes persistent socket error tracking in the `socket_handle` class:
+The library includes comprehensive persistent socket error tracking in the `socket_handle` class:
 
 - Error states are maintained across asynchronous execution boundaries
 - Socket errors from poll operations (POLLERR flag) are captured and stored
@@ -586,22 +617,23 @@ The library now includes persistent socket error tracking in the `socket_handle`
 
 ### Enhanced Execution Framework
 
-- **Execution Triggers** (`src/io/execution/detail/execution_trigger.hpp`): Enum-based I/O event system (READ, WRITE) replacing previous trigger abstractions
-- **Socket Dialog Interface** (`src/io/socket/socket_dialog.hpp`): Unified interface combining socket handles with multiplexers for async operations
+- **Execution Triggers** (`include/io/execution/detail/execution_trigger.hpp`): Enum-based I/O event system (READ, WRITE) replacing previous trigger abstractions
+- **Socket Dialog Interface** (`include/io/socket/socket_dialog.hpp`): Unified interface combining socket handles with multiplexers for async operations
 - **Lifetime Management**: I/O triggers now require `shared_ptr<socket_handle>` for proper socket lifetime management
 - **Error Propagation**: Poll multiplexer passes raw pointers valid for operation lifetime, demultiplexer can set socket errors reported by poll
 - **Modular Architecture**: Separate template implementations (`impl/`) and utility functions (`detail/`) for better organization
 - **Improved Thread Safety**: Enhanced resource management and error handling across asynchronous boundaries
+- **Implementation File**: Core poll multiplexer implementation in `src/poll_multiplexer.cpp`
 
-### Comprehensive Tag-Invoke Implementation
+### Complete Socket Operations Coverage
 
-All socket operations now fully support tag-invoke pattern with dual implementation approach:
-- **Synchronous Operations** (`src/io/socket/detail/sync_operations.hpp`): Direct system call implementations with EINTR retry logic
-- **Asynchronous Operations** (`src/io/socket/detail/async_operations.hpp`): Sender/receiver pattern implementations using execution triggers and socket dialog interface
-- **Core Operations**: `bind`, `listen`, `connect`, `accept` operations
-- **Message I/O**: `sendmsg`, `recvmsg` for scatter-gather I/O
-- **Socket Control**: `getsockopt`, `setsockopt`, `getsockname`, `getpeername`, `shutdown`, `fcntl`
-- **Unified Interface**: All operations accessible through the same tag-invoke API regardless of sync/async implementation
+All socket operations now fully support both synchronous and asynchronous patterns:
+- **Synchronous Operations** (`include/io/socket/detail/sync_operations.hpp`): Direct system call implementations with EINTR retry logic
+- **Asynchronous Operations** (`include/io/socket/detail/async_operations.hpp`): Sender/receiver pattern implementations using execution triggers and socket dialog interface
+- **Core Operations**: `accept`, `bind`, `connect`, `listen` operations
+- **Message I/O**: `recvmsg`, `sendmsg` for scatter-gather I/O
+- **Socket Control**: `fcntl`, `getpeername`, `getsockname`, `getsockopt`, `setsockopt`, `shutdown`
+- **Unified Interface**: All operations accessible through refined customization point objects (CPOs) regardless of sync/async implementation
 
 ## Performance Testing
 
