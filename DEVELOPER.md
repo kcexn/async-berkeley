@@ -153,6 +153,37 @@ ctest --preset debug
 ./build/debug/tests/socket_address_test
 ./build/debug/tests/socket_option_test
 ./build/debug/tests/poll_triggers_test  # Execution framework tests
+
+# Run example programs (if IO_BUILD_EXAMPLES=ON)
+./build/debug/examples/async_ping_pong_server 8080
+./build/debug/examples/async_ping_pong_client 127.0.0.1 8080 5
+```
+
+#### Examples Build
+
+The project includes comprehensive async networking examples demonstrating the sender/receiver pattern:
+
+```bash
+# Configure debug build with examples enabled (default: ON)
+cmake --preset debug -DIO_BUILD_EXAMPLES=ON
+
+# Build examples
+cmake --build --preset debug
+
+# Run async ping/pong server (listens on port 8080 by default)
+./build/debug/examples/async_ping_pong_server [port]
+
+# In another terminal, run client (connects to 127.0.0.1:8080, sends 5 pings by default)
+./build/debug/examples/async_ping_pong_client [host] [port] [ping_count]
+
+# Example usage:
+./build/debug/examples/async_ping_pong_server 9090
+./build/debug/examples/async_ping_pong_client localhost 9090 10
+```
+
+**Example Programs:**
+- **`async_ping_pong_server.cpp`**: Asynchronous server using `basic_triggers<poll_multiplexer>` for event-driven execution, demonstrates accepting connections, receiving messages, and responding asynchronously
+- **`async_ping_pong_client.cpp`**: Asynchronous client showcasing connection establishment, message sending/receiving, and proper async operation chaining with error handling
 ```
 
 #### Release Build (Production)
@@ -192,15 +223,15 @@ cmake ..
 cmake --build .
 ```
 
-#### Build with Tests Enabled
+#### Build with Tests and Examples Enabled
 
 ```bash
 mkdir build && cd build
 
-# Configure with tests
-cmake .. -DIOSCHED_ENABLE_TESTS=ON
+# Configure with tests and examples
+cmake .. -DIOSCHED_ENABLE_TESTS=ON -DIO_BUILD_EXAMPLES=ON
 
-# Build everything including tests
+# Build everything including tests and examples
 cmake --build .
 
 # Run tests
@@ -211,6 +242,11 @@ ctest
 ./tests/socket_address_test
 ./tests/socket_option_test
 ./tests/poll_triggers_test
+
+# Run example programs
+./examples/async_ping_pong_server 8080
+# In another terminal:
+./examples/async_ping_pong_client 127.0.0.1 8080 5
 ```
 
 #### Build with Tests and Coverage
@@ -504,6 +540,26 @@ cmake --preset debug
 cmake --build --preset debug
 ```
 
+### Testing Async Examples
+
+```bash
+# If examples fail to build:
+cmake --preset debug -DIO_BUILD_EXAMPLES=ON
+cmake --build --preset debug
+
+# If examples fail to run:
+# 1. Check if port is available
+sudo netstat -tlnp | grep :8080
+
+# 2. Try different port
+./build/debug/examples/async_ping_pong_server 9090
+./build/debug/examples/async_ping_pong_client 127.0.0.1 9090 3
+
+# 3. Check for missing dependencies
+ldd ./build/debug/examples/async_ping_pong_server  # Linux
+otool -L ./build/debug/examples/async_ping_pong_server  # macOS
+```
+
 ## Development Workflow
 
 ### 1. Setup Development Environment
@@ -518,6 +574,13 @@ cmake --build --preset debug
 ### 2. Make Changes
 
 Edit source files in `include/` directory for public headers (organized by component: `include/io/socket/`, `include/io/execution/`, `include/io/detail/`) and implementation files in `src/` directory, add tests in `tests/` directory.
+
+**For Asynchronous Development:**
+- Study the examples in `examples/async_ping_pong_*.cpp` for async patterns
+- Use `basic_triggers<poll_multiplexer>` instead of manual executor management
+- All async operations (`connect`, `accept`, `sendmsg`, `recvmsg`) return senders
+- Chain operations with `stdexec::then()` and handle errors with `stdexec::upon_error()`
+- Manage async lifetimes with `exec::async_scope` and `scope_.spawn()`
 
 ### 3. Build and Test
 
@@ -564,6 +627,12 @@ The library follows a clean separation between public interface and implementati
 #### Tests (`tests/` directory)
 - **Test Files**: Create corresponding test files following the existing naming pattern
 - **Coverage**: Maintain 100% code coverage by testing all public API functionality
+
+#### Examples (`examples/` directory)
+- **Example Programs**: Demonstrate real-world usage patterns and best practices
+- **Async Patterns**: `async_ping_pong_server.cpp` and `async_ping_pong_client.cpp` showcase asynchronous programming with `basic_triggers` and sender/receiver patterns
+- **CMake Integration**: Examples are built automatically when `IO_BUILD_EXAMPLES=ON` (default)
+- **Documentation**: Examples serve as living documentation and are referenced in README.md
 
 When adding new features, follow the established structure and ensure proper separation between interface and implementation.
 

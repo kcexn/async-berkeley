@@ -182,28 +182,25 @@ TEST_F(PollTriggersTest, SubmitTest) {
   int status = ::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets.data());
   ASSERT_EQ(status, 0);
 
-  std::array<char, 3> buf{};
+  std::array<char, 2> buf1{};
+  std::array<char, 2> buf2{};
 
-  // These sockets currently aren't being used for anything.
   auto read_socket = std::make_shared<socket_handle>(sockets[0]);
   auto write_socket = std::make_shared<socket_handle>(sockets[1]);
 
   stdexec::sender auto read = triggers.set(read_socket, trigger::READ, [&] {
-    return std::optional(::read(sockets[0], buf.data(), 1));
+    return std::optional(::read(sockets[0], buf1.data(), 1));
   });
   write(sockets[1], "a", 1);
   triggers.wait_for(0);
-  EXPECT_EQ(buf[0], 'a');
+  EXPECT_EQ(buf1[0], 'a');
 
   stdexec::sender auto write = triggers.set(write_socket, trigger::WRITE, [&] {
     return std::optional(::write(sockets[1], "b", 1));
   });
   triggers.wait_for(0);
-  ::read(sockets[0], buf.data(), 1);
-  EXPECT_EQ(buf[0], 'b');
-
-  for (int file : sockets)
-    close(file);
+  ::read(sockets[0], buf2.data(), 1);
+  EXPECT_EQ(buf2[0], 'b');
 }
 
 TEST_F(PollTriggersTest, AsyncAcceptTest) {

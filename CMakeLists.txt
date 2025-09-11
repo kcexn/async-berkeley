@@ -44,5 +44,11 @@ endif()
 # Add the static and shared libraries to the build and installation list.
 add_subdirectory(src)
 
+# Add examples
+option(IO_BUILD_EXAMPLES "Build example programs" ON)
+if(IO_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
 # Add the uninstall target.
 include(cmake/Uninstall.cmake)

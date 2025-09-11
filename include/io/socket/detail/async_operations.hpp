@@ -213,9 +213,9 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
 
   auto executor = get_executor(dialog);
 
+  auto msghdr = static_cast<socket_message_type>(msg);
   return executor->set(dialog.socket, trigger::READ,
-                       [socket = dialog.socket.get(),
-                        msghdr = static_cast<socket_message_type>(msg), flags] {
+                       [=, socket = dialog.socket.get()] {
                          std::streamsize len =
                              ::io::recvmsg(*socket, msghdr, flags);
                          return (len < 0) ? std::optional<std::streamsize>{}
