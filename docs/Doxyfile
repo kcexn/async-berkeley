@@ -1,8 +1,8 @@
-# Doxyfile for iosched library
+# Doxyfile for AsyncBerkeley
 
-PROJECT_NAME           = "io"
+PROJECT_NAME           = "AsyncBerkeley"
 PROJECT_NUMBER         =
-PROJECT_BRIEF          = "C++ I/O scheduling library with asynchronous socket operations"
+PROJECT_BRIEF          = "Asynchronous Berkeley sockets. Simple."
 PROJECT_LOGO           =
 
 OUTPUT_DIRECTORY       = docs

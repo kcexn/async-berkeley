@@ -21,40 +21,9 @@ This project uses several modern C++ libraries and tools:
 
 - **GoogleTest**: Auto-fetched via CMake FetchContent for comprehensive unit testing
 - **NVIDIA stdexec**: Auto-fetched via CPM for sender/receiver execution patterns and asynchronous operations
-- **Boost.Predef**: Header-only library used for cross-platform compiler and OS detection
 - **CPM.cmake**: CMake package manager for automatic dependency fetching and management
 
 ### Installing Dependencies
-
-#### Boost Libraries (Required)
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get update
-sudo apt-get install libboost-dev
-# For complete Boost installation:
-sudo apt-get install libboost-all-dev
-```
-
-**Red Hat/CentOS/Fedora:**
-```bash
-# Fedora
-sudo dnf install boost-devel
-
-# CentOS/RHEL
-sudo yum install boost-devel
-```
-
-**macOS (using Homebrew):**
-```bash
-brew install boost
-```
-
-**Windows (using vcpkg):**
-```cmd
-# Install vcpkg first, then:
-vcpkg install boost:x64-windows
-```
 
 #### Development Tools (Optional but Recommended)
 
@@ -124,11 +93,6 @@ cmake --version
 
 # Check C++20 compiler support
 g++ --version  # or clang++ --version
-
-# Check if Boost is installed
-pkg-config --modversion boost
-# or
-find /usr -name "boost" -type d 2>/dev/null | head -5
 ```
 
 ## Build Instructions
@@ -155,8 +119,7 @@ ctest --preset debug
 ./build/debug/tests/poll_triggers_test  # Execution framework tests
 
 # Run example programs (if IO_BUILD_EXAMPLES=ON)
-./build/debug/examples/async_ping_pong_server 8080
-./build/debug/examples/async_ping_pong_client 127.0.0.1 8080 5
+./build/debug/examples/async_ping_pong_client
 ```
 
 #### Examples Build
@@ -169,20 +132,11 @@ cmake --preset debug -DIO_BUILD_EXAMPLES=ON
 
 # Build examples
 cmake --build --preset debug
-
-# Run async ping/pong server (listens on port 8080 by default)
-./build/debug/examples/async_ping_pong_server [port]
-
 # In another terminal, run client (connects to 127.0.0.1:8080, sends 5 pings by default)
-./build/debug/examples/async_ping_pong_client [host] [port] [ping_count]
-
-# Example usage:
-./build/debug/examples/async_ping_pong_server 9090
-./build/debug/examples/async_ping_pong_client localhost 9090 10
+./build/debug/examples/async_ping_pong_client
 ```
 
 **Example Programs:**
-- **`async_ping_pong_server.cpp`**: Asynchronous server using `basic_triggers<poll_multiplexer>` for event-driven execution, demonstrates accepting connections, receiving messages, and responding asynchronously
 - **`async_ping_pong_client.cpp`**: Asynchronous client showcasing connection establishment, message sending/receiving, and proper async operation chaining with error handling
 ```
 
@@ -229,7 +183,7 @@ cmake --build .
 mkdir build && cd build
 
 # Configure with tests and examples
-cmake .. -DIOSCHED_ENABLE_TESTS=ON -DIO_BUILD_EXAMPLES=ON
+cmake .. -DIO_ENABLE_TESTS=ON -DIO_BUILD_EXAMPLES=ON
 
 # Build everything including tests and examples
 cmake --build .
@@ -243,10 +197,8 @@ ctest
 ./tests/socket_option_test
 ./tests/poll_triggers_test
 
-# Run example programs
-./examples/async_ping_pong_server 8080
 # In another terminal:
-./examples/async_ping_pong_client 127.0.0.1 8080 5
+./examples/async_ping_pong_client
 ```
 
 #### Build with Tests and Coverage
@@ -255,7 +207,7 @@ ctest
 mkdir build && cd build
 
 # Configure with tests and coverage
-cmake .. -DIOSCHED_ENABLE_TESTS=ON -DIOSCHED_ENABLE_COVERAGE=ON
+cmake .. -DIO_ENABLE_TESTS=ON -DIO_ENABLE_COVERAGE=ON
 
 # Build with coverage instrumentation
 cmake --build .
@@ -278,7 +230,7 @@ cmake --build . --target coverage-xml
 mkdir build && cd build
 
 # Configure with documentation enabled
-cmake .. -DIOSCHED_ENABLE_DOCS=ON
+cmake .. -DIO_ENABLE_DOCS=ON
 
 # Build the documentation
 cmake --build . --target docs
@@ -336,7 +288,7 @@ start build/debug/docs/html/index.html     # Windows
 mkdir build && cd build
 
 # Configure with documentation enabled
-cmake .. -DIOSCHED_ENABLE_DOCS=ON
+cmake .. -DIO_ENABLE_DOCS=ON
 
 # Generate API documentation
 cmake --build . --target docs
@@ -409,7 +361,7 @@ start build/debug/coverage/index.html     # Windows
 mkdir build && cd build
 
 # Configure with coverage enabled
-cmake .. -DIOSCHED_ENABLE_TESTS=ON -DIOSCHED_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+cmake .. -DIO_ENABLE_TESTS=ON -DIO_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
 
 # Build with coverage flags
 cmake --build .
@@ -495,19 +447,6 @@ The project maintains **100% code coverage** through comprehensive testing inclu
 
 ### Common Build Issues
 
-#### CMake Cannot Find Boost
-
-```bash
-# Specify Boost location manually
-cmake .. -DBOOST_ROOT=/usr/local -DBoost_NO_SYSTEM_PATHS=TRUE
-
-# For custom installations
-cmake .. -DBOOST_INCLUDEDIR=/path/to/boost/include -DBOOST_LIBRARYDIR=/path/to/boost/lib
-
-# Windows with vcpkg
-cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
-
 #### Coverage Tools Missing
 
 ```bash
@@ -538,26 +477,6 @@ cmake .. -G "Visual Studio 17 2022"  # or appropriate version
 rm -rf build/
 cmake --preset debug
 cmake --build --preset debug
-```
-
-### Testing Async Examples
-
-```bash
-# If examples fail to build:
-cmake --preset debug -DIO_BUILD_EXAMPLES=ON
-cmake --build --preset debug
-
-# If examples fail to run:
-# 1. Check if port is available
-sudo netstat -tlnp | grep :8080
-
-# 2. Try different port
-./build/debug/examples/async_ping_pong_server 9090
-./build/debug/examples/async_ping_pong_client 127.0.0.1 9090 3
-
-# 3. Check for missing dependencies
-ldd ./build/debug/examples/async_ping_pong_server  # Linux
-otool -L ./build/debug/examples/async_ping_pong_server  # macOS
 ```
 
 ## Development Workflow
@@ -653,56 +572,6 @@ Create `.vscode/settings.json`:
 ### CLion
 
 CLion automatically detects `CMakePresets.json` and provides preset selection in the IDE.
-
-## Recent Architecture Improvements
-
-### Header Reorganization and Public Interface
-
-The library has undergone a major reorganization to establish a clean public interface:
-
-- **Public Headers**: All 25 public headers moved to `include/` directory for proper API separation
-- **Implementation Separation**: Only 3 implementation files (`.cpp`) remain in `src/` directory
-- **Clean Interface**: Comprehensive socket and execution framework APIs properly exposed through public headers
-- **CMake Integration**: Updated build system with proper include directory configuration and file set management
-- **Documentation Integration**: Doxygen configured to document the public API from `include/io.hpp`
-
-### Refined Tag-Invoke Implementation
-
-Enhanced customization point object pattern with improved design:
-
-- **Generic CPO Template**: Unified `cpo<T>` template for consistent customization point implementation
-- **Simplified Function Objects**: Inline auto functions with static CPO instances for better performance
-- **Tag Type Simplification**: Clean tag types (`accept_t`, `bind_t`, `connect_t`, etc.) for all operations
-- **Type-Safe Dispatch**: Template-based dispatch mechanism with proper forwarding semantics
-
-### Persistent Socket Error Tracking
-
-The library includes comprehensive persistent socket error tracking in the `socket_handle` class:
-
-- Error states are maintained across asynchronous execution boundaries
-- Socket errors from poll operations (POLLERR flag) are captured and stored
-- Callbacks can check for socket errors before proceeding with system calls
-- Ensures robust error handling in asynchronous operations
-
-### Enhanced Execution Framework
-
-- **Execution Triggers** (`include/io/execution/detail/execution_trigger.hpp`): Enum-based I/O event system (READ, WRITE) replacing previous trigger abstractions
-- **Socket Dialog Interface** (`include/io/socket/socket_dialog.hpp`): Unified interface combining socket handles with multiplexers for async operations
-- **Lifetime Management**: I/O triggers now require `shared_ptr<socket_handle>` for proper socket lifetime management
-- **Error Propagation**: Poll multiplexer passes raw pointers valid for operation lifetime, demultiplexer can set socket errors reported by poll
-- **Modular Architecture**: Separate template implementations (`impl/`) and utility functions (`detail/`) for better organization
-- **Improved Thread Safety**: Enhanced resource management and error handling across asynchronous boundaries
-- **Implementation File**: Core poll multiplexer implementation in `src/poll_multiplexer.cpp`
-
-### Complete Socket Operations Coverage
-
-All socket operations now fully support both synchronous and asynchronous patterns:
-- **Synchronous Operations** (`include/io/socket/detail/sync_operations.hpp`): Direct system call implementations with EINTR retry logic
-- **Asynchronous Operations** (`include/io/socket/detail/async_operations.hpp`): Sender/receiver pattern implementations using execution triggers and socket dialog interface
-- **Core Operations**: `accept`, `bind`, `connect`, `listen` operations
-- **Message I/O**: `recvmsg`, `sendmsg` for scatter-gather I/O
-- **Socket Control**: `fcntl`, `getpeername`, `getsockname`, `getsockopt`, `setsockopt`, `shutdown`
-- **Unified Interface**: All operations accessible through refined customization point objects (CPOs) regardless of sync/async implementation
 
 ## Performance Testing
 

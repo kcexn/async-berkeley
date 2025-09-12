@@ -38,9 +38,9 @@ jobs:
           build/_deps
           build/CMakeCache.txt
           build/CMakeFiles
-        key: cmake-build-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
+        key: build-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
         restore-keys: |
-          cmake-build-${{ runner.os }}-
+          build-${{ runner.os }}-
 
     - name: Configure ccache
       run: |

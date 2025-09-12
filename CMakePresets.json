@@ -87,7 +87,7 @@
     "packagePresets": [
         {
             "name": "release",
-            "description": "Release package",
+            "description": "Binary release package",
             "displayName": "Release",
             "configurePreset": "release"
         }

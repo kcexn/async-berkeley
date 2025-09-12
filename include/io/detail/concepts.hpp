@@ -20,8 +20,8 @@
 #pragma once
 #ifndef IO_CONCEPTS_HPP
 #define IO_CONCEPTS_HPP
-#include <boost/predef.h>
-#if BOOST_OS_WINDOWS
+#include "io/macros.h"
+#if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else
 #include "io/socket/platforms/posix/socket.hpp"

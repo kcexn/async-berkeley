@@ -21,8 +21,8 @@
 #pragma once
 #ifndef IO_SOCKET_ADDRESS_HPP
 #define IO_SOCKET_ADDRESS_HPP
-#include <boost/predef.h>
-#if BOOST_OS_WINDOWS
+#include "io/macros.h"
+#if OS_WINDOWS
 #include "platforms/windows/socket.hpp"
 #else
 #include "platforms/posix/socket.hpp"

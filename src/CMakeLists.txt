@@ -5,16 +5,6 @@ file(GLOB_RECURSE HEADERS
     "${CMAKE_SOURCE_DIR}/include/*.hpp"
 )
 
-# Vendor the Boost.Predef headers.
-option(IO_VENDOR_BOOST_PREDEF "Use the vendored version of Boost.Predef" ON)
-if (IO_VENDOR_BOOST_PREDEF)
-  file(GLOB_RECURSE VENDOR_BOOST_HEADERS
-    "${CMAKE_SOURCE_DIR}/vendor/boost/*.h"
-    "${CMAKE_SOURCE_DIR}/vendor/boost/*.hpp"
-  )
-  list(APPEND HEADERS ${VENDOR_BOOST_HEADERS})
-endif()
-
 # Dynamically linked library
 add_library(io_shared SHARED ${SOURCES})
 set_target_properties(io_shared PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -20,8 +20,8 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include <boost/predef.h>
-#if BOOST_OS_WINDOWS
+#include "io/macros.h"
+#if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else
 #include "io/socket/platforms/posix/socket.hpp"
@@ -66,7 +66,7 @@ template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
   if (auto error = socket->get_error())
-    return stdexec::set_error(std::move(receiver), error.value());
+    return complete(this);
 
   std::lock_guard lock{*mtx};
   task::complete = state::complete;

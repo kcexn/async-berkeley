@@ -20,7 +20,7 @@
  * This client connects to a server, sends "ping" messages, and waits for
  * "pong" responses using the asynchronous API.
  */
-
+// NOLINTBEGIN
 #include <exec/async_scope.hpp>
 #include <io.hpp>
 #include <stdexec/execution.hpp>
@@ -45,8 +45,7 @@ template <typename T> class AsyncPingPongClient {
 public:
   AsyncPingPongClient(socket_address<T> server, int ping_count)
       : server_(std::move(server)), ping_count_{ping_count}, triggers_() {
-    // NOLINTNEXTLINE
-    static std::array<char, 6> pong_buf{};
+    static std::array<char, 256> pong_buf{};
     pong_msg.buffers.emplace_back(pong_buf.data(), pong_buf.size());
   }
 
@@ -55,17 +54,15 @@ public:
     auto client = triggers_.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     // Connect asynchronously
-    auto connect_sender = io::connect(client, server_);
-
-    // Create continuation for connection completion
-    auto continuation = then(std::move(connect_sender),
-                             [this, client](const auto &connect_result) {
-                               // Start ping/pong sequence
-                               start_ping_pong(client, 0);
-                             });
+    auto connect = io::connect(client, server_) |
+                   then([this, client](const auto &connect_result) {
+                     // Start ping/pong sequence
+                     start_ping_pong(client, 0);
+                   }) |
+                   upon_error([](auto error) {}); // type of error is a variant.
 
     // start ping_pong.
-    scope_.spawn(upon_error(std::move(continuation), [](auto &&error) {}));
+    scope_.spawn(std::move(connect));
 
     // Wait for completion
     while (pings_sent_ < ping_count_ || pongs_received_ < ping_count_) {
@@ -84,60 +81,56 @@ private:
     // Create ping message.
     const char *ping_message = "ping!\n";
     socket_message message{};
-    // NOLINTNEXTLINE
     message.buffers.emplace_back(const_cast<char *>(ping_message),
-                                 ::strlen(ping_message));
+                                 ::strnlen(ping_message, 7));
 
     // Send ping asynchronously
-    auto send = io::sendmsg(client, message, 0);
+    auto sendmsg = io::sendmsg(client, message, 0) |
+                   then([this, client, sequence](const auto &send_result) {
+                     std::cout << "Sent: " << ++pings_sent_ << " pings.\n"
+                               << std::flush;
 
-    // Create continuation for send completion
-    auto continuation = then(
-        std::move(send), [this, client, sequence](const auto &send_result) {
-          std::cout << "Sent: " << ++pings_sent_ << " pings.\n" << std::flush;
+                     // Wait for pong response
+                     wait_for_pong(client, sequence);
+                   }) |
+                   upon_error([](auto error) {}); // type of error is a variant.
 
-          // Wait for pong response
-          wait_for_pong(client, sequence);
-        });
-
-    // Start the send operation
-    scope_.spawn(upon_error(std::move(continuation), [](auto &&error) {}));
+    // Start the sendmsg operation
+    scope_.spawn(std::move(sendmsg));
   }
 
   void wait_for_pong(const socket_dialog<poll_multiplexer> &client,
                      int sequence) {
+    auto &buf = pong_msg.buffers.front();
     // Receive message asynchronously
-    auto recv = io::recvmsg(client, pong_msg, 0);
+    auto recvmsg = io::recvmsg(client, pong_msg, 0) |
+                   then([this, client, sequence, buf](auto bytes_received) {
+                     std::string message(static_cast<char *>(buf.iov_base),
+                                         bytes_received);
+                     int next = sequence;
+                     // Check if it's a pong response
+                     if (message.find("pong") != std::string::npos) {
+                       pongs_received_++;
+                       next++;
+                     }
 
-    // Create continuation for handling received data
-    auto continuation =
-        then(std::move(recv),
-             [this, client, sequence,
-              buf = pong_msg.buffers.front()](std::streamsize bytes_received) {
-               std::string message(static_cast<char *>(buf.iov_base),
-                                   bytes_received);
-               // Check if it's a pong response
-               if (message.find("pong") != std::string::npos) {
-                 pongs_received_++;
-
-                 // Send next ping after a short delay
-                 schedule_next_ping(client, sequence + 1);
-               }
-             });
+                     // Send next ping after a short delay
+                     schedule_next_ping(client, next);
+                   }) |
+                   upon_error([](auto error) {}); // type of error is a variant.
 
     // Start the receive operation
-    scope_.spawn(upon_error(std::move(continuation), [](auto &&error) {}));
+    scope_.spawn(std::move(recvmsg));
   }
 
   void schedule_next_ping(const socket_dialog<poll_multiplexer> &client,
-                          int next_sequence) {
+                          int sequence) {
     // Add a small delay between pings to make the demo more visible
-    // NOLINTNEXTLINE
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Continue with next ping if we haven't reached the limit
-    if (next_sequence < ping_count_)
-      start_ping_pong(client, next_sequence);
+    if (sequence < ping_count_)
+      start_ping_pong(client, sequence);
   }
 
   socket_address<T> server_;
@@ -154,9 +147,7 @@ auto main(int argc, char *argv[]) -> int {
   auto server = make_address<sockaddr_in>();
   server->sin_family = AF_INET;
   server->sin_addr.s_addr = inet_addr("127.0.0.1");
-  // NOLINTNEXTLINE
   server->sin_port = htons(8080);
-  // NOLINTNEXTLINE
   int ping_count = 5;
 
   AsyncPingPongClient client(server, ping_count);
@@ -164,3 +155,4 @@ auto main(int argc, char *argv[]) -> int {
 
   return 0;
 }
+// NOLINTEND
