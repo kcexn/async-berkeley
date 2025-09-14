@@ -30,6 +30,7 @@
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
+#include "io/socket/socket_handle.hpp"
 #include "io/socket/socket_dialog.hpp"
 
 #include <stdexec/execution.hpp>
@@ -75,15 +76,40 @@ auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void
   }
 }
 
+/**
+ * @brief A helper struct for ensuring fairness in scheduling asynchronous
+ * operations.
+ */
 struct fairness {
+  /// @brief The type of the counter.
   using counter_type = std::uint8_t;
 
+  /**
+   * @brief Returns a reference to a static atomic counter.
+   * @return A reference to the counter.
+   */
   static auto counter() -> std::atomic<counter_type> &
   {
     static std::atomic<counter_type> counter;
     return counter;
   }
 };
+
+/**
+ * @brief Sets an error on the socket handle if the error is not a "would block"
+ * error.
+ * @param handle The socket handle.
+ * @param error The error code.
+ * @return `true` if the error was `EWOULDBLOCK` or `EAGAIN`, `false`
+ * otherwise.
+ */
+inline auto set_error_if_not_blocked(::io::socket::socket_handle &handle,
+                                     int error) -> bool
+{
+  if (error != EWOULDBLOCK && error != EAGAIN)
+    handle.set_error(error);
+  return error != EWOULDBLOCK && error != EAGAIN;
+}
 } // namespace detail
 
 /**
@@ -123,12 +149,8 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
                              }));
       }
 
-      int error = errno;
-      if (error != EWOULDBLOCK && error != EAGAIN)
-      {
-        socket->set_error(error);
+      if (set_error_if_not_blocked(*socket, errno))
         return executor->set(socket, EAGER, callback{});
-      }
     }
   }
 
@@ -280,12 +302,8 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
                              }));
       }
 
-      int error = errno;
-      if (error != EWOULDBLOCK && error != EAGAIN)
-      {
-        socket->set_error(error);
+      if (set_error_if_not_blocked(*socket, errno))
         return executor->set(socket, EAGER, callback{});
-      }
     }
   }
 
@@ -335,12 +353,8 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
                              }));
       }
 
-      int error = errno;
-      if (error != EWOULDBLOCK && error != EAGAIN)
-      {
-        socket->set_error(error);
+      if (set_error_if_not_blocked(*socket, errno))
         return executor->set(socket, EAGER, callback{});
-      }
     }
   }
 

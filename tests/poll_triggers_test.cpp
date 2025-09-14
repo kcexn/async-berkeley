@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "io/detail/customization.hpp"
 #include "io/execution/poll_multiplexer.hpp"
 #include "io/execution/triggers.hpp"
 #include "io/socket/socket.hpp"
@@ -19,8 +20,9 @@
 #include <exec/async_scope.hpp>
 #include <exec/static_thread_pool.hpp>
 #include <gtest/gtest.h>
-#include <io/detail/customization.hpp>
 #include <stdexec/execution.hpp>
+
+#include <algorithm>
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -195,25 +197,25 @@ TEST_F(PollTriggersTest, SubmitTest)
   int status = ::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets.data());
   ASSERT_EQ(status, 0);
 
-  std::array<char, 2> buf1{};
-  std::array<char, 2> buf2{};
+  std::array<char, 2> buf{};
 
   auto read_socket = std::make_shared<socket_handle>(sockets[0]);
   auto write_socket = std::make_shared<socket_handle>(sockets[1]);
 
   stdexec::sender auto read = triggers.set(read_socket, trigger::READ, [&] {
-    return std::optional(::read(sockets[0], buf1.data(), 1));
+    return std::optional(
+        ::read(sockets[0], buf.data(), std::min(1UL, buf.size())));
   });
   write(sockets[1], "a", 1);
   triggers.wait_for(0);
-  EXPECT_EQ(buf1[0], 'a');
+  EXPECT_EQ(buf[0], 'a');
 
   stdexec::sender auto write = triggers.set(write_socket, trigger::WRITE, [&] {
     return std::optional(::write(sockets[1], "b", 1));
   });
   triggers.wait_for(0);
-  ::read(sockets[0], buf2.data(), 1);
-  EXPECT_EQ(buf2[0], 'b');
+  ::read(sockets[0], buf.data(), std::min(1UL, buf.size()));
+  EXPECT_EQ(buf[0], 'b');
 }
 
 TEST_F(PollTriggersTest, AsyncAcceptTest)
