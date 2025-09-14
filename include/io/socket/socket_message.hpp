@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_SOCKET_MESSAGE_HPP
 #define IO_SOCKET_MESSAGE_HPP
-#include "io/macros.h"
+#include "io/config.h"
 #if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else

@@ -21,7 +21,7 @@
 #pragma once
 #ifndef IO_ASYNC_OPERATIONS_HPP
 #define IO_ASYNC_OPERATIONS_HPP
-#include "io/macros.h"
+#include "io/config.h"
 #if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else
@@ -135,8 +135,8 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
   return executor->set(socket, READ, callback([=, socket = socket.get()] {
                          auto result = ::io::accept(*socket, address);
                          return (result.first)
-                                    ? std::nullopt
-                                    : std::optional{std::move(result)};
+                                    ? std::optional{std::move(result)}
+                                    : std::nullopt;
                        }));
 }
 

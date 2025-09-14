@@ -21,7 +21,7 @@
 #pragma once
 #ifndef IO_SYNC_OPERATIONS_HPP
 #define IO_SYNC_OPERATIONS_HPP
-#include "io/macros.h"
+#include "io/config.h"
 #if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else

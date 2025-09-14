@@ -14,6 +14,7 @@
  */
 #include "io/socket/socket_handle.hpp"
 #include "io/error.hpp"
+#include "io/macros.h"
 
 #include <atomic>
 

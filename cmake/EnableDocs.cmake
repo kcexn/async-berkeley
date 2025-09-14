@@ -25,7 +25,7 @@ if(IO_DOCS_PUBLIC_ONLY)
     set(PUBLIC_API_HEADER ${CMAKE_SOURCE_DIR}/include/io.hpp)
 
     # Read the public API header and find all exported files
-    file(STRINGS ${PUBLIC_API_HEADER} public_api_includes REGEX "#include.*IWYU pragma: export")
+    file(STRINGS ${PUBLIC_API_HEADER} public_api_includes REGEX "#include")
 
     set(public_doc_files "")
     foreach(include_line ${public_api_includes})
@@ -33,6 +33,9 @@ if(IO_DOCS_PUBLIC_ONLY)
         string(REGEX REPLACE "^#include \"([^\"]+)\".*" "\\1" header_path ${include_line})
         list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/${header_path}")
     endforeach()
+
+    # Explicitly add the configuration preprocessor macros to the public documentation.
+    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/config.h")
 
     # Doxygen's INPUT tag requires a space-separated string.
     # We must create a single string variable containing all paths.

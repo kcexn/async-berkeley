@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include "io/macros.h"
+#include "io/config.h"
 #if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else
@@ -54,9 +54,17 @@ auto make_ready_queues(const std::vector<pollfd> &list,
 
 namespace io::execution {
 
+#if IO_EAGER_ACCEPT
 template <> struct poll_t::is_eager_t<accept_t> : public std::true_type {};
+#endif
+
+#if IO_EAGER_RECV
 template <> struct poll_t::is_eager_t<recvmsg_t> : public std::true_type {};
+#endif
+
+#if IO_EAGER_SEND
 template <> struct poll_t::is_eager_t<sendmsg_t> : public std::true_type {};
+#endif
 
 template <Completion Fn>
 template <typename Receiver>

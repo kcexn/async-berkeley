@@ -10,6 +10,7 @@ FULL_PATH_NAMES        = YES
 STRIP_FROM_PATH        = include/
 STRIP_FROM_INC_PATH    = @CMAKE_SOURCE_DIR@/include
 
+EXCLUDE_SYMBOLS        = *_H *_HPP
 HIDE_UNDOC_CLASSES     = YES
 INTERNAL_DOCS          = NO
 

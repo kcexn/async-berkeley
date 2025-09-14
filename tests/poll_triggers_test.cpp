@@ -242,9 +242,9 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   status = ::io::connect(client, bound_address);
   EXPECT_EQ(status, 0);
 
-  stdexec::sender auto async_accept = ::io::accept(dialog, address);
+  stdexec::sender auto accept = ::io::accept(dialog, address);
   triggers1.wait_for(0);
-  auto [result] = stdexec::sync_wait(std::move(async_accept)).value();
+  auto [result] = stdexec::sync_wait(std::move(accept)).value();
   auto [accept_handle, accept_address] = std::move(result);
   EXPECT_NE(accept_handle, -1);
 
