@@ -24,7 +24,7 @@
 #include "io/detail/concepts.hpp"
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
-#include "io/socket/socket.hpp"
+#include "io/socket/socket_handle.hpp"
 
 #include <exec/async_scope.hpp>
 #include <stdexec/execution.hpp>
@@ -42,31 +42,22 @@ namespace io::execution {
 template <Multiplexer Mux> class executor : public Mux {
   /**
    * @internal
-   * @brief The size type used by the multiplexer.
-   */
-  using size_type = Mux::size_type;
-  /**
-   * @internal
-   * @brief The interval type used by the multiplexer for timeouts.
-   */
-  using interval_type = Mux::interval_type;
-
-public:
-  /**
    * @brief The type of socket handle used by the executor.
    */
   using socket_handle = ::io::socket::socket_handle;
 
+public:
   /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle>
+  template <SocketLike Socket>
+  static auto push(Socket &&handle) -> decltype(auto)
   {
     if (::io::fcntl(handle, F_SETFL, ::io::fcntl(handle, F_GETFL) | O_NONBLOCK))
-      throw_system_error("fcntl failed.");
-    return std::make_shared<socket_handle>(std::move(handle));
+      throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
+    return std::make_shared<Socket>(std::forward<Socket>(handle));
   }
 
   /**
@@ -79,7 +70,7 @@ public:
   {
     auto ptr = std::make_shared<socket_handle>(std::forward<Args>(args)...);
     if (::io::fcntl(*ptr, F_SETFL, ::io::fcntl(*ptr, F_GETFL) | O_NONBLOCK))
-      throw_system_error("fcntl failed.");
+      throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
     return std::move(ptr);
   }
 
@@ -90,8 +81,8 @@ public:
    * @return A future that will complete when the event occurs.
    */
   template <Completion Fn>
-  auto set(std::shared_ptr<::io::socket::socket_handle> socket,
-           execution_trigger event, Fn &&exec) -> decltype(auto)
+  auto set(std::shared_ptr<socket_handle> socket, execution_trigger event,
+           Fn &&exec) -> decltype(auto)
   {
     return scope_.spawn_future(
         Mux::set(std::move(socket), event, std::forward<Fn>(exec)));
@@ -104,7 +95,7 @@ public:
    */
   constexpr auto wait_for(int interval = -1) -> decltype(auto)
   {
-    return Mux::wait_for(interval_type{interval});
+    return Mux::wait_for(typename Mux::interval_type{interval});
   }
 
   /**

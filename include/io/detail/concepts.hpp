@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_CONCEPTS_HPP
 #define IO_CONCEPTS_HPP
-#include "io/macros.h"
+#include "io/config.h"
 #if OS_WINDOWS
 #include "io/socket/platforms/windows/socket.hpp"
 #else
@@ -28,8 +28,18 @@
 #include "platforms/posix/concepts_posix.hpp" // IWYU pragma: export
 #endif
 
+#include <memory>
 #include <optional>
 #include <type_traits>
+// Forward declarations
+namespace io {
+namespace socket {
+class socket_handle;
+} // namespace socket
+namespace execution {
+enum struct execution_trigger : std::uint8_t;
+} // namespace execution
+} // namespace io
 
 /**
  * @namespace io
@@ -51,6 +61,7 @@ concept MuxTag = requires(T tag) {
   typename T::interval_type;
   typename T::size_type;
   typename T::template is_eager_t<T>;
+  T::template is_eager_v<T>;
 };
 
 /**
@@ -76,7 +87,14 @@ concept Completion = requires(Fn &&func) {
  */
 template <typename T>
 concept Multiplexer = requires(T mux) {
-  requires MuxTag<typename T::multiplexer_type>;
+  requires MuxTag<T>;
+  typename T::demultiplexer;
+  typename T::template sender<decltype([]() -> std::optional<int> {
+    return std::nullopt;
+  })>;
+  mux.set(std::shared_ptr<socket::socket_handle>{},
+          execution::execution_trigger{},
+          []() -> std::optional<int> { return std::nullopt; });
   mux.wait_for(typename T::interval_type{});
 };
 
@@ -86,8 +104,8 @@ concept Multiplexer = requires(T mux) {
  */
 template <typename Socket>
 concept SocketLike = requires {
-  Socket{socket::native_socket_type{}};
-  std::is_convertible_v<Socket, socket::native_socket_type>;
+  requires std::is_constructible_v<Socket, socket::native_socket_type>;
+  static_cast<socket::native_socket_type>(Socket{});
 };
 
 /**
@@ -96,7 +114,7 @@ concept SocketLike = requires {
  */
 template <typename Message>
 concept MessageLike =
-    requires { std::is_convertible_v<Message, socket::socket_message_type>; };
+    requires { static_cast<socket::socket_message_type>(Message{}); };
 
 } // namespace io
 #endif // IO_CONCEPTS_HPP

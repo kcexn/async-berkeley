@@ -22,7 +22,6 @@
 #pragma once
 #ifndef IO_HPP
 #define IO_HPP
-#include "io/config.h"                   // IWYU pragma: export
 #include "io/detail/customization.hpp"   // IWYU pragma: export
 #include "io/execution/multiplexers.hpp" // IWYU pragma: export
 #include "io/execution/triggers.hpp"     // IWYU pragma: export

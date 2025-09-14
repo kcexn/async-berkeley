@@ -21,10 +21,11 @@
 #ifndef IO_TRIGGERS_HPP
 #define IO_TRIGGERS_HPP
 #include "executor.hpp"
+#include "io/detail/concepts.hpp"
 #include "io/socket/socket_dialog.hpp"
+#include "io/socket/socket_handle.hpp"
 
 #include <memory>
-
 /**
  * @namespace io::execution
  * @brief Provides high-level interfaces for executors and completion triggers.
@@ -37,24 +38,9 @@ namespace io::execution {
 template <Multiplexer Mux> class basic_triggers {
   /**
    * @internal
-   * @brief The size type from the multiplexer.
-   */
-  using size_type = Mux::size_type;
-  /**
-   * @internal
-   * @brief The interval type for timeouts from the multiplexer.
-   */
-  using interval_type = Mux::interval_type;
-  /**
-   * @internal
-   * @brief The executor type.
-   */
-  using executor_type = executor<Mux>;
-  /**
-   * @internal
    * @brief The socket handle type.
    */
-  using socket_handle = executor_type::socket_handle;
+  using socket_handle = ::io::socket::socket_handle;
   /**
    * @internal
    * @brief The socket dialog type.
@@ -63,13 +49,18 @@ template <Multiplexer Mux> class basic_triggers {
 
 public:
   /**
+   * @brief The executor type.
+   */
+  using executor_type = executor<Mux>;
+
+  /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  auto push(socket_handle &&handle) -> socket_dialog
+  template <SocketLike Socket> auto push(Socket &&handle) -> socket_dialog
   {
-    return {executor_, executor_type::push(std::move(handle))};
+    return {executor_, executor_type::push(std::forward<Socket>(handle))};
   }
 
   /**
