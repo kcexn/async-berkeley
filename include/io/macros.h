@@ -47,7 +47,7 @@
 
 /**
  * @ingroup macros
- * @def WINDOWS
+ * @def OS_WINDOWS
  * @brief True if the Windows OS is detected.
  */
 #define OS_WINDOWS 0

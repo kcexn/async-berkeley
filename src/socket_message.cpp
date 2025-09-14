@@ -18,7 +18,8 @@
  */
 #include "io/socket/socket_message.hpp"
 namespace io::socket {
-message_header::operator socket_message_type() noexcept {
+message_header::operator socket_message_type() noexcept
+{
   // TODO: Windows support.
   return {.msg_name = name.data(),
           .msg_namelen = static_cast<socklen_t>(name.size()),
@@ -29,7 +30,8 @@ message_header::operator socket_message_type() noexcept {
           .msg_flags = flags};
 }
 
-socket_message::operator socket_message_type() noexcept {
+socket_message::operator socket_message_type() noexcept
+{
   message_header header = {.iov = buffers, .control = control};
   if (address)
     header.name = *address;

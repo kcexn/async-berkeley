@@ -30,6 +30,18 @@
 #include <atomic>
 #include <mutex>
 
+// Forward Declarations for testing.
+#ifndef NDEBUG
+namespace io::socket {
+/**
+ * @brief Checks if a native socket handle is valid.
+ * @param handle The native socket handle to check.
+ * @return `true` if the socket handle is valid, `false` otherwise.
+ */
+auto is_valid_socket(native_socket_type handle) -> bool;
+} // namespace io::socket
+#endif // NDEBUG
+
 namespace io::socket {
 /**
  * @brief A thread-safe, move-only RAII wrapper for a native socket handle.

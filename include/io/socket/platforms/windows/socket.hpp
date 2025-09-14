@@ -73,7 +73,8 @@ using socket_message_type = ::WSAMSG;
  * @param socket The native socket handle to close.
  * @return 0 on success, or an error code on failure.
  */
-inline auto close(native_socket_type socket) noexcept -> int {
+inline auto close(native_socket_type socket) noexcept -> int
+{
   return ::closesocket(socket);
 }
 
@@ -107,7 +108,8 @@ static constexpr int O_NONBLOCK = 2048;
  */
 template <typename... Args>
 inline auto fcntl(native_socket_type socket, int cmd,
-                  Args &&...args) noexcept -> int {
+                  Args &&...args) noexcept -> int
+{
   static_assert(sizeof...(args) == 1,
                 "fcntl for windows is only implemented for F_SETFL and a "
                 "single argument O_NONBLOCK.");
@@ -115,7 +117,8 @@ inline auto fcntl(native_socket_type socket, int cmd,
 
   auto arg = std::get<0>(std::forward_as_tuple(std::forward<Args>(args)...));
   auto mode = (arg & O_NONBLOCK) ? 1 : 0;
-  switch (cmd) {
+  switch (cmd)
+  {
   case F_SETFL:
     return ioctlsocket(socket, FIONBIO, &mode);
   default:
@@ -136,7 +139,8 @@ inline auto fcntl(native_socket_type socket, int cmd,
  * error code on failure.
  */
 inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
-                    int flags) noexcept -> std::streamsize {
+                    int flags) noexcept -> std::streamsize
+{
   std::streamsize len = 0;
   int error = ::WSASendMsg(socket, msg, &len, nullptr, nullptr);
   return (error == 0) ? len : error;
@@ -154,7 +158,8 @@ inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
  * Sockets error code on failure.
  */
 inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
-                    int flags) noexcept -> std::streamsize {
+                    int flags) noexcept -> std::streamsize
+{
   std::streamsize len = 0;
   int error = ::WSARecvMsg(socket, msg, &len, nullptr, nullptr);
   return (error == 0) ? len : error;

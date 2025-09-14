@@ -51,7 +51,8 @@ template <MuxTag Tag> struct basic_multiplexer : public Tag {
     /**
      * @brief Executes the task.
      */
-    auto execute() -> void {
+    auto execute() -> void
+    {
       assert(complete != nullptr &&
              "execute() must be called with a valid completion handle.");
       complete(this);

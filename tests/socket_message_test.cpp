@@ -26,7 +26,8 @@ protected:
   void TearDown() override {}
 };
 
-TEST_F(SocketMessageTest, SendRecvMsgTest) {
+TEST_F(SocketMessageTest, SendRecvMsgTest)
+{
   socket_message message{};
   std::array<int, 2> pair{};
   ASSERT_EQ(socketpair(AF_UNIX, SOCK_STREAM, 0, pair.data()), 0);

@@ -18,6 +18,7 @@
  * @brief Defines the execution_trigger enum for specifying I/O events.
  */
 #pragma once
+#include <limits>
 #ifndef IO_EXECUTION_TRIGGER_HPP
 #define IO_EXECUTION_TRIGGER_HPP
 #include <cstdint>
@@ -38,7 +39,12 @@ enum struct execution_trigger : std::uint8_t {
   /**
    * @brief A write event.
    */
-  WRITE = 1 << 1
+  WRITE = 1 << 1,
+  /**
+   * @brief A sentinel value that indicates that
+   * the event should evaluate immediately.
+   */
+  EAGER = std::numeric_limits<std::uint8_t>::max()
 };
 
 } // namespace io::execution

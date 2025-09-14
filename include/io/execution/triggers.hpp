@@ -67,7 +67,8 @@ public:
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  auto push(socket_handle &&handle) -> socket_dialog {
+  auto push(socket_handle &&handle) -> socket_dialog
+  {
     return {executor_, executor_type::push(std::move(handle))};
   }
 
@@ -76,7 +77,8 @@ public:
    * @param ...args The arguments to forward to the socket handle constructor.
    * @return A shared pointer to the emplaced socket handle.
    */
-  template <typename... Args> auto emplace(Args &&...args) -> socket_dialog {
+  template <typename... Args> auto emplace(Args &&...args) -> socket_dialog
+  {
     return {executor_, executor_type::emplace(std::forward<Args>(args)...)};
   }
 
@@ -89,7 +91,8 @@ public:
    */
   template <Completion Fn>
   auto set(std::shared_ptr<socket_handle> socket, execution_trigger event,
-           Fn &&exec) -> decltype(auto) {
+           Fn &&exec) -> decltype(auto)
+  {
     return executor_->set(std::move(socket), event, std::forward<Fn>(exec));
   }
 
@@ -98,7 +101,8 @@ public:
    * @param interval The maximum time to wait for, in milliseconds.
    * @return A sender that will complete when events occur.
    */
-  constexpr auto wait_for(int interval = -1) -> decltype(auto) {
+  constexpr auto wait_for(int interval = -1) -> decltype(auto)
+  {
     return executor_->wait_for(interval);
   }
 
@@ -112,7 +116,8 @@ public:
    * @brief Gets the executor.
    * @return A weak pointer to the executor.
    */
-  [[nodiscard]] auto get_executor() -> std::weak_ptr<executor_type> {
+  [[nodiscard]] auto get_executor() -> std::weak_ptr<executor_type>
+  {
     return executor_;
   }
 

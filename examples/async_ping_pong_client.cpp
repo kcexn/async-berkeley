@@ -44,12 +44,14 @@ using namespace exec;
 template <typename T> class AsyncPingPongClient {
 public:
   AsyncPingPongClient(socket_address<T> server, int ping_count)
-      : server_(std::move(server)), ping_count_{ping_count}, triggers_() {
+      : server_(std::move(server)), ping_count_{ping_count}, triggers_()
+  {
     static std::array<char, 256> pong_buf{};
     pong_msg.buffers.emplace_back(pong_buf.data(), pong_buf.size());
   }
 
-  void run() {
+  void run()
+  {
     // Create client socket dialog using triggers
     auto client = triggers_.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -65,19 +67,22 @@ public:
     scope_.spawn(std::move(connect));
 
     // Wait for completion
-    while (pings_sent_ < ping_count_ || pongs_received_ < ping_count_) {
+    while (pings_sent_ < ping_count_ || pongs_received_ < ping_count_)
+    {
       triggers_.wait();
     }
   }
 
 private:
   void start_ping_pong(const socket_dialog<poll_multiplexer> &client_dialog,
-                       int sequence) {
+                       int sequence)
+  {
     if (sequence < ping_count_)
       send_ping(client_dialog, sequence);
   }
 
-  void send_ping(const socket_dialog<poll_multiplexer> &client, int sequence) {
+  void send_ping(const socket_dialog<poll_multiplexer> &client, int sequence)
+  {
     // Create ping message.
     const char *ping_message = "ping!\n";
     socket_message message{};
@@ -100,7 +105,8 @@ private:
   }
 
   void wait_for_pong(const socket_dialog<poll_multiplexer> &client,
-                     int sequence) {
+                     int sequence)
+  {
     auto &buf = pong_msg.buffers.front();
     // Receive message asynchronously
     auto recvmsg = io::recvmsg(client, pong_msg, 0) |
@@ -109,7 +115,8 @@ private:
                                          bytes_received);
                      int next = sequence;
                      // Check if it's a pong response
-                     if (message.find("pong") != std::string::npos) {
+                     if (message.find("pong") != std::string::npos)
+                     {
                        pongs_received_++;
                        next++;
                      }
@@ -124,7 +131,8 @@ private:
   }
 
   void schedule_next_ping(const socket_dialog<poll_multiplexer> &client,
-                          int sequence) {
+                          int sequence)
+  {
     // Add a small delay between pings to make the demo more visible
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -142,7 +150,8 @@ private:
   socket_message pong_msg{};
 };
 
-auto main(int argc, char *argv[]) -> int {
+auto main(int argc, char *argv[]) -> int
+{
 
   auto server = make_address<sockaddr_in>();
   server->sin_family = AF_INET;

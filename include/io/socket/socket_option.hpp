@@ -47,7 +47,9 @@ public:
    */
   template <size_type Size = sizeof(value_type)>
     requires(Size <= sizeof(value_type))
-  constexpr socket_option(size_type size = Size) noexcept : size_{size} {}
+  constexpr socket_option(size_type size = Size) noexcept : size_{size}
+  {
+  }
 
   /**
    * @brief Default copy constructor.
@@ -62,7 +64,8 @@ public:
    * @brief Constructs a socket_option from a value.
    * @param val The value of the socket option.
    */
-  socket_option(const value_type &val) noexcept : size_{sizeof(val)} {
+  socket_option(const value_type &val) noexcept : size_{sizeof(val)}
+  {
     std::memcpy(storage_.data(), &val, size_);
   }
 
@@ -74,7 +77,8 @@ public:
   template <size_type Size>
     requires(Size <= sizeof(value_type) || Size == std::dynamic_extent)
   socket_option(std::span<const std::byte, Size> option) noexcept
-      : size_{option.size()} {
+      : size_{option.size()}
+  {
     assert(option.size() <= sizeof(value_type) &&
            "option.size() must be <= sizeof(value_type)");
     assert(option.size() > 0 && option.data() != nullptr &&
@@ -90,7 +94,9 @@ public:
   template <size_type Size>
     requires(Size <= sizeof(value_type) || Size == std::dynamic_extent)
   socket_option(std::span<std::byte, Size> option) noexcept
-      : socket_option(std::span<const std::byte, Size>(option)) {}
+      : socket_option(std::span<const std::byte, Size>(option))
+  {
+  }
 
   /**
    * @brief Default copy assignment operator.
@@ -113,7 +119,8 @@ public:
    * @brief Dereferences the socket option to its value.
    * @return A reference to the socket option's value.
    */
-  [[nodiscard]] constexpr auto operator*() noexcept -> value_type & {
+  [[nodiscard]] constexpr auto operator*() noexcept -> value_type &
+  {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return *reinterpret_cast<value_type *>(storage_.data());
   }
@@ -122,7 +129,8 @@ public:
    * @brief Accesses the socket option's value.
    * @return A pointer to the socket option's value.
    */
-  [[nodiscard]] constexpr auto operator->() noexcept -> value_type * {
+  [[nodiscard]] constexpr auto operator->() noexcept -> value_type *
+  {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return reinterpret_cast<value_type *>(storage_.data());
   }
@@ -133,7 +141,8 @@ public:
    * representation.
    * @return A pointer to the beginning of the byte storage.
    */
-  [[nodiscard]] constexpr auto begin() noexcept -> std::byte * {
+  [[nodiscard]] constexpr auto begin() noexcept -> std::byte *
+  {
     return storage_.begin();
   }
 
@@ -142,7 +151,8 @@ public:
    * representation.
    * @return A const pointer to the beginning of the byte storage.
    */
-  [[nodiscard]] constexpr auto begin() const noexcept -> const std::byte * {
+  [[nodiscard]] constexpr auto begin() const noexcept -> const std::byte *
+  {
     return storage_.cbegin();
   }
 
@@ -150,7 +160,8 @@ public:
    * @brief Gets an iterator to the end of the option's byte representation.
    * @return A pointer to the end of the byte storage.
    */
-  [[nodiscard]] constexpr auto end() noexcept -> std::byte * {
+  [[nodiscard]] constexpr auto end() noexcept -> std::byte *
+  {
     return storage_.begin() + size_;
   }
 
@@ -159,7 +170,8 @@ public:
    * representation.
    * @return A const pointer to the end of the byte storage.
    */
-  [[nodiscard]] constexpr auto end() const noexcept -> const std::byte * {
+  [[nodiscard]] constexpr auto end() const noexcept -> const std::byte *
+  {
     return storage_.cbegin() + size_;
   }
   // GCOVR_EXCL_STOP
@@ -169,7 +181,8 @@ public:
    * @param other The other socket_option to compare against.
    * @return True if the options are equal, false otherwise.
    */
-  auto operator==(const socket_option &other) const noexcept -> bool {
+  auto operator==(const socket_option &other) const noexcept -> bool
+  {
     return size_ == other.size_ &&
            std::memcmp(storage_.data(), other.storage_.data(), size_) == 0;
   }

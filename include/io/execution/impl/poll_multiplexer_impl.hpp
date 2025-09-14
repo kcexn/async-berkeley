@@ -30,6 +30,13 @@
 #include "io/execution/poll_multiplexer.hpp"
 #include "io/socket/socket_handle.hpp"
 
+// Customization point forward declarations
+namespace io {
+struct accept_t;
+struct recvmsg_t;
+struct sendmsg_t;
+} // namespace io
+
 // Forward declarations used for testing.
 #ifndef NDEBUG
 namespace io::execution {
@@ -47,10 +54,15 @@ auto make_ready_queues(const std::vector<pollfd> &list,
 
 namespace io::execution {
 
+template <> struct poll_t::is_eager_t<accept_t> : public std::true_type {};
+template <> struct poll_t::is_eager_t<recvmsg_t> : public std::true_type {};
+template <> struct poll_t::is_eager_t<sendmsg_t> : public std::true_type {};
+
 template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
-    -> void {
+    -> void
+{
   auto *self = static_cast<state *>(task_ptr);
 
   if (auto error = self->socket->get_error())
@@ -64,17 +76,21 @@ auto poll_multiplexer::sender<Fn>::state<Receiver>::complete(task *task_ptr)
 
 template <Completion Fn>
 template <typename Receiver>
-auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
-  if (auto error = socket->get_error())
+auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void
+{
+  using trigger_t = execution_trigger;
+  if (socket->get_error() || trigger == trigger_t::EAGER)
     return complete(this);
 
   std::lock_guard lock{*mtx};
   task::complete = state::complete;
-  if (mask & POLLOUT) {
+
+  if (trigger == trigger_t::WRITE)
     demux->write_queue.push(this);
-  } else if (mask & POLLIN) {
+
+  if (trigger == trigger_t::READ)
     demux->read_queue.push(this);
-  }
+
   demux->socket = socket.get();
 }
 
@@ -84,29 +100,60 @@ auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void {
  * @param event The event to update or insert.
  * @return A pointer to the updated or inserted event.
  */
-inline auto
-update_or_insert_event(std::vector<pollfd> *list,
-                       const pollfd &event) -> poll_t::event_type * {
+inline auto update_or_insert_event(std::vector<pollfd> *list,
+                                   const pollfd &event) -> poll_t::event_type *
+{
   auto pos = std::ranges::lower_bound(
       *list, event.fd, {}, [](const auto &event) { return event.fd; });
 
-  if (pos != std::end(*list) && pos->fd == event.fd) {
+  if (pos != std::end(*list) && pos->fd == event.fd)
+  {
     // NOLINTNEXTLINE(bugprone-narrowing-conversions)
     pos->events |= event.events;
-  } else {
+  }
+  else
+  {
     pos = list->insert(pos, event);
   }
 
   return &*pos;
 }
 
+/**
+ * @brief Creates a pollfd structure for a given socket and trigger.
+ * @tparam Socket The type of the socket.
+ * @param socket The socket to create the poll event for.
+ * @param trigger The execution trigger to wait for.
+ * @return A pollfd structure.
+ */
+template <SocketLike Socket>
+auto make_poll_event(const Socket &socket,
+                     execution_trigger trigger) -> struct pollfd {
+  using socket_t = socket::native_socket_type;
+  using trigger_t = execution_trigger;
+
+  struct pollfd event = {.fd = static_cast<socket_t>(socket)};
+
+  if (trigger == trigger_t::READ)
+    event.events |= POLLIN;
+
+  if (trigger == trigger_t::WRITE)
+    event.events |= POLLOUT;
+
+  return event;
+}
+
 template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
-    -> state<std::decay_t<Receiver>> {
-  if (!socket->get_error()) {
-    with_lock(std::unique_lock{*mtx},
-              [&] { update_or_insert_event(list, event); });
+    -> state<std::decay_t<Receiver>>
+{
+  using trigger_t = execution_trigger;
+  if (!socket->get_error() && trigger != trigger_t::EAGER)
+  {
+    with_lock(std::unique_lock{*mtx}, [&] {
+      update_or_insert_event(list, make_poll_event(*socket, trigger));
+    });
   }
 
   return {.socket = std::move(socket),
@@ -114,33 +161,23 @@ auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
           .demux = demux,
           .mtx = mtx,
           .receiver = std::forward<Receiver>(receiver),
-          .mask = event.events};
+          .trigger = trigger};
 }
 
 template <Completion Fn>
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 auto poll_multiplexer::set(std::shared_ptr<::io::socket::socket_handle> socket,
                            execution_trigger trigger,
-                           Fn &&func) -> sender<std::decay_t<Fn>> {
-  using native_socket_type = ::io::socket::native_socket_type;
+                           Fn &&func) -> sender<std::decay_t<Fn>>
+{
+  using socket_t = ::io::socket::native_socket_type;
 
-  auto key = static_cast<native_socket_type>(*socket);
+  auto key = static_cast<socket_t>(*socket);
   auto [demux_it, emplaced] = demux_.try_emplace(key);
-
-  auto flags = static_cast<std::uint8_t>(trigger);
-  struct pollfd event {
-    .fd = key
-  };
-
-  if (flags & static_cast<std::uint8_t>(execution_trigger::READ))
-    event.events |= POLLIN;
-
-  if (flags & static_cast<std::uint8_t>(execution_trigger::WRITE))
-    event.events |= POLLOUT;
 
   return {.socket = std::move(socket),
           .func = std::forward<Fn>(func),
-          .event = event,
+          .trigger = trigger,
           .demux = &(demux_it->second),
           .list = &list_,
           .mtx = &mtx_};

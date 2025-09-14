@@ -62,7 +62,8 @@ public:
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
    */
-  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle> {
+  static auto push(socket_handle &&handle) -> std::shared_ptr<socket_handle>
+  {
     if (::io::fcntl(handle, F_SETFL, ::io::fcntl(handle, F_GETFL) | O_NONBLOCK))
       throw_system_error("fcntl failed.");
     return std::make_shared<socket_handle>(std::move(handle));
@@ -74,7 +75,8 @@ public:
    * @return A shared pointer to the emplaced socket handle.
    */
   template <typename... Args>
-  static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle> {
+  static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle>
+  {
     auto ptr = std::make_shared<socket_handle>(std::forward<Args>(args)...);
     if (::io::fcntl(*ptr, F_SETFL, ::io::fcntl(*ptr, F_GETFL) | O_NONBLOCK))
       throw_system_error("fcntl failed.");
@@ -89,7 +91,8 @@ public:
    */
   template <Completion Fn>
   auto set(std::shared_ptr<::io::socket::socket_handle> socket,
-           execution_trigger event, Fn &&exec) -> decltype(auto) {
+           execution_trigger event, Fn &&exec) -> decltype(auto)
+  {
     return scope_.spawn_future(
         Mux::set(std::move(socket), event, std::forward<Fn>(exec)));
   }
@@ -99,7 +102,8 @@ public:
    * @param interval The maximum time to wait for, in milliseconds.
    * @return The number of events that occurred.
    */
-  constexpr auto wait_for(int interval = -1) -> decltype(auto) {
+  constexpr auto wait_for(int interval = -1) -> decltype(auto)
+  {
     return Mux::wait_for(interval_type{interval});
   }
 

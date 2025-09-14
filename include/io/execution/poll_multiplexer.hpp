@@ -30,9 +30,6 @@
 
 #include <poll.h>
 // Forward declarations.
-namespace io {
-struct accept_t;
-} // namespace io
 namespace io::socket {
 class socket_handle;
 } // namespace io::socket
@@ -58,6 +55,17 @@ struct poll_t {
    * @brief A size type.
    */
   using size_type = std::size_t;
+  /**
+   * @brief Type trait to check if an operation should evaluate eagerly.
+   * @tparam Op The operation to check.
+   */
+  template <typename Op> struct is_eager_t : public std::false_type {};
+  /**
+   * @brief Helper variable template for is_eager_t.
+   * @tparam Op The type to check.
+   */
+  template <typename Op>
+  static constexpr bool is_eager_v = is_eager_t<Op>::value;
 };
 
 /**
@@ -129,7 +137,7 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
       /**
        * @brief The completion handler.
        */
-      Fn func{};
+      Fn func;
       /**
        * @brief The demultiplexer for the socket.
        */
@@ -143,9 +151,9 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
        */
       Receiver receiver{};
       /**
-       * @brief The poll event mask.
+       * @brief The poll trigger.
        */
-      short mask = 0;
+      execution_trigger trigger{};
     };
 
     /**
@@ -163,11 +171,11 @@ struct poll_multiplexer : public basic_multiplexer<poll_t> {
     /**
      * @brief The completion handler.
      */
-    Fn func{};
+    Fn func;
     /**
-     * @brief The poll event.
+     * @brief The poll trigger.
      */
-    event_type event{};
+    execution_trigger trigger{};
     /**
      * @brief The demultiplexer for the socket.
      */

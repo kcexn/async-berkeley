@@ -38,7 +38,8 @@ namespace io::execution {
  */
 template <typename Fn>
   requires std::is_invocable_v<Fn>
-auto with_lock(std::unique_lock<std::mutex> lock, Fn &&func) -> decltype(auto) {
+auto with_lock(std::unique_lock<std::mutex> lock, Fn &&func) -> decltype(auto)
+{
   return std::forward<Fn>(func)();
 }
 

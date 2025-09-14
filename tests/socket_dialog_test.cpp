@@ -35,7 +35,8 @@ protected:
   basic_triggers<poll_multiplexer> triggers;
 };
 
-TEST_F(SocketDialogTest, ConnectAcceptOperation) {
+TEST_F(SocketDialogTest, ConnectAcceptOperation)
+{
   auto accept_dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   auto connect_dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   auto address = make_address<sockaddr_in>();
@@ -54,13 +55,13 @@ TEST_F(SocketDialogTest, ConnectAcceptOperation) {
   ASSERT_EQ(bound_address, addr);
 
   auto client_addr = make_address<sockaddr_in>();
-  stdexec::sender auto accept_sender = ::io::accept(accept_dialog, client_addr);
-  stdexec::sender auto connect_sender =
-      ::io::connect(connect_dialog, bound_address);
+  stdexec::sender auto connect = ::io::connect(connect_dialog, bound_address);
+  stdexec::sender auto accept = ::io::accept(accept_dialog, client_addr);
   triggers.wait_for(0);
+
   auto [connect_result, accept_result] =
-      stdexec::sync_wait(stdexec::when_all(std::move(connect_sender),
-                                           std::move(accept_sender)))
+      stdexec::sync_wait(
+          stdexec::when_all(std::move(connect), std::move(accept)))
           .value();
 
   EXPECT_EQ(connect_result, 0);
@@ -68,7 +69,8 @@ TEST_F(SocketDialogTest, ConnectAcceptOperation) {
   EXPECT_NE(handle, INVALID_SOCKET);
 }
 
-TEST_F(SocketDialogTest, SendmsgRecvmsgOperation) {
+TEST_F(SocketDialogTest, SendmsgRecvmsgOperation)
+{
   const char *message = "Hello, World!";
   // NOLINTNEXTLINE
   void *send_buf = reinterpret_cast<void *>(const_cast<char *>(message));

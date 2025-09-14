@@ -36,14 +36,16 @@ protected:
   basic_triggers<poll_multiplexer> triggers;
 };
 
-TEST_F(PollTriggersTest, CopyConstructorTest) {
+TEST_F(PollTriggersTest, CopyConstructorTest)
+{
   auto triggers2 = triggers;
   auto ptr1 = triggers.get_executor().lock();
   auto ptr2 = triggers2.get_executor().lock();
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
-TEST_F(PollTriggersTest, CopyAssignmentTest) {
+TEST_F(PollTriggersTest, CopyAssignmentTest)
+{
   basic_triggers<poll_multiplexer> triggers2;
   triggers2 = triggers;
   auto ptr1 = triggers.get_executor().lock();
@@ -51,7 +53,8 @@ TEST_F(PollTriggersTest, CopyAssignmentTest) {
   EXPECT_TRUE(ptr1.get() == ptr2.get());
 }
 
-TEST_F(PollTriggersTest, MoveConstructorTest) {
+TEST_F(PollTriggersTest, MoveConstructorTest)
+{
   basic_triggers<poll_multiplexer> triggers1;
   auto ptr1 = triggers1.get_executor().lock();
   EXPECT_TRUE(ptr1);
@@ -64,7 +67,8 @@ TEST_F(PollTriggersTest, MoveConstructorTest) {
   EXPECT_TRUE(addr1 == addr2);
 }
 
-TEST_F(PollTriggersTest, MoveAssignmentTest) {
+TEST_F(PollTriggersTest, MoveAssignmentTest)
+{
   // NOLINTNEXTLINE
   basic_triggers<poll_multiplexer> triggers1, triggers2;
   auto ptr1 = triggers1.get_executor().lock();
@@ -81,14 +85,16 @@ TEST_F(PollTriggersTest, MoveAssignmentTest) {
   EXPECT_TRUE(addr2 == addr1);
 }
 
-TEST_F(PollTriggersTest, SelfSwapTest) {
+TEST_F(PollTriggersTest, SelfSwapTest)
+{
   basic_triggers<poll_multiplexer> triggers1;
   using std::swap;
   swap(triggers1, triggers1);
   EXPECT_TRUE(&triggers1 == &triggers1);
 }
 
-TEST_F(PollTriggersTest, PushHandleTest) {
+TEST_F(PollTriggersTest, PushHandleTest)
+{
   using socket_handle = ::io::socket::socket_handle;
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   auto sockfd = static_cast<int>(socket);
@@ -99,7 +105,8 @@ TEST_F(PollTriggersTest, PushHandleTest) {
   EXPECT_TRUE(sockfd == *ptr);
 }
 
-TEST_F(PollTriggersTest, EmplaceHandleTest) {
+TEST_F(PollTriggersTest, EmplaceHandleTest)
+{
   auto dialog = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   auto ptr = dialog.socket;
   EXPECT_TRUE(ptr);
@@ -112,17 +119,20 @@ TEST_F(PollTriggersTest, EmplaceHandleTest) {
   EXPECT_TRUE(*ptr == sockfd);
 }
 
-TEST_F(PollTriggersTest, PollErrorHandlingTest) {
+TEST_F(PollTriggersTest, PollErrorHandlingTest)
+{
   handle_poll_error(EINTR);
   EXPECT_THROW(handle_poll_error(EAGAIN), std::system_error);
 }
 
-TEST_F(PollTriggersTest, PollTest) {
+TEST_F(PollTriggersTest, PollTest)
+{
   auto list = poll_({}, 0);
   EXPECT_TRUE(list.empty());
 }
 
-TEST_F(PollTriggersTest, PollSetErrorTest) {
+TEST_F(PollTriggersTest, PollSetErrorTest)
+{
   using socket_handle = ::io::socket::socket_handle;
 
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
@@ -135,7 +145,8 @@ TEST_F(PollTriggersTest, PollSetErrorTest) {
   EXPECT_EQ(socket2.get_error().value(), EBADF);
 }
 
-TEST_F(PollTriggersTest, PollPrepareHandlesTest) {
+TEST_F(PollTriggersTest, PollPrepareHandlesTest)
+{
   using socket_handle = ::io::socket::socket_handle;
 
   poll_multiplexer::demultiplexer demux{};
@@ -166,7 +177,8 @@ TEST_F(PollTriggersTest, PollPrepareHandlesTest) {
   EXPECT_EQ(queues[0].size(), 1);
 }
 
-TEST_F(PollTriggersTest, MakeReadyQueuesTest) {
+TEST_F(PollTriggersTest, MakeReadyQueuesTest)
+{
   std::vector<pollfd> list{{.fd = 1, .events = POLLIN, .revents = 0}};
   std::map<int, poll_multiplexer::demultiplexer> demux{};
 
@@ -174,7 +186,8 @@ TEST_F(PollTriggersTest, MakeReadyQueuesTest) {
   EXPECT_TRUE(ready.empty());
 }
 
-TEST_F(PollTriggersTest, SubmitTest) {
+TEST_F(PollTriggersTest, SubmitTest)
+{
   using trigger = execution_trigger;
   using socket_handle = ::io::socket::socket_handle;
 
@@ -203,7 +216,8 @@ TEST_F(PollTriggersTest, SubmitTest) {
   EXPECT_EQ(buf2[0], 'b');
 }
 
-TEST_F(PollTriggersTest, AsyncAcceptTest) {
+TEST_F(PollTriggersTest, AsyncAcceptTest)
+{
   using ::io::socket::make_address;
 
   basic_triggers<poll_multiplexer> triggers1;

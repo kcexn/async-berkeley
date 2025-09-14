@@ -35,26 +35,31 @@ protected:
   void TearDown() override {}
 };
 
-TEST_F(SocketHandleTest, DefaultConstruction) {
+TEST_F(SocketHandleTest, DefaultConstruction)
+{
   socket_handle handle;
 
   EXPECT_FALSE(static_cast<bool>(handle));
   EXPECT_TRUE(handle == INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, ValidSocketCreation) {
+TEST_F(SocketHandleTest, ValidSocketCreation)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   EXPECT_TRUE(static_cast<bool>(handle));
   EXPECT_FALSE(handle == INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, InvalidSocketCreation) {
+TEST_F(SocketHandleTest, InvalidSocketCreation)
+{
+  EXPECT_FALSE(is_valid_socket(-1));
   EXPECT_THROW({ socket_handle handle(-1, -1, -1); }, std::system_error);
-  EXPECT_THROW({ socket_handle handle(-1); }, std::system_error);
+  EXPECT_THROW({ socket_handle handle(6); }, std::system_error);
 }
 
-TEST_F(SocketHandleTest, NativeSocketConstruction) {
+TEST_F(SocketHandleTest, NativeSocketConstruction)
+{
   int native_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   ASSERT_NE(native_socket, -1);
 
@@ -64,7 +69,8 @@ TEST_F(SocketHandleTest, NativeSocketConstruction) {
   EXPECT_TRUE(handle == native_socket);
 }
 
-TEST_F(SocketHandleTest, MoveConstructor) {
+TEST_F(SocketHandleTest, MoveConstructor)
+{
   socket_handle original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_handle moved(std::move(original));
@@ -76,7 +82,8 @@ TEST_F(SocketHandleTest, MoveConstructor) {
   EXPECT_TRUE(original == INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, MoveAssignment) {
+TEST_F(SocketHandleTest, MoveAssignment)
+{
   socket_handle original(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_handle target;
@@ -89,7 +96,8 @@ TEST_F(SocketHandleTest, MoveAssignment) {
   EXPECT_TRUE(original == INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, SelfMoveAssignment) {
+TEST_F(SocketHandleTest, SelfMoveAssignment)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   auto original_socket = static_cast<native_socket_type>(handle);
 
@@ -108,7 +116,8 @@ TEST_F(SocketHandleTest, SelfMoveAssignment) {
   EXPECT_EQ(static_cast<native_socket_type>(handle), original_socket);
 }
 
-TEST_F(SocketHandleTest, SwapFunction) {
+TEST_F(SocketHandleTest, SwapFunction)
+{
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -122,7 +131,8 @@ TEST_F(SocketHandleTest, SwapFunction) {
   EXPECT_NE(handle1, handle2);
 }
 
-TEST_F(SocketHandleTest, SwapWithInvalidSocket) {
+TEST_F(SocketHandleTest, SwapWithInvalidSocket)
+{
   socket_handle valid_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle invalid_handle;
 
@@ -134,7 +144,8 @@ TEST_F(SocketHandleTest, SwapWithInvalidSocket) {
   EXPECT_FALSE(invalid_handle == INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, SwapWithSelf) {
+TEST_F(SocketHandleTest, SwapWithSelf)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   // Store the original socket for comparison
@@ -149,25 +160,31 @@ TEST_F(SocketHandleTest, SwapWithSelf) {
   EXPECT_EQ(static_cast<native_socket_type>(handle), original_socket);
 }
 
-TEST_F(SocketHandleTest, ComparisonOperators) {
+TEST_F(SocketHandleTest, ComparisonOperators)
+{
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle invalid_handle;
 
   auto cmp = handle1 <=> handle2;
-  if (cmp < 0) {
+  if (cmp < 0)
+  {
     EXPECT_TRUE(handle1 < handle2);
     EXPECT_FALSE(handle1 > handle2);
     EXPECT_TRUE(handle1 <= handle2);
     EXPECT_FALSE(handle1 >= handle2);
     EXPECT_TRUE(handle1 != handle2);
-  } else if (cmp > 0) {
+  }
+  else if (cmp > 0)
+  {
     EXPECT_FALSE(handle1 < handle2);
     EXPECT_TRUE(handle1 > handle2);
     EXPECT_FALSE(handle1 <= handle2);
     EXPECT_TRUE(handle1 >= handle2);
     EXPECT_TRUE(handle1 != handle2);
-  } else {
+  }
+  else
+  {
     EXPECT_FALSE(handle1 < handle2);
     EXPECT_FALSE(handle1 > handle2);
     EXPECT_TRUE(handle1 <= handle2);
@@ -181,7 +198,8 @@ TEST_F(SocketHandleTest, ComparisonOperators) {
   EXPECT_TRUE(invalid_handle != handle2);
 }
 
-TEST_F(SocketHandleTest, CommutativeEquality) {
+TEST_F(SocketHandleTest, CommutativeEquality)
+{
   int native_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   ASSERT_NE(native_socket, -1);
 
@@ -197,7 +215,8 @@ TEST_F(SocketHandleTest, CommutativeEquality) {
   EXPECT_TRUE(INVALID_SOCKET == handle || handle == native_socket);
 }
 
-TEST_F(SocketHandleTest, ThreadSafetyAccess) {
+TEST_F(SocketHandleTest, ThreadSafetyAccess)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   constexpr int num_threads = 10;
@@ -205,9 +224,11 @@ TEST_F(SocketHandleTest, ThreadSafetyAccess) {
   std::vector<std::thread> threads;
   std::vector<bool> results(num_threads * operations_per_thread, false);
 
-  for (int t = 0; t < num_threads; ++t) {
+  for (int t = 0; t < num_threads; ++t)
+  {
     threads.emplace_back([&handle, &results, t, operations_per_thread] {
-      for (int i = 0; i < operations_per_thread; ++i) {
+      for (int i = 0; i < operations_per_thread; ++i)
+      {
         int index = t * operations_per_thread + i;
 
         bool is_valid = static_cast<bool>(handle);
@@ -223,7 +244,8 @@ TEST_F(SocketHandleTest, ThreadSafetyAccess) {
     });
   }
 
-  for (auto &thread : threads) {
+  for (auto &thread : threads)
+  {
     thread.join();
   }
 
@@ -231,7 +253,8 @@ TEST_F(SocketHandleTest, ThreadSafetyAccess) {
                           [](bool result) { return result; }));
 }
 
-TEST_F(SocketHandleTest, ThreadSafetyComparison) {
+TEST_F(SocketHandleTest, ThreadSafetyComparison)
+{
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -240,14 +263,18 @@ TEST_F(SocketHandleTest, ThreadSafetyComparison) {
   std::vector<std::thread> threads;
   std::atomic<int> successful_operations{0};
 
-  for (int t = 0; t < num_threads; ++t) {
+  for (int t = 0; t < num_threads; ++t)
+  {
     threads.emplace_back(
         [&handle1, &handle2, &successful_operations, operations_per_thread] {
-          for (int i = 0; i < operations_per_thread; ++i) {
-            try {
+          for (int i = 0; i < operations_per_thread; ++i)
+          {
+            try
+            {
               [[maybe_unused]] auto result = handle1 <=> handle2;
               successful_operations.fetch_add(1, std::memory_order_relaxed);
-            } catch (...) {
+            } catch (...)
+            {
               // Unexpected exception
             }
 
@@ -256,14 +283,16 @@ TEST_F(SocketHandleTest, ThreadSafetyComparison) {
         });
   }
 
-  for (auto &thread : threads) {
+  for (auto &thread : threads)
+  {
     thread.join();
   }
 
   EXPECT_EQ(successful_operations.load(), num_threads * operations_per_thread);
 }
 
-TEST_F(SocketHandleTest, ThreadSafetySwap) {
+TEST_F(SocketHandleTest, ThreadSafetySwap)
+{
   socket_handle handle1(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   socket_handle handle2(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -274,16 +303,19 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
   constexpr int num_swaps = 1000;
   std::vector<std::thread> threads;
 
-  for (int t = 0; t < 4; ++t) {
+  for (int t = 0; t < 4; ++t)
+  {
     threads.emplace_back([&handle1, &handle2] {
-      for (int i = 0; i < num_swaps; ++i) {
+      for (int i = 0; i < num_swaps; ++i)
+      {
         swap(handle1, handle2);
         std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
     });
   }
 
-  for (auto &thread : threads) {
+  for (auto &thread : threads)
+  {
     thread.join();
   }
 
@@ -298,7 +330,8 @@ TEST_F(SocketHandleTest, ThreadSafetySwap) {
               (current1 == original2 && current2 == original1));
 }
 
-TEST_F(SocketHandleTest, SocketAccess) {
+TEST_F(SocketHandleTest, SocketAccess)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   // Test access to socket value through explicit conversion
@@ -309,7 +342,8 @@ TEST_F(SocketHandleTest, SocketAccess) {
   EXPECT_EQ(static_cast<bool>(handle), socket_value != INVALID_SOCKET);
 }
 
-TEST_F(SocketHandleTest, ExplicitNativeSocketTypeConversion) {
+TEST_F(SocketHandleTest, ExplicitNativeSocketTypeConversion)
+{
   // Test with valid socket
   socket_handle valid_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -332,16 +366,20 @@ TEST_F(SocketHandleTest, ExplicitNativeSocketTypeConversion) {
   // Test that explicit conversion is thread-safe
   std::atomic<bool> conversion_succeeded{true};
   std::thread t([&valid_handle, &conversion_succeeded] {
-    try {
-      for (int i = 0; i < 100; ++i) {
+    try
+    {
+      for (int i = 0; i < 100; ++i)
+      {
         native_socket_type socket_val =
             static_cast<native_socket_type>(valid_handle);
-        if (socket_val == INVALID_SOCKET) {
+        if (socket_val == INVALID_SOCKET)
+        {
           conversion_succeeded = false;
           break;
         }
       }
-    } catch (...) {
+    } catch (...)
+    {
       conversion_succeeded = false;
     }
   });
@@ -350,7 +388,8 @@ TEST_F(SocketHandleTest, ExplicitNativeSocketTypeConversion) {
   EXPECT_TRUE(conversion_succeeded.load());
 }
 
-TEST_F(SocketHandleTest, SetErrorAndGetError) {
+TEST_F(SocketHandleTest, SetErrorAndGetError)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   // Initially, no error should be set (error code 0)
@@ -382,7 +421,8 @@ TEST_F(SocketHandleTest, SetErrorAndGetError) {
   EXPECT_EQ(reset_error.value(), 0);
 }
 
-TEST_F(SocketHandleTest, ErrorHandlingThreadSafety) {
+TEST_F(SocketHandleTest, ErrorHandlingThreadSafety)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   constexpr int num_threads = 10;
@@ -391,11 +431,14 @@ TEST_F(SocketHandleTest, ErrorHandlingThreadSafety) {
   std::atomic<int> successful_operations{0};
 
   // Test concurrent set_error and get_error operations
-  for (int t = 0; t < num_threads; ++t) {
+  for (int t = 0; t < num_threads; ++t)
+  {
     threads.emplace_back(
         [&handle, &successful_operations, t, operations_per_thread] {
-          for (int i = 0; i < operations_per_thread; ++i) {
-            try {
+          for (int i = 0; i < operations_per_thread; ++i)
+          {
+            try
+            {
               // Set error with thread-specific value to detect races
               int error_value = (t * operations_per_thread + i) % 256;
               handle.set_error(error_value);
@@ -405,19 +448,22 @@ TEST_F(SocketHandleTest, ErrorHandlingThreadSafety) {
 
               // Verify the error code is valid (though may not match exactly
               // due to races)
-              if (error.category() == std::system_category()) {
+              if (error.category() == std::system_category())
+              {
                 successful_operations.fetch_add(1, std::memory_order_relaxed);
               }
 
               std::this_thread::sleep_for(std::chrono::microseconds(1));
-            } catch (...) {
+            } catch (...)
+            {
               // Unexpected exception
             }
           }
         });
   }
 
-  for (auto &thread : threads) {
+  for (auto &thread : threads)
+  {
     thread.join();
   }
 
@@ -431,11 +477,13 @@ TEST_F(SocketHandleTest, ErrorHandlingThreadSafety) {
 
 class SocketHandleRAIITest : public ::testing::Test {
 protected:
-  int create_and_get_socket() {
+  int create_and_get_socket()
+  {
     return ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   }
 
-  bool is_socket_valid(int sock) {
+  bool is_socket_valid(int sock)
+  {
     if (sock == -1)
       return false;
 
@@ -446,7 +494,8 @@ protected:
   }
 };
 
-TEST_F(SocketHandleRAIITest, DestructorClosesSocket) {
+TEST_F(SocketHandleRAIITest, DestructorClosesSocket)
+{
   int native_socket = create_and_get_socket();
   EXPECT_TRUE(is_socket_valid(native_socket));
 
@@ -460,7 +509,8 @@ TEST_F(SocketHandleRAIITest, DestructorClosesSocket) {
 
 class SocketHandleOperationsTest : public ::testing::Test {
 protected:
-  void SetUp() override {
+  void SetUp() override
+  {
     auto *addr = reinterpret_cast<sockaddr_in *>(std::ranges::data(in_address));
     addr->sin_family = AF_INET;
     addr->sin_addr.s_addr = INADDR_ANY;
@@ -471,7 +521,8 @@ protected:
   socket_address<sockaddr_in> in_address{};
 };
 
-TEST_F(SocketHandleOperationsTest, AcceptTagInvoke) {
+TEST_F(SocketHandleOperationsTest, AcceptTagInvoke)
+{
   socket_handle server(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   ASSERT_EQ(::io::bind(server, in_address), 0);
@@ -496,18 +547,21 @@ TEST_F(SocketHandleOperationsTest, AcceptTagInvoke) {
   EXPECT_EQ(client_addr, addr);
 }
 
-TEST_F(SocketHandleOperationsTest, BindTagInvoke) {
+TEST_F(SocketHandleOperationsTest, BindTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   EXPECT_EQ(::io::bind(handle, in_address), 0);
 }
 
-TEST_F(SocketHandleOperationsTest, ListenTagInvoke) {
+TEST_F(SocketHandleOperationsTest, ListenTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   ASSERT_EQ(::io::bind(handle, in_address), 0);
   EXPECT_EQ(::io::listen(handle, SOMAXCONN), 0);
 }
 
-TEST_F(SocketHandleOperationsTest, ConnectTagInvoke) {
+TEST_F(SocketHandleOperationsTest, ConnectTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   auto address = make_address<sockaddr_in>();
@@ -519,7 +573,8 @@ TEST_F(SocketHandleOperationsTest, ConnectTagInvoke) {
   EXPECT_TRUE(errno == ECONNREFUSED || errno == EADDRNOTAVAIL);
 }
 
-TEST_F(SocketHandleOperationsTest, FcntlTagInvoke) {
+TEST_F(SocketHandleOperationsTest, FcntlTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   int flags = ::io::fcntl(handle, F_GETFL);
@@ -533,7 +588,8 @@ TEST_F(SocketHandleOperationsTest, FcntlTagInvoke) {
   EXPECT_TRUE(new_flags & O_NONBLOCK);
 }
 
-TEST_F(SocketHandleOperationsTest, GetpeernameTagInvoke) {
+TEST_F(SocketHandleOperationsTest, GetpeernameTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   auto address = make_address<sockaddr_in>();
@@ -541,7 +597,8 @@ TEST_F(SocketHandleOperationsTest, GetpeernameTagInvoke) {
   EXPECT_EQ(result.data(), nullptr);
 }
 
-TEST_F(SocketHandleOperationsTest, GetsocknameTagInvoke) {
+TEST_F(SocketHandleOperationsTest, GetsocknameTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   ASSERT_EQ(::io::bind(handle, in_address), 0);
@@ -552,7 +609,8 @@ TEST_F(SocketHandleOperationsTest, GetsocknameTagInvoke) {
   EXPECT_LT(result.size(), sizeof(sockaddr_storage_type));
 }
 
-TEST_F(SocketHandleOperationsTest, GetsockoptTagInvoke) {
+TEST_F(SocketHandleOperationsTest, GetsockoptTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_option<int> type{};
@@ -562,7 +620,8 @@ TEST_F(SocketHandleOperationsTest, GetsockoptTagInvoke) {
   EXPECT_EQ(*type, SOCK_STREAM);
 }
 
-TEST_F(SocketHandleOperationsTest, SetsockoptTagInvoke) {
+TEST_F(SocketHandleOperationsTest, SetsockoptTagInvoke)
+{
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_option<int> reuse{1};

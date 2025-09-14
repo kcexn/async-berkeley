@@ -42,14 +42,16 @@ namespace io::socket {
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] accept_t *ptr, const Socket &socket,
-                std::span<std::byte> address) -> decltype(auto) {
+                std::span<std::byte> address) -> decltype(auto)
+{
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto *sockaddr = reinterpret_cast<sockaddr_type *>(address.data());
   socklen_type socklen = address.size();
 
   native_socket_type sockfd = INVALID_SOCKET;
   while ((sockfd = ::accept(static_cast<native_socket_type>(socket), sockaddr,
-                            &socklen)) == INVALID_SOCKET) {
+                            &socklen)) == INVALID_SOCKET)
+  {
     if (errno != EINTR)
       break;
   }
@@ -66,7 +68,8 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] bind_t *ptr, const Socket &socket,
-                std::span<const std::byte> address) -> int {
+                std::span<const std::byte> address) -> int
+{
   const auto *sockaddr =
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       reinterpret_cast<const sockaddr_type *>(address.data());
@@ -83,13 +86,15 @@ auto tag_invoke([[maybe_unused]] bind_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] connect_t *ptr, const Socket &socket,
-                std::span<const std::byte> address) -> int {
+                std::span<const std::byte> address) -> int
+{
   int ret = -1;
   while ((ret = ::connect(
               static_cast<native_socket_type>(socket),
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               reinterpret_cast<const sockaddr_type *>(address.data()),
-              address.size())) == -1) {
+              address.size())) == -1)
+  {
     if (errno != EINTR)
       break;
   }
@@ -107,7 +112,8 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket, typename... Args>
 auto tag_invoke([[maybe_unused]] fcntl_t *ptr, const Socket &socket,
-                Args &&...args) -> int {
+                Args &&...args) -> int
+{
   return ::io::socket::fcntl(static_cast<native_socket_type>(socket),
                              std::forward<Args>(args)...);
 }
@@ -121,13 +127,15 @@ auto tag_invoke([[maybe_unused]] fcntl_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] getpeername_t *tag, const Socket &socket,
-                std::span<std::byte> address) -> std::span<const std::byte> {
+                std::span<std::byte> address) -> std::span<const std::byte>
+{
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto *sockaddr = reinterpret_cast<sockaddr_type *>(address.data());
   socklen_type socklen = address.size();
 
   if (::getpeername(static_cast<native_socket_type>(socket), sockaddr,
-                    &socklen)) {
+                    &socklen))
+  {
     return {};
   }
 
@@ -143,13 +151,15 @@ auto tag_invoke([[maybe_unused]] getpeername_t *tag, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] getsockname_t *ptr, const Socket &socket,
-                std::span<std::byte> address) -> std::span<const std::byte> {
+                std::span<std::byte> address) -> std::span<const std::byte>
+{
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto *sockaddr = reinterpret_cast<sockaddr_type *>(address.data());
   socklen_type socklen = address.size();
 
   if (::getsockname(static_cast<native_socket_type>(socket), sockaddr,
-                    &socklen)) {
+                    &socklen))
+  {
     return {};
   }
 
@@ -169,7 +179,8 @@ auto tag_invoke([[maybe_unused]] getsockname_t *ptr, const Socket &socket,
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] getsockopt_t *ptr, const Socket &socket,
                 int level, int optname,
-                std::span<std::byte> option) -> decltype(auto) {
+                std::span<std::byte> option) -> decltype(auto)
+{
   void *optval = option.data();
   socklen_type optlen = option.size();
 
@@ -190,7 +201,8 @@ auto tag_invoke([[maybe_unused]] getsockopt_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] listen_t *ptr, const Socket &socket,
-                int backlog) -> int {
+                int backlog) -> int
+{
   return ::listen(static_cast<native_socket_type>(socket), backlog);
 }
 
@@ -205,12 +217,14 @@ auto tag_invoke([[maybe_unused]] listen_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket, MessageLike Message>
 auto tag_invoke([[maybe_unused]] recvmsg_t *ptr, const Socket &socket,
-                Message &msg, int flags) -> std::streamsize {
+                Message &msg, int flags) -> std::streamsize
+{
   std::streamsize len = -1;
   auto msghdr = static_cast<socket_message_type>(msg);
 
   while ((len = ::recvmsg(static_cast<native_socket_type>(socket), &msghdr,
-                          flags)) < 0) {
+                          flags)) < 0)
+  {
     if (errno != EINTR)
       break;
   }
@@ -229,12 +243,14 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket, MessageLike Message>
 auto tag_invoke([[maybe_unused]] sendmsg_t *ptr, const Socket &socket,
-                Message msg, int flags) -> std::streamsize {
+                Message msg, int flags) -> std::streamsize
+{
   std::streamsize len = 0;
   auto msghdr = static_cast<socket_message_type>(msg);
 
   while ((len = ::sendmsg(static_cast<native_socket_type>(socket), &msghdr,
-                          flags)) < 0) {
+                          flags)) < 0)
+  {
     if (errno != EINTR)
       break;
   }
@@ -254,7 +270,8 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr, const Socket &socket,
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] setsockopt_t *ptr, const Socket &socket,
                 int level, int optname,
-                std::span<const std::byte> option) -> int {
+                std::span<const std::byte> option) -> int
+{
   return ::setsockopt(static_cast<native_socket_type>(socket), level, optname,
                       option.data(), option.size());
 }
@@ -269,7 +286,8 @@ auto tag_invoke([[maybe_unused]] setsockopt_t *ptr, const Socket &socket,
  */
 template <SocketLike Socket>
 auto tag_invoke([[maybe_unused]] shutdown_t *ptr, const Socket &socket,
-                int how) -> int {
+                int how) -> int
+{
   return ::shutdown(static_cast<native_socket_type>(socket), how);
 }
 

@@ -71,7 +71,8 @@
  *
  * @param msg The error message to include in the exception.
  */
-inline auto throw_system_error(const std::string &msg) -> void {
-  throw std::system_error(errno, std::generic_category(), msg);
+inline auto throw_system_error(const std::string &msg) -> void
+{
+  throw std::system_error(errno, std::system_category(), msg);
 }
 #endif // IO_ERROR_HPP

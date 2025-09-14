@@ -46,7 +46,8 @@ namespace detail {
  */
 template <Multiplexer Mux>
 auto get_executor(const socket_dialog<Mux> &dialog)
-    -> std::shared_ptr<typename socket_dialog<Mux>::executor_type> {
+    -> std::shared_ptr<typename socket_dialog<Mux>::executor_type>
+{
   if (auto executor = dialog.executor.lock())
     return std::move(executor);
 
@@ -59,8 +60,10 @@ auto get_executor(const socket_dialog<Mux> &dialog)
  * @param dialog The socket dialog to get the executor from.
  */
 template <Multiplexer Mux>
-auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void {
-  switch (int error = errno) {
+auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void
+{
+  switch (int error = errno)
+  {
   case EINPROGRESS:
   case EAGAIN:
   case EALREADY:
@@ -71,6 +74,16 @@ auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void {
     dialog.socket->set_error(error);
   }
 }
+
+struct fairness {
+  using counter_type = std::uint8_t;
+
+  static auto counter() -> std::atomic<counter_type> &
+  {
+    static std::atomic<counter_type> counter;
+    return counter;
+  }
+};
 } // namespace detail
 
 /**
@@ -84,19 +97,47 @@ auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void {
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] accept_t *ptr,
                 const socket_dialog<Mux> &dialog,
-                std::span<std::byte> address) -> decltype(auto) {
-  using trigger = ::io::execution::execution_trigger;
-  using detail::get_executor;
+                std::span<std::byte> address) -> decltype(auto)
+{
+  using result_t = decltype(::io::accept(*dialog.socket, address));
+  using callback = std::function<std::optional<result_t>()>;
+  using trigger_t = ::io::execution::execution_trigger;
+  constexpr auto READ = trigger_t::READ;
+  constexpr auto EAGER = trigger_t::EAGER;
+  using namespace detail;
 
   auto executor = get_executor(dialog);
+  auto &socket = dialog.socket;
 
-  return executor->set(dialog.socket, trigger::READ,
-                       [socket = dialog.socket.get(), address] {
+  if constexpr (Mux::template is_eager_v<accept_t>)
+  {
+    if (++fairness::counter())
+    {
+      auto result = ::io::accept(*socket, address);
+
+      if (result.first)
+      {
+        auto res = std::make_shared<result_t>(std::move(result));
+        return executor->set(socket, EAGER, callback([res = std::move(res)] {
+                               return std::optional<result_t>{std::move(*res)};
+                             }));
+      }
+
+      int error = errno;
+      if (error != EWOULDBLOCK && error != EAGAIN)
+      {
+        socket->set_error(error);
+        return executor->set(socket, EAGER, callback{});
+      }
+    }
+  }
+
+  return executor->set(socket, READ, callback([=, socket = socket.get()] {
                          auto result = ::io::accept(*socket, address);
-                         return (result.first == INVALID_SOCKET)
-                                    ? std::optional<decltype(result)>{}
+                         return (result.first)
+                                    ? std::nullopt
                                     : std::optional{std::move(result)};
-                       });
+                       }));
 }
 
 /**
@@ -108,7 +149,8 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
  */
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] bind_t *ptr, const socket_dialog<Mux> &dialog,
-                std::span<const std::byte> address) -> decltype(auto) {
+                std::span<const std::byte> address) -> decltype(auto)
+{
   return ::io::bind(*dialog.socket, address);
 }
 
@@ -122,17 +164,19 @@ auto tag_invoke([[maybe_unused]] bind_t *ptr, const socket_dialog<Mux> &dialog,
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] connect_t *ptr,
                 const socket_dialog<Mux> &dialog,
-                std::span<const std::byte> address) -> decltype(auto) {
+                std::span<const std::byte> address) -> decltype(auto)
+{
 
   using trigger = ::io::execution::execution_trigger;
   using namespace detail;
 
   auto executor = get_executor(dialog);
+  auto &socket = dialog.socket;
 
-  if (::io::connect(*dialog.socket, address))
+  if (::io::connect(*socket, address))
     handle_connect_error(dialog);
 
-  return executor->set(dialog.socket, trigger::WRITE,
+  return executor->set(socket, trigger::WRITE,
                        [] { return std::optional<int>{0}; });
 }
 
@@ -146,7 +190,8 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
  */
 template <Multiplexer Mux, typename... Args>
 auto tag_invoke([[maybe_unused]] fcntl_t *ptr, const socket_dialog<Mux> &dialog,
-                Args &&...args) -> decltype(auto) {
+                Args &&...args) -> decltype(auto)
+{
   return ::io::fcntl(*dialog.socket, std::forward<Args>(args)...);
 }
 
@@ -160,7 +205,8 @@ auto tag_invoke([[maybe_unused]] fcntl_t *ptr, const socket_dialog<Mux> &dialog,
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] getpeername_t *ptr,
                 const socket_dialog<Mux> &dialog,
-                std::span<std::byte> address) -> decltype(auto) {
+                std::span<std::byte> address) -> decltype(auto)
+{
   return ::io::getpeername(*dialog.socket, address);
 }
 
@@ -174,7 +220,8 @@ auto tag_invoke([[maybe_unused]] getpeername_t *ptr,
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] getsockname_t *ptr,
                 const socket_dialog<Mux> &dialog,
-                std::span<std::byte> address) -> decltype(auto) {
+                std::span<std::byte> address) -> decltype(auto)
+{
   return ::io::getsockname(*dialog.socket, address);
 }
 
@@ -190,7 +237,8 @@ auto tag_invoke([[maybe_unused]] getsockname_t *ptr,
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] getsockopt_t *ptr,
                 const socket_dialog<Mux> &dialog, int level, int optname,
-                std::span<std::byte> option) -> decltype(auto) {
+                std::span<std::byte> option) -> decltype(auto)
+{
   return ::io::getsockopt(*dialog.socket, level, optname, option);
 }
 
@@ -201,25 +249,52 @@ auto tag_invoke([[maybe_unused]] getsockopt_t *ptr,
  * @param dialog The socket dialog.
  * @param msg The message to receive into.
  * @param flags The message flags.
- * @return A future that will contain the number of bytes received, or an empty
+ * @return A sender that will contain the number of bytes received, or an empty
  * optional on error.
  */
 template <Multiplexer Mux, MessageLike Message>
 auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
                 const socket_dialog<Mux> &dialog, Message &msg,
-                int flags) -> decltype(auto) {
-  using trigger = ::io::execution::execution_trigger;
-  using detail::get_executor;
+                int flags) -> decltype(auto)
+{
+  using result_t = std::streamsize;
+  using callback = std::function<std::optional<result_t>()>;
+  using trigger_t = ::io::execution::execution_trigger;
+  constexpr auto READ = trigger_t::READ;
+  constexpr auto EAGER = trigger_t::EAGER;
+  using namespace detail;
 
   auto executor = get_executor(dialog);
+  auto &socket = dialog.socket;
+
+  if constexpr (Mux::template is_eager_v<recvmsg_t>)
+  {
+    if (++fairness::counter())
+    {
+      result_t len = ::io::recvmsg(*socket, msg, flags);
+
+      if (len >= 0)
+      {
+        return executor->set(socket, EAGER, callback([len] {
+                               return std::optional<result_t>{len};
+                             }));
+      }
+
+      int error = errno;
+      if (error != EWOULDBLOCK && error != EAGAIN)
+      {
+        socket->set_error(error);
+        return executor->set(socket, EAGER, callback{});
+      }
+    }
+  }
 
   auto msghdr = static_cast<socket_message_type>(msg);
   return executor->set(
-      dialog.socket, trigger::READ, [=, socket = dialog.socket.get()] {
+      socket, READ, callback([=, socket = socket.get()] {
         std::streamsize len = ::io::recvmsg(*socket, msghdr, flags);
-        return (len < 0) ? std::optional<std::streamsize>{}
-                         : std::optional<std::streamsize>{len};
-      });
+        return (len < 0) ? std::nullopt : std::optional<result_t>{len};
+      }));
 }
 
 /**
@@ -229,25 +304,51 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
  * @param dialog The socket dialog.
  * @param msg The message to send.
  * @param flags The message flags.
- * @return A future that will contain the number of bytes sent, or an empty
+ * @return A sender that will contain the number of bytes sent, or an empty
  * optional on error.
  */
 template <Multiplexer Mux, MessageLike Message>
 auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
                 const socket_dialog<Mux> &dialog, const Message &msg,
-                int flags) -> decltype(auto) {
-  using trigger = ::io::execution::execution_trigger;
-  using detail::get_executor;
+                int flags) -> decltype(auto)
+{
+  using result_t = std::streamsize;
+  using callback = std::function<std::optional<result_t>()>;
+  using trigger_t = ::io::execution::execution_trigger;
+  constexpr auto WRITE = trigger_t::WRITE;
+  constexpr auto EAGER = trigger_t::EAGER;
+  using namespace detail;
 
   auto executor = get_executor(dialog);
+  auto &socket = dialog.socket;
 
-  return executor->set(dialog.socket, trigger::WRITE,
-                       [socket = dialog.socket.get(), msg, flags] {
-                         std::streamsize len =
-                             ::io::sendmsg(*socket, std::move(msg), flags);
-                         return (len < 0) ? std::optional<std::streamsize>{}
-                                          : std::optional<std::streamsize>{len};
-                       });
+  if constexpr (Mux::template is_eager_v<sendmsg_t>)
+  {
+    if (++fairness::counter())
+    {
+      std::streamsize len = ::io::sendmsg(*socket, msg, flags | MSG_NOSIGNAL);
+
+      if (len >= 0)
+      {
+        return executor->set(socket, EAGER, callback([len] {
+                               return std::optional<result_t>{len};
+                             }));
+      }
+
+      int error = errno;
+      if (error != EWOULDBLOCK && error != EAGAIN)
+      {
+        socket->set_error(error);
+        return executor->set(socket, EAGER, callback{});
+      }
+    }
+  }
+
+  return executor->set(
+      socket, WRITE, callback([=, socket = socket.get()] {
+        result_t len = ::io::sendmsg(*socket, msg, flags | MSG_NOSIGNAL);
+        return (len < 0) ? std::nullopt : std::optional<result_t>{len};
+      }));
 }
 
 /**
@@ -261,7 +362,8 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
  */
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] listen_t *ptr,
-                const socket_dialog<Mux> &dialog, int backlog) -> int {
+                const socket_dialog<Mux> &dialog, int backlog) -> int
+{
   return ::io::listen(*dialog.socket, backlog);
 }
 
@@ -277,7 +379,8 @@ auto tag_invoke([[maybe_unused]] listen_t *ptr,
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] setsockopt_t *ptr,
                 const socket_dialog<Mux> &dialog, int level, int optname,
-                std::span<const std::byte> option) -> int {
+                std::span<const std::byte> option) -> int
+{
   return ::io::setsockopt(*dialog.socket, level, optname, option);
 }
 
@@ -290,7 +393,8 @@ auto tag_invoke([[maybe_unused]] setsockopt_t *ptr,
  */
 template <Multiplexer Mux>
 auto tag_invoke([[maybe_unused]] shutdown_t *ptr,
-                const socket_dialog<Mux> &dialog, int how) -> int {
+                const socket_dialog<Mux> &dialog, int how) -> int
+{
   return ::io::shutdown(*dialog.socket, how);
 }
 

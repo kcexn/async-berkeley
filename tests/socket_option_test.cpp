@@ -24,12 +24,14 @@ protected:
   void TearDown() override {}
 };
 
-TEST_F(SocketOptionTest, TestSizeConstructor) {
+TEST_F(SocketOptionTest, TestSizeConstructor)
+{
   socket_option<int> option1{sizeof(short)};
   EXPECT_EQ(std::ranges::size(option1), sizeof(short));
 }
 
-TEST_F(SocketOptionTest, TestSpanConstructor) {
+TEST_F(SocketOptionTest, TestSpanConstructor)
+{
   socket_option<int> option1{};
   EXPECT_EQ(*option1, 0);
   int tmp = 1;
@@ -42,7 +44,8 @@ TEST_F(SocketOptionTest, TestSpanConstructor) {
   EXPECT_EQ(option1, option2);
 }
 
-TEST_F(SocketOptionTest, TestValueConstructor) {
+TEST_F(SocketOptionTest, TestValueConstructor)
+{
   socket_option<int> option1{1};
   EXPECT_EQ(*option1, 1);
 }

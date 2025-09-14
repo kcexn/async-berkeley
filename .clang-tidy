@@ -10,7 +10,7 @@ Checks: >
   -readability-braces-around-statements,
   -readability-magic-numbers,
   -readability-implicit-bool-conversion
-HeaderFilterRegex: 'src/.*'
+HeaderFilterRegex: '^include/.*'
 CheckOptions:
   misc-trailing-whitespace.AllowEmptyLines: false
 

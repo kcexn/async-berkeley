@@ -47,9 +47,10 @@ namespace io {
  */
 template <typename T>
 concept MuxTag = requires(T tag) {
-  typename T::event_type;    ///< The multiplexed event type.
-  typename T::interval_type; ///< The type used to specify timeouts.
-  typename T::size_type;     ///< A size type.
+  typename T::event_type;
+  typename T::interval_type;
+  typename T::size_type;
+  typename T::template is_eager_t<T>;
 };
 
 /**

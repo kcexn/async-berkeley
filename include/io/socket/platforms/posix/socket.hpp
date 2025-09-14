@@ -74,7 +74,8 @@ using socket_message_type = struct msghdr;
  * @param socket The native socket handle to close.
  * @return 0 on success, or an error code on failure.
  */
-inline auto close(native_socket_type socket) noexcept -> int {
+inline auto close(native_socket_type socket) noexcept -> int
+{
   return ::close(socket);
 }
 
@@ -93,7 +94,8 @@ inline auto close(native_socket_type socket) noexcept -> int {
  */
 template <typename... Args>
 inline auto fcntl(native_socket_type socket, int cmd,
-                  Args &&...args) noexcept -> int {
+                  Args &&...args) noexcept -> int
+{
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   return ::fcntl(socket, cmd, std::forward<Args>(args)...);
 }
@@ -110,7 +112,8 @@ inline auto fcntl(native_socket_type socket, int cmd,
  * @return The number of bytes sent on success, or `SOCKET_ERROR` on failure.
  */
 inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
-                    int flags) noexcept -> std::streamsize {
+                    int flags) noexcept -> std::streamsize
+{
   return ::sendmsg(socket, msg, flags);
 }
 
@@ -126,7 +129,8 @@ inline auto sendmsg(native_socket_type socket, const socket_message_type *msg,
  * failure.
  */
 inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
-                    int flags) noexcept -> std::streamsize {
+                    int flags) noexcept -> std::streamsize
+{
   return ::recvmsg(socket, msg, flags);
 }
 

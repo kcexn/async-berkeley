@@ -60,7 +60,9 @@ struct socket_address : public socket_option<Addr> {
   socket_address(const sockaddr_type *addr, socklen_type size = Size) noexcept
       : Base(std::span<const std::byte, Size>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-            reinterpret_cast<const std::byte *>(addr), size)) {}
+            reinterpret_cast<const std::byte *>(addr), size))
+  {
+  }
 
   /**
    * @brief Constructs a socket_address from another socket_address.
@@ -70,7 +72,9 @@ struct socket_address : public socket_option<Addr> {
    */
   template <SocketAddress OtherAddr>
   socket_address(const socket_address<OtherAddr> &other) noexcept
-      : Base(std::span<const std::byte, sizeof(OtherAddr)>(other)) {}
+      : Base(std::span<const std::byte, sizeof(OtherAddr)>(other))
+  {
+  }
 };
 
 /**
@@ -80,7 +84,8 @@ struct socket_address : public socket_option<Addr> {
  * @return A `socket_address` object.
  */
 template <SocketAddress Addr = sockaddr_storage_type>
-auto make_address(const Addr *addr = nullptr) -> socket_address<Addr> {
+auto make_address(const Addr *addr = nullptr) -> socket_address<Addr>
+{
   if (!addr)
     return {};
 

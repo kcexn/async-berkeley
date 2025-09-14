@@ -66,7 +66,8 @@ template <typename T> struct cpo {
    * @return The value returned by the selected `tag_invoke` overload.
    */
   template <typename... Args>
-  constexpr auto operator()(Args &&...args) const -> decltype(auto) {
+  constexpr auto operator()(Args &&...args) const -> decltype(auto)
+  {
     return tag_invoke(static_cast<T *>(nullptr), std::forward<Args>(args)...);
   }
 };
@@ -90,7 +91,8 @@ template <typename T> struct cpo {
  *         `stdexec::sender` for asynchronous operations.
  */
 inline auto accept(auto &&socket,
-                   std::span<std::byte> address) -> decltype(auto) {
+                   std::span<std::byte> address) -> decltype(auto)
+{
   static constexpr cpo<accept_t> accept{};
   return accept(std::forward<decltype(socket)>(socket), std::move(address));
 }
@@ -102,7 +104,8 @@ inline auto accept(auto &&socket,
  * @return 0 on success, -1 on error.
  */
 inline auto bind(auto &&socket,
-                 std::span<const std::byte> address) -> decltype(auto) {
+                 std::span<const std::byte> address) -> decltype(auto)
+{
   static constexpr cpo<bind_t> bind{};
   return bind(std::forward<decltype(socket)>(socket), std::move(address));
 }
@@ -115,7 +118,8 @@ inline auto bind(auto &&socket,
  *         `stdexec::sender` for asynchronous operations.
  */
 inline auto connect(auto &&socket,
-                    std::span<const std::byte> address) -> decltype(auto) {
+                    std::span<const std::byte> address) -> decltype(auto)
+{
   static constexpr cpo<connect_t> connect{};
   return connect(std::forward<decltype(socket)>(socket), std::move(address));
 }
@@ -127,7 +131,8 @@ inline auto connect(auto &&socket,
  * @param args Optional arguments for the command.
  * @return The result of the underlying `fcntl` call.
  */
-inline auto fcntl(auto &&socket, int cmd, auto &&...args) -> decltype(auto) {
+inline auto fcntl(auto &&socket, int cmd, auto &&...args) -> decltype(auto)
+{
   static constexpr cpo<fcntl_t> fcntl{};
   return fcntl(std::forward<decltype(socket)>(socket), cmd,
                std::forward<decltype(args)>(args)...);
@@ -140,7 +145,8 @@ inline auto fcntl(auto &&socket, int cmd, auto &&...args) -> decltype(auto) {
  * @return A span containing the peer's address.
  */
 inline auto getpeername(auto &&socket,
-                        std::span<std::byte> address) -> decltype(auto) {
+                        std::span<std::byte> address) -> decltype(auto)
+{
   static constexpr cpo<getpeername_t> getpeername{};
   return getpeername(std::forward<decltype(socket)>(socket),
                      std::move(address));
@@ -157,7 +163,8 @@ inline auto getpeername(auto &&socket,
  */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 inline auto getsockopt(auto &&socket, int level, int optname,
-                       std::span<std::byte> option) -> decltype(auto) {
+                       std::span<std::byte> option) -> decltype(auto)
+{
   static constexpr cpo<getsockopt_t> getsockopt{};
   return getsockopt(std::forward<decltype(socket)>(socket), level, optname,
                     std::move(option));
@@ -170,7 +177,8 @@ inline auto getsockopt(auto &&socket, int level, int optname,
  * @return A span containing the local socket address.
  */
 inline auto getsockname(auto &&socket,
-                        std::span<std::byte> address) -> decltype(auto) {
+                        std::span<std::byte> address) -> decltype(auto)
+{
   static constexpr cpo<getsockname_t> getsockname{};
   return getsockname(std::forward<decltype(socket)>(socket),
                      std::move(address));
@@ -182,7 +190,8 @@ inline auto getsockname(auto &&socket,
  * @param backlog The maximum length of the pending connections queue.
  * @return The result of the underlying `listen` call.
  */
-inline auto listen(auto &&socket, int backlog) -> decltype(auto) {
+inline auto listen(auto &&socket, int backlog) -> decltype(auto)
+{
   static constexpr cpo<listen_t> listen{};
   return listen(std::forward<decltype(socket)>(socket), backlog);
 }
@@ -195,7 +204,8 @@ inline auto listen(auto &&socket, int backlog) -> decltype(auto) {
  * @return The number of bytes received for synchronous operations. A
  *         `stdexec::sender` for asynchronous operations.
  */
-inline auto recvmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto) {
+inline auto recvmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto)
+{
   static constexpr cpo<recvmsg_t> recvmsg{};
   return recvmsg(std::forward<decltype(socket)>(socket),
                  std::forward<decltype(msg)>(msg), flags);
@@ -209,7 +219,8 @@ inline auto recvmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto) {
  * @return The number of bytes sent for synchronous operations. A
  *         `stdexec::sender` for asynchronous operations.
  */
-inline auto sendmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto) {
+inline auto sendmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto)
+{
   static constexpr cpo<sendmsg_t> sendmsg{};
   return sendmsg(std::forward<decltype(socket)>(socket),
                  std::forward<decltype(msg)>(msg), flags);
@@ -225,7 +236,8 @@ inline auto sendmsg(auto &&socket, auto &&msg, int flags) -> decltype(auto) {
  */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 inline auto setsockopt(auto &&socket, int level, int optname,
-                       std::span<const std::byte> option) -> decltype(auto) {
+                       std::span<const std::byte> option) -> decltype(auto)
+{
   static constexpr cpo<setsockopt_t> setsockopt{};
   return setsockopt(std::forward<decltype(socket)>(socket), level, optname,
                     std::move(option));
@@ -237,7 +249,8 @@ inline auto setsockopt(auto &&socket, int level, int optname,
  * @param how A flag specifying which parts of the connection to shut down.
  * @return The result of the underlying `shutdown` call.
  */
-inline auto shutdown(auto &&socket, int how) -> decltype(auto) {
+inline auto shutdown(auto &&socket, int how) -> decltype(auto)
+{
   static constexpr cpo<shutdown_t> shutdown{};
   return shutdown(std::forward<decltype(socket)>(socket), how);
 }
