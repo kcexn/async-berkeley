@@ -21,6 +21,7 @@
 #ifndef IO_SOCKET_DIALOG_HPP
 #define IO_SOCKET_DIALOG_HPP
 #include "io/detail/concepts.hpp"
+#include "io/socket/socket_handle.hpp"
 
 #include <memory>
 
@@ -28,10 +29,6 @@
 namespace io::execution {
 template <Multiplexer Mux> class executor;
 } // namespace io::execution
-
-namespace io::socket {
-class socket_handle;
-} // namespace io::socket
 
 /**
  * @namespace io::socket
@@ -49,7 +46,6 @@ template <Multiplexer Mux> struct socket_dialog {
    * @brief The executor type for this dialog.
    */
   using executor_type = ::io::execution::executor<Mux>;
-
   /**
    * @brief A weak pointer to the executor that owns the socket.
    */
@@ -58,6 +54,27 @@ template <Multiplexer Mux> struct socket_dialog {
    * @brief A shared pointer to the socket handle.
    */
   std::shared_ptr<socket_handle> socket;
+  /**
+   * @brief Checks if the socket_dialog is valid.
+   */
+  [[nodiscard]] explicit operator bool() const noexcept
+  {
+    return !executor.expired() && static_cast<bool>(*socket);
+  }
+  /**
+   * @brief Compares two `socket_dialog` objects.
+   */
+  auto
+  operator<=>(const socket_dialog &other) const noexcept -> std::strong_ordering
+  {
+    return *socket <=> *other.socket;
+  }
+  /**
+   * @brief Checks for equality between two `socket_dialog` objects.
+   */
+  auto operator==(const socket_dialog &other) const noexcept -> bool {
+    return *socket == *other.socket;
+  }
 };
 
 } // namespace io::socket

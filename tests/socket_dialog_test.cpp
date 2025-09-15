@@ -72,8 +72,8 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
           .value();
 
   EXPECT_EQ(connect_result, 0);
-  auto [handle, handle_addr] = std::move(accept_result);
-  EXPECT_NE(handle, INVALID_SOCKET);
+  auto [dialog, handle_addr] = std::move(accept_result);
+  EXPECT_TRUE(dialog);
 }
 
 TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)

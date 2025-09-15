@@ -61,8 +61,7 @@ struct socket_address : public socket_option<Addr> {
       : Base(std::span<const std::byte, Size>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const std::byte *>(addr), size))
-  {
-  }
+  {}
 
   /**
    * @brief Constructs a socket_address from another socket_address.
@@ -73,8 +72,7 @@ struct socket_address : public socket_option<Addr> {
   template <SocketAddress OtherAddr>
   socket_address(const socket_address<OtherAddr> &other) noexcept
       : Base(std::span<const std::byte, sizeof(OtherAddr)>(other))
-  {
-  }
+  {}
 };
 
 /**

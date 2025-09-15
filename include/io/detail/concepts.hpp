@@ -109,6 +109,17 @@ concept SocketLike = requires {
 };
 
 /**
+ * @brief Concept for types that behave like a dialog.
+ * @tparam Dialog The type to check.
+ */
+template <typename Dialog>
+concept DialogLike = requires(Dialog &dialog) {
+  typename Dialog::executor_type;
+  dialog.executor;
+  dialog.socket;
+};
+
+/**
  * @brief Concept for types that behave like a socket message.
  * @tparam Message The type to check.
  */

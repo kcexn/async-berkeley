@@ -30,8 +30,8 @@
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
-#include "io/socket/socket_handle.hpp"
 #include "io/socket/socket_dialog.hpp"
+#include "io/socket/socket_handle.hpp"
 
 #include <stdexec/execution.hpp>
 
@@ -125,7 +125,8 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
                 const socket_dialog<Mux> &dialog,
                 std::span<std::byte> address) -> decltype(auto)
 {
-  using result_t = decltype(::io::accept(*dialog.socket, address));
+  using socket_dialog = socket_dialog<Mux>;
+  using result_t = std::pair<socket_dialog, std::span<const std::byte>>;
   using callback = std::function<std::optional<result_t>()>;
   using trigger_t = ::io::execution::execution_trigger;
   constexpr auto READ = trigger_t::READ;
@@ -139,11 +140,12 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
   {
     if (++fairness::counter())
     {
-      auto result = ::io::accept(*socket, address);
+      auto [sock, addr] = ::io::accept(*socket, address);
 
-      if (result.first)
+      if (sock)
       {
-        auto res = std::make_shared<result_t>(std::move(result));
+        auto res = std::make_shared<result_t>(
+            socket_dialog{executor, executor->push(std::move(sock))}, addr);
         return executor->set(socket, EAGER, callback([res = std::move(res)] {
                                return std::optional<result_t>{std::move(*res)};
                              }));
@@ -154,12 +156,13 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
     }
   }
 
-  return executor->set(socket, READ, callback([=, socket = socket.get()] {
-                         auto result = ::io::accept(*socket, address);
-                         return (result.first)
-                                    ? std::optional{std::move(result)}
-                                    : std::nullopt;
-                       }));
+  return executor->set(
+      socket, READ, callback([=, socket = socket.get()] {
+        auto [sock, addr] = ::io::accept(*socket, address);
+        return (sock) ? std::optional<result_t>(
+                            {{executor, executor->push(std::move(sock))}, addr})
+                      : std::nullopt;
+      }));
 }
 
 /**

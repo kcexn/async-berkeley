@@ -247,8 +247,8 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   stdexec::sender auto accept = ::io::accept(dialog, address);
   triggers1.wait_for(0);
   auto [result] = stdexec::sync_wait(std::move(accept)).value();
-  auto [accept_handle, accept_address] = std::move(result);
-  EXPECT_NE(accept_handle, -1);
+  auto [accept_dialog, accept_address] = std::move(result);
+  EXPECT_TRUE(accept_dialog);
 
   auto client_address = make_address<struct sockaddr_in>();
   auto client_addr = ::io::getsockname(client, client_address);

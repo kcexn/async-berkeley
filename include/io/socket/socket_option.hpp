@@ -48,8 +48,7 @@ public:
   template <size_type Size = sizeof(value_type)>
     requires(Size <= sizeof(value_type))
   constexpr socket_option(size_type size = Size) noexcept : size_{size}
-  {
-  }
+  {}
 
   /**
    * @brief Default copy constructor.
@@ -95,8 +94,7 @@ public:
     requires(Size <= sizeof(value_type) || Size == std::dynamic_extent)
   socket_option(std::span<std::byte, Size> option) noexcept
       : socket_option(std::span<const std::byte, Size>(option))
-  {
-  }
+  {}
 
   /**
    * @brief Default copy assignment operator.
