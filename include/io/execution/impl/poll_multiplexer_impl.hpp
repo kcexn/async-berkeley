@@ -44,6 +44,8 @@ auto prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
 auto make_ready_queues(const std::vector<pollfd> &list,
                        std::map<int, poll_multiplexer::demultiplexer> &demux)
     -> std::vector<std::queue<poll_multiplexer::task *>>;
+auto clear_events(const std::vector<pollfd> &events,
+                  std::vector<pollfd> &list) -> void;
 } // namespace io::execution
 #endif // NDEBUG
 

@@ -17,3 +17,7 @@
 # Async Ping/Pong Client Example
 add_executable(async_ping_pong_client async_ping_pong_client.cpp)
 target_link_libraries(async_ping_pong_client PRIVATE io_static)
+
+# TCP Echo Example
+add_executable(tcp_echo tcp_echo.cpp)
+target_link_libraries(tcp_echo PRIVATE io_static)

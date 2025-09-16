@@ -91,7 +91,7 @@ template <typename T> struct cpo {
  *         `stdexec::sender` for asynchronous operations.
  */
 inline auto accept(auto &&socket,
-                   std::span<std::byte> address) -> decltype(auto)
+                   std::span<std::byte> address = {}) -> decltype(auto)
 {
   static constexpr cpo<accept_t> accept{};
   return accept(std::forward<decltype(socket)>(socket), std::move(address));

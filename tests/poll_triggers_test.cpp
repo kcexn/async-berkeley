@@ -168,6 +168,13 @@ TEST_F(PollTriggersTest, MakeReadyQueuesTest)
   EXPECT_TRUE(ready.empty());
 }
 
+TEST_F(PollTriggersTest, PollClearEventsTest)
+{
+  std::vector<pollfd> list{{.fd = 1, .events = POLLIN, .revents = POLLERR}};
+  clear_events(list, list);
+  EXPECT_EQ(list[0].events, 0);
+}
+
 TEST_F(PollTriggersTest, SubmitTest)
 {
   using trigger = execution_trigger;

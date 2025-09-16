@@ -37,6 +37,11 @@ auto swap_atomic(std::atomic<T> &lhs, std::atomic<T> &rhs,
 }
 } // namespace
 
+/**
+ * @brief Checks if a native socket handle is valid.
+ * @param handle The native socket handle to check.
+ * @return `true` if the socket handle is valid, `false` otherwise.
+ */
 IO_STATIC(auto) is_valid_socket(native_socket_type handle) -> bool
 {
   if (handle == INVALID_SOCKET)

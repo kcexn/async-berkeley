@@ -169,22 +169,40 @@ prepare_handles(short revents, poll_multiplexer::demultiplexer &demux)
  * @param list The list of pollfds to copy and clear.
  * @return A copy of the list.
  */
-static auto copy_and_clear(std::vector<pollfd> &list) -> std::vector<pollfd>
+static auto copy_active(std::vector<pollfd> &list) -> std::vector<pollfd>
 {
   std::vector<pollfd> tmp{};
   tmp.reserve(list.size());
 
-  for (auto &event : list)
-  {
-    if (event.events)
-    {
-      tmp.push_back(event);
-      event.events = 0;
-    }
-  }
+  std::ranges::copy_if(list, std::back_inserter(tmp),
+                       [](const auto &event) { return event.events; });
 
   return tmp;
 } // GCOVR_EXCL_LINE
+
+/**
+ * @brief Clears events that will be handled.
+ * @param events The list of events to be handled returned by poll_
+ * @param list The interest list managed by the poll_multiplexer.
+ */
+IO_STATIC(auto)
+clear_events(const std::vector<pollfd> &events,
+             std::vector<pollfd> &list) -> void
+{
+  for (const auto &event : events)
+  {
+    auto pfd = std::ranges::lower_bound(list, event.fd, {},
+                                        [](const auto &tmp) { return tmp.fd; });
+    if (pfd != std::end(list) && pfd->fd == event.fd)
+    {
+      if (event.revents & (POLLERR | POLLNVAL))
+        pfd->events = 0;
+
+      // NOLINTNEXTLINE(bugprone-narrowing-conversions)
+      pfd->events &= ~(event.revents);
+    }
+  }
+}
 
 /**
  * @brief Creates a vector of ready queues from a list of pollfds.
@@ -216,9 +234,11 @@ make_ready_queues(const std::vector<pollfd> &list,
 auto poll_multiplexer::wait_for(interval_type interval) -> size_type
 {
   auto list =
-      with_lock(std::unique_lock{mtx_}, [&] { return copy_and_clear(list_); });
+      with_lock(std::unique_lock{mtx_}, [&] { return copy_active(list_); });
 
   list = poll_(std::move(list), static_cast<int>(interval.count()));
+
+  with_lock(std::unique_lock{mtx_}, [&] { clear_events(list, list_); });
 
   auto ready_queues = with_lock(
       std::unique_lock{mtx_}, [&] { return make_ready_queues(list, demux_); });
