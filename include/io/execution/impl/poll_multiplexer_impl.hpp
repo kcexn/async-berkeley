@@ -81,17 +81,17 @@ template <Completion Fn>
 template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::state<Receiver>::start() noexcept -> void
 {
-  using trigger_t = execution_trigger;
-  if (socket->get_error() || trigger == trigger_t::EAGER)
+  using enum execution_trigger;
+  if (socket->get_error() || trigger == EAGER)
     return complete(this);
 
   std::lock_guard lock{*mtx};
   task::complete = state::complete;
 
-  if (trigger == trigger_t::WRITE)
+  if (trigger == WRITE)
     demux->write_queue.push(this);
 
-  if (trigger == trigger_t::READ)
+  if (trigger == READ)
     demux->read_queue.push(this);
 
   demux->socket = socket.get();
@@ -133,14 +133,14 @@ template <SocketLike Socket>
 auto make_poll_event(const Socket &socket,
                      execution_trigger trigger) -> struct pollfd {
   using socket_t = socket::native_socket_type;
-  using trigger_t = execution_trigger;
+  using enum execution_trigger;
 
   struct pollfd event = {.fd = static_cast<socket_t>(socket)};
 
-  if (trigger == trigger_t::READ)
+  if (trigger == READ)
     event.events |= POLLIN;
 
-  if (trigger == trigger_t::WRITE)
+  if (trigger == WRITE)
     event.events |= POLLOUT;
 
   return event;
@@ -151,8 +151,8 @@ template <typename Receiver>
 auto poll_multiplexer::sender<Fn>::connect(Receiver &&receiver)
     -> state<std::decay_t<Receiver>>
 {
-  using trigger_t = execution_trigger;
-  if (!socket->get_error() && trigger != trigger_t::EAGER)
+  using enum execution_trigger;
+  if (!socket->get_error() && trigger != EAGER)
   {
     with_lock(std::unique_lock{*mtx}, [&] {
       update_or_insert_event(list, make_poll_event(*socket, trigger));

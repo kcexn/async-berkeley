@@ -123,9 +123,7 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
   using socket_dialog = socket_dialog<Mux>;
   using result_t = std::pair<socket_dialog, std::span<const std::byte>>;
   using callback = std::function<std::optional<result_t>()>;
-  using trigger_t = ::io::execution::execution_trigger;
-  constexpr auto READ = trigger_t::READ;
-  constexpr auto EAGER = trigger_t::EAGER;
+  using enum io::execution::execution_trigger;
   using namespace detail;
 
   auto executor = get_executor(dialog);
@@ -187,7 +185,7 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
                 std::span<const std::byte> address) -> decltype(auto)
 {
 
-  using trigger = ::io::execution::execution_trigger;
+  using enum io::execution::execution_trigger;
   using namespace detail;
 
   auto executor = get_executor(dialog);
@@ -196,7 +194,7 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
   if (::io::connect(*socket, address))
     handle_connect_error(dialog);
 
-  return executor->set(socket, trigger::WRITE,
+  return executor->set(socket, WRITE,
                        [] { return std::optional<int>{0}; });
 }
 
@@ -279,9 +277,7 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
 {
   using result_t = std::streamsize;
   using callback = std::function<std::optional<result_t>()>;
-  using trigger_t = ::io::execution::execution_trigger;
-  constexpr auto READ = trigger_t::READ;
-  constexpr auto EAGER = trigger_t::EAGER;
+  using enum io::execution::execution_trigger;
   using namespace detail;
 
   auto executor = get_executor(dialog);
@@ -330,9 +326,7 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
 {
   using result_t = std::streamsize;
   using callback = std::function<std::optional<result_t>()>;
-  using trigger_t = ::io::execution::execution_trigger;
-  constexpr auto WRITE = trigger_t::WRITE;
-  constexpr auto EAGER = trigger_t::EAGER;
+  using enum io::execution::execution_trigger;
   using namespace detail;
 
   auto executor = get_executor(dialog);
