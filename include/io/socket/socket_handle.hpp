@@ -20,13 +20,7 @@
 #pragma once
 #ifndef IO_SOCKET_HANDLE_HPP
 #define IO_SOCKET_HANDLE_HPP
-#include "io/config.h"
-#if OS_WINDOWS
-#include "platforms/windows/socket.hpp"
-#else
-#include "platforms/posix/socket.hpp"
-#endif
-
+#include "detail/socket.hpp"
 #include <atomic>
 #include <mutex>
 
@@ -161,4 +155,7 @@ private:
 };
 
 } // namespace io::socket
+
+#include "detail/sync_operations.hpp" // IWYU pragma: export
+
 #endif // IO_SOCKET_HANDLE_HPP

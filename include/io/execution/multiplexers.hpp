@@ -23,5 +23,5 @@
 #pragma once
 #ifndef IO_MULTIPLEXERS_HPP
 #define IO_MULTIPLEXERS_HPP
-#include "poll_multiplexer.hpp" // IWYU pragma: export
-#endif                          // IO_MULTIPLEXERS_HPP
+#include "detail/poll_multiplexer.hpp" // IWYU pragma: export
+#endif                                 // IO_MULTIPLEXERS_HPP

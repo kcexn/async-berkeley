@@ -22,10 +22,8 @@
 #pragma once
 #ifndef IO_HPP
 #define IO_HPP
-#include "io/detail/customization.hpp"   // IWYU pragma: export
 #include "io/execution/multiplexers.hpp" // IWYU pragma: export
 #include "io/execution/triggers.hpp"     // IWYU pragma: export
-#include "io/socket/socket.hpp"          // IWYU pragma: export
 #include "io/socket/socket_address.hpp"  // IWYU pragma: export
 #include "io/socket/socket_dialog.hpp"   // IWYU pragma: export
 #include "io/socket/socket_handle.hpp"   // IWYU pragma: export

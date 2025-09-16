@@ -21,17 +21,12 @@
 #pragma once
 #ifndef IO_ASYNC_OPERATIONS_HPP
 #define IO_ASYNC_OPERATIONS_HPP
-#include "io/config.h"
-#if OS_WINDOWS
-#include "io/socket/platforms/windows/socket.hpp"
-#else
-#include "io/socket/platforms/posix/socket.hpp"
-#endif
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
 #include "io/socket/socket_dialog.hpp"
 #include "io/socket/socket_handle.hpp"
+#include "socket.hpp"
 
 #include <stdexec/execution.hpp>
 
@@ -65,14 +60,14 @@ auto handle_connect_error(const socket_dialog<Mux> &dialog) -> void
 {
   switch (int error = errno)
   {
-  case EINPROGRESS:
-  case EAGAIN:
-  case EALREADY:
-  case EISCONN:
-    return;
+    case EINPROGRESS:
+    case EAGAIN:
+    case EALREADY:
+    case EISCONN:
+      return;
 
-  default:
-    dialog.socket->set_error(error);
+    default:
+      dialog.socket->set_error(error);
   }
 }
 

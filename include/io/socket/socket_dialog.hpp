@@ -21,6 +21,7 @@
 #ifndef IO_SOCKET_DIALOG_HPP
 #define IO_SOCKET_DIALOG_HPP
 #include "io/detail/concepts.hpp"
+#include "io/error.hpp"
 #include "io/socket/socket_handle.hpp"
 
 #include <memory>
@@ -59,24 +60,33 @@ template <Multiplexer Mux> struct socket_dialog {
    */
   [[nodiscard]] explicit operator bool() const noexcept
   {
-    return !executor.expired() && static_cast<bool>(*socket);
+    return !executor.expired() && socket && static_cast<bool>(*socket);
   }
   /**
    * @brief Compares two `socket_dialog` objects.
    */
-  auto
-  operator<=>(const socket_dialog &other) const noexcept -> std::strong_ordering
+  auto operator<=>(const socket_dialog &other) const -> std::strong_ordering
   {
+    if (!socket || !other.socket)
+      throw std::invalid_argument(IO_ERROR_MESSAGE("Invalid socket pointer."));
+
     return *socket <=> *other.socket;
   }
   /**
    * @brief Checks for equality between two `socket_dialog` objects.
    */
-  auto operator==(const socket_dialog &other) const noexcept -> bool {
-    return *socket == *other.socket;
+  auto operator==(const socket_dialog &other) const -> bool
+  {
+    if (!socket && !other.socket)
+      throw std::invalid_argument(IO_ERROR_MESSAGE("Invalid socket pointer."));
+
+    return socket == other.socket ||
+           (socket && other.socket && *socket == *other.socket);
   }
 };
 
 } // namespace io::socket
+
+#include "detail/async_operations.hpp" // IWYU pragma: export
 
 #endif // IO_SOCKET_DIALOG_HPP

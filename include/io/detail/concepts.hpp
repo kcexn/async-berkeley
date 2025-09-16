@@ -22,11 +22,10 @@
 #define IO_CONCEPTS_HPP
 #include "io/config.h"
 #if OS_WINDOWS
-#include "io/socket/platforms/windows/socket.hpp"
 #else
-#include "io/socket/platforms/posix/socket.hpp"
 #include "platforms/posix/concepts_posix.hpp" // IWYU pragma: export
 #endif
+#include "io/socket/detail/socket.hpp"
 
 #include <memory>
 #include <optional>

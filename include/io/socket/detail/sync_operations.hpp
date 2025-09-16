@@ -21,14 +21,9 @@
 #pragma once
 #ifndef IO_SYNC_OPERATIONS_HPP
 #define IO_SYNC_OPERATIONS_HPP
-#include "io/config.h"
-#if OS_WINDOWS
-#include "io/socket/platforms/windows/socket.hpp"
-#else
-#include "io/socket/platforms/posix/socket.hpp"
-#endif
 #include "io/detail/concepts.hpp"
 #include "io/detail/customization.hpp"
+#include "socket.hpp"
 
 #include <cerrno>
 

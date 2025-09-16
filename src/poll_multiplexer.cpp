@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "io/execution/poll_multiplexer.hpp"
+#include "io/execution/detail/poll_multiplexer.hpp"
 #include "io/error.hpp"
 #include "io/execution/detail/utilities.hpp"
 #include "io/macros.h"
@@ -114,13 +114,13 @@ set_error(::io::socket::socket_handle &socket)->void
   {
     switch (error = errno)
     {
-    case EBADF:
-    case ENOTSOCK:
-      break;
+      case EBADF:
+      case ENOTSOCK:
+        break;
 
-    default:                                       // GCOVR_EXCL_LINE
-      throw_system_error(                          // GCOVR_EXCL_LINE
-          IO_ERROR_MESSAGE("getsockopt failed.")); // GCOVR_EXCL_LINE
+      default:                                       // GCOVR_EXCL_LINE
+        throw_system_error(                          // GCOVR_EXCL_LINE
+            IO_ERROR_MESSAGE("getsockopt failed.")); // GCOVR_EXCL_LINE
     }
   }
   socket.set_error(error);

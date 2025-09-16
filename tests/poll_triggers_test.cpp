@@ -12,10 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "io/detail/customization.hpp"
-#include "io/execution/poll_multiplexer.hpp"
-#include "io/execution/triggers.hpp"
-#include "io/socket/socket.hpp"
+#include "io.hpp"
 
 #include <exec/async_scope.hpp>
 #include <exec/static_thread_pool.hpp>
@@ -37,23 +34,6 @@ protected:
   // NOLINTNEXTLINE
   basic_triggers<poll_multiplexer> triggers;
 };
-
-TEST_F(PollTriggersTest, CopyConstructorTest)
-{
-  auto triggers2 = triggers;
-  auto ptr1 = triggers.get_executor().lock();
-  auto ptr2 = triggers2.get_executor().lock();
-  EXPECT_TRUE(ptr1.get() == ptr2.get());
-}
-
-TEST_F(PollTriggersTest, CopyAssignmentTest)
-{
-  basic_triggers<poll_multiplexer> triggers2;
-  triggers2 = triggers;
-  auto ptr1 = triggers.get_executor().lock();
-  auto ptr2 = triggers2.get_executor().lock();
-  EXPECT_TRUE(ptr1.get() == ptr2.get());
-}
 
 TEST_F(PollTriggersTest, MoveConstructorTest)
 {

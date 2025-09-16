@@ -20,14 +20,9 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
-#include "io/config.h"
-#if OS_WINDOWS
-#include "io/socket/platforms/windows/socket.hpp"
-#else
-#include "io/socket/platforms/posix/socket.hpp"
-#endif
+#include "io/execution/detail/poll_multiplexer.hpp"
 #include "io/execution/detail/utilities.hpp"
-#include "io/execution/poll_multiplexer.hpp"
+#include "io/socket/detail/socket.hpp"
 #include "io/socket/socket_handle.hpp"
 
 // Customization point forward declarations

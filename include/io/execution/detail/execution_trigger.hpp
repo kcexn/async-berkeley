@@ -28,17 +28,11 @@
  */
 namespace io::execution {
 
-/**
- * @brief An enum for specifying I/O events.
- */
+/** @brief An enum for specifying I/O events. */
 enum struct execution_trigger : std::uint8_t {
-  /**
-   * @brief A read event.
-   */
+  /** @brief A read event. */
   READ = 1 << 0,
-  /**
-   * @brief A write event.
-   */
+  /** @brief A write event. */
   WRITE = 1 << 1,
   /**
    * @brief A sentinel value that indicates that

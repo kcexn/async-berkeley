@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_TRIGGERS_HPP
 #define IO_TRIGGERS_HPP
-#include "executor.hpp"
+#include "detail/executor.hpp"
 #include "io/detail/concepts.hpp"
 #include "io/socket/socket_dialog.hpp"
 #include "io/socket/socket_handle.hpp"
@@ -52,6 +52,21 @@ public:
    * @brief The executor type.
    */
   using executor_type = executor<Mux>;
+
+  /** @brief Default constructor. */
+  basic_triggers() = default;
+
+  /** @brief Deleted copy constructor. */
+  basic_triggers(const basic_triggers &) = delete;
+
+  /** @brief Default move constructor. */
+  basic_triggers(basic_triggers &&) = default;
+
+  /** @brief Deleted copy assignment operator. */
+  auto operator=(const basic_triggers &) -> basic_triggers & = delete;
+
+  /** @brief Default move assignment operator. */
+  auto operator=(basic_triggers &&) -> basic_triggers & = default;
 
   /**
    * @brief Pushes a socket handle to the collection.
@@ -107,15 +122,17 @@ public:
    * @brief Gets the executor.
    * @return A weak pointer to the executor.
    */
-  [[nodiscard]] auto get_executor() -> std::weak_ptr<executor_type>
+  [[nodiscard]] auto
+  get_executor() const noexcept -> std::weak_ptr<executor_type>
   {
     return executor_;
   }
 
+  /** @brief Default destructor. */
+  ~basic_triggers() = default;
+
 private:
-  /**
-   * @brief The underlying executor.
-   */
+  /** @brief The underlying executor. */
   std::shared_ptr<executor_type> executor_{std::make_shared<executor_type>()};
 };
 

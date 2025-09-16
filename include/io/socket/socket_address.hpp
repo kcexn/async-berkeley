@@ -21,12 +21,7 @@
 #pragma once
 #ifndef IO_SOCKET_ADDRESS_HPP
 #define IO_SOCKET_ADDRESS_HPP
-#include "io/config.h"
-#if OS_WINDOWS
-#include "platforms/windows/socket.hpp"
-#else
-#include "platforms/posix/socket.hpp"
-#endif
+#include "detail/socket.hpp"
 #include "io/detail/concepts.hpp"
 #include "socket_option.hpp"
 

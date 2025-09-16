@@ -20,8 +20,8 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
-#include "detail/multiplexer.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
+#include "multiplexer.hpp"
 
 #include <stdexec/execution.hpp>
 
@@ -225,6 +225,6 @@ private:
 
 } // namespace io::execution
 
-#include "impl/poll_multiplexer_impl.hpp" // IWYU pragma: export
+#include "io/execution/impl/poll_multiplexer_impl.hpp" // IWYU pragma: export
 
 #endif // IO_POLL_MULTIPLEXER_HPP

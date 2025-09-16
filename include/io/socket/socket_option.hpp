@@ -175,6 +175,19 @@ public:
   // GCOVR_EXCL_STOP
 
   /**
+   * @brief Compares this socket_option with another for ordering.
+   * @param other The other socket_option to compare with.
+   * @return The result of the lexicographical comparison, first by size, then
+   * by the raw byte data.
+   */
+  auto operator<=>(const socket_option &other) const noexcept -> bool
+  {
+    return (size_ == other.size_)
+               ? std::memcmp(storage_.data(), other.storage_.data(), size_)
+               : size_ <=> other.size_;
+  }
+
+  /**
    * @brief Compares two socket_option objects for equality.
    * @param other The other socket_option to compare against.
    * @return True if the options are equal, false otherwise.

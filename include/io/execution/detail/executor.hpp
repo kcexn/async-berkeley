@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_EXECUTOR_HPP
 #define IO_EXECUTOR_HPP
-#include "detail/execution_trigger.hpp"
+#include "execution_trigger.hpp"
 #include "io/detail/concepts.hpp"
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
@@ -30,6 +30,11 @@
 #include <stdexec/execution.hpp>
 
 #include <utility>
+// Forward declarations
+namespace io::execution {
+template <Multiplexer Mux> class basic_triggers;
+} // namespace io::execution
+
 /**
  * @namespace io::execution
  * @brief Provides high-level interfaces for executors and completion triggers.
@@ -42,9 +47,19 @@ namespace io::execution {
 template <Multiplexer Mux> class executor : public Mux {
   /**
    * @internal
+   * @brief Grants basic_triggers access to the private members of this class.
+   */
+  friend class basic_triggers<Mux>;
+  /**
+   * @internal
    * @brief The type of socket handle used by the executor.
    */
   using socket_handle = ::io::socket::socket_handle;
+  /**
+   * @internal
+   * @brief The type of async_scope
+   */
+  using async_scope = exec::async_scope;
 
 public:
   /**
@@ -59,7 +74,6 @@ public:
       throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
     return std::make_shared<Socket>(std::forward<Socket>(handle));
   }
-
   /**
    * @brief Emplaces a socket handle in the collection.
    * @param ...args The arguments to forward to the socket handle constructor.
@@ -73,7 +87,6 @@ public:
       throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
     return std::move(ptr);
   }
-
   /**
    * @brief Sets a completion handler for an event.
    * @param event The event to wait for.
@@ -88,6 +101,7 @@ public:
         Mux::set(std::move(socket), event, std::forward<Fn>(exec)));
   }
 
+private:
   /**
    * @brief Waits for events to occur.
    * @param interval The maximum time to wait for, in milliseconds.
@@ -97,18 +111,15 @@ public:
   {
     return Mux::wait_for(typename Mux::interval_type{interval});
   }
-
   /**
    * @brief Waits for events to occur.
    * @return The number of events that occurred.
    */
   constexpr auto wait() -> decltype(auto) { return wait_for(); }
-
-private:
   /**
    * @brief The async scope for the executor.
    */
-  exec::async_scope scope_;
+  async_scope scope_;
 };
 
 } // namespace io::execution
