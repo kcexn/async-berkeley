@@ -1,4 +1,5 @@
 # AsyncBerkeley
+
 [![Build](https://github.com/kcexn/async-berkeley/actions/workflows/build.yml/badge.svg)](https://github.com/kcexn/async-berkeley/actions/workflows/build.yml)
 [![Tests](https://github.com/kcexn/async-berkeley/actions/workflows/tests.yml/badge.svg)](https://github.com/kcexn/async-berkeley/actions/workflows/tests.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/async-berkeley/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
@@ -10,6 +11,7 @@ to drop `stdexec` as a dependency once there is adequate compiler support for C+
 AsyncBerkeley aims to make asynchronous socket I/O as simple as the ubiquitous Berkeley sockets API.
 
 ## Features
+
 - **Asynchronous Execution Framework**: Sender/receiver
 pattern implementation with a simple poll based multiplexer
 for scalable I/O operations.
@@ -27,13 +29,16 @@ the native `iovec`, and `msghdr` buffer structures.
 for working with native sockets and socket addresses.
 
 ## Contributing
+
 All contributions are welcome! AsyncBerkeley aims to be a library where
 people can learn network programming, as well as C++'s `std::execution`.
 Please open a Github issue if you have a question or send me an
 [email](mailto:kevin.exton@pm.me).
 
 ## Quick Start
+
 ### Prerequisites
+
 - CMake 3.28+
 - C++20 compatible compiler
 - **GoogleTest**: Auto-fetched via CMake FetchContent
@@ -42,6 +47,7 @@ for unit testing
 sender/receiver execution patterns
 
 ### Build and Install with Cmake
+
 ```bash
 # Clone the repository
 git clone https://github.com/kcexn/async-berkeley.git
@@ -59,12 +65,15 @@ cmake --build build/release -t uninstall
 ```
 
 ### Detailed Build Instructions
+
 For comprehensive build instructions, dependency installation guides, code coverage setup, and troubleshooting, see [DEVELOPER.md](DEVELOPER.md).
 
 ### Documentation
+
 API documentation is available at: [https://kcexn.github.io/async-berkeley/](https://kcexn.github.io/async-berkeley/)
 
 To build documentation locally:
+
 ```bash
 cmake --preset release -DIO_ENABLE_DOCS=ON
 # Generate docs in build/release/docs
@@ -75,7 +84,9 @@ cmake --build build/release --t docs-deploy
 ```
 
 ## Usage
+
 ### Basic Socket Operations
+
 ```cpp
 #include <io.hpp>
 #include <netinet/in.h>
@@ -109,6 +120,7 @@ if(client_address != addr)
 ```
 
 ### Client Socket Connection
+
 ```cpp
 #include <io.hpp>
 #include <netinet/in.h>
@@ -140,89 +152,83 @@ if (result == 0) {
 ```
 
 ### Asynchronous Socket Operations
-The library provides full asynchronous socket operations using the sender/receiver pattern with `stdexec`. Here is a snippet based on the ping/pong example in
-`examples/`:
+
+The library provides full asynchronous socket operations using the sender/receiver pattern with
+`stdexec`. Here is a snippet based on the tcp echo example in `examples/`:
 
 ```cpp
-class AsyncClient {
-public:
-  AsyncClient(const socket_address<sockaddr_in>& server_addr)
-    : server_(server_addr), triggers_() {}
+void writer(async_scope &scope, const dialog &client,
+                   const std::shared_ptr<message> &msg,
+                   const std::shared_ptr<buffer> &buf)
+{
+  auto send_sendmsg = sendmsg(client, *msg, 0) |
+                      then([=, &scope](auto len) {
+                        if (msg->buffers += len)
+                          return writer(scope, client, msg, buf);
 
-  void run() {
-    // Create client socket dialog using triggers
-    auto client = triggers_.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+                        reader(scope, client);
+                      }) |
+                      upon_error(error_handler);
 
-    // Connect asynchronously - returns a sender
-    auto connect = io::connect(client, server_) |
-                          then([this, client](const auto& connect_result) {
-                              std::cout << "Connected to server\n";
-                              // Start async message exchange
-                              send_message(client);
-                          }) |
-                          upon_error([](const auto &error){
-                            std::cerr << "Connection failed\n" << std::flush;
-                          });
+  scope.spawn(std::move(send_sendmsg));
+}
 
-    // Start the async operation
-    scope_.spawn(std::move(connect));
+void reader(async_scope &scope, const dialog &client)
+{
+  auto msg = std::make_shared<message>();
+  auto buf = std::make_shared<buffer>(1024);
+  msg->buffers.push_back(*buf);
 
-    // Event loop - wait for async operations to complete
-    while (!done_) {
-      triggers_.wait();
-    }
-  }
+  auto send_recvmsg = recvmsg(client, *msg, 0) |
+                      then([=, &scope](auto len) {
+                        if (!len)
+                          return;
 
-private:
-  void send_message(const socket_dialog<poll_multiplexer>& client) {
-    const char* message = "Hello from async client!\n";
-    socket_message msg{};
-    msg.buffers.emplace_back(const_cast<char*>(message), strlen(message));
+                        writer(scope, client, msg, buf);
+                      }) |
+                      upon_error(error_handler);
 
-    // Send message asynchronously
-    auto sendmsg = io::sendmsg(client, msg, 0) |
-                       then([this, client](std::streamsize bytes_sent) {
-                             std::cout << "Sent " << bytes_sent << " bytes\n";
-                             // Continue with receiving response
-                             receive_response(client);
-                           }) |
-                       upon_error([](const auto& error) {
-                        std::cerr << "Send failed\n";
-                       });
+  scope.spawn(std::move(send_recvmsg));
+}
 
-    scope_.spawn(std::move(sendmsg));
-  }
+void acceptor(async_scope &scope, const dialog &server)
+{
+  auto send_accept = accept(server) | then([&, server](auto result) {
+                       auto [client, addr] = std::move(result);
+                       reader(scope, client);
+                       acceptor(scope, server);
+                     }) |
+                     upon_error(error_handler);
 
-  void receive_response(const socket_dialog<poll_multiplexer>& client) {
-    static std::array<char, 256> buffer;
-    response_msg_.buffers.clear();
-    response_msg_.buffers.emplace_back(buffer.data(), buffer.size());
+  scope.spawn(std::move(send_accept));
+}
 
-    // Receive response asynchronously
-    auto &buf = response_msg_.buffers.front();
-    auto recvmsg = io::recvmsg(client, response_msg_, 0) |
-                   then([this, buf](auto bytes_received){
-                     std::string response(static_cast<char*>(buf.iov_base),
-                                          bytes_received);
-                     std::cout << "Received: " << response;
-                     done_ = true;  // Mark completion
-                   }) |
-                   upon_error([](const auto &error){
-                     std::cerr << "Receive failed\n";
-                     done_ = true;
-                   });
+void make_server(async_scope &scope, const dialog &server)
+{
+  auto server_address = make_address<sockaddr_in>();
+  server_address->sin_family = AF_INET;
+  server_address->sin_addr.s_addr = inet_addr("127.0.0.1");
+  server_address->sin_port = htons(8080);
 
-    scope_.spawn(std::move(recvmsg));
-  }
+  bind(server, server_address);
+  listen(server, SOMAXCONN);
+  acceptor(scope, server);
+}
 
-  socket_address<sockaddr_in> server_;
-  basic_triggers<poll_multiplexer> triggers_;
-  async_scope scope_;
-  socket_message response_msg_;
-  std::atomic<bool> done_{false};
-};
+int main(int argc, char *argv[])
+{
+  async_scope scope;
+  triggers trigs;
+
+  make_server(scope, trigs.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+
+  while (trigs.wait());
+  return 0;
+}
 ```
+
 ## Limitations
+
 - **Windows Support**: Windows support is currently planned but very far
 from complete.
 - **I/O Multiplexer Support**: Only the `poll` multiplexer is currently
