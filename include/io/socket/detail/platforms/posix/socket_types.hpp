@@ -32,8 +32,8 @@ inline static constexpr native_socket_type INVALID_SOCKET = -1;
 /** @brief A sentinel value used to indicate an error in socket API calls. */
 inline static constexpr int SOCKET_ERROR = -1;
 
-/** @brief The buffer type for scatter/gather I/O on POSIX systems.*/
-using buffer_type = struct iovec;
+/** @brief The native buffer type for scatter/gather I/O.*/
+using native_buffer_type = struct iovec;
 
 /** @brief The socket message type for POSIX systems. */
 using socket_message_type = struct msghdr;

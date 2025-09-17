@@ -32,8 +32,8 @@ inline static constexpr native_socket_type INVALID_SOCKET = INVALID_SOCKET;
 /** @brief A sentinel value used to indicate an error in socket API calls. */
 inline static constexpr int SOCKET_ERROR = ::SOCKET_ERROR;
 
-/** @brief The buffer type for scatter/gather I/O on Windows systems. */
-using buffer_type = ::WSABUF;
+/** @brief The native buffer type for scatter/gather I/O.*/
+using native_buffer_type = ::WSABUF;
 
 /** @brief The socket message type for Windows systems. */
 using socket_message_type = ::WSAMSG;

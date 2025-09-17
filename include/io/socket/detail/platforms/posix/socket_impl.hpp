@@ -14,20 +14,38 @@
  */
 
 /**
- * @file socket_functions.hpp
- * @brief This file contains the POSIX-specific socket functions.
+ * @file socket_impl.hpp
+ * @brief This file contains the POSIX-specific socket implementations.
  */
 #pragma once
-#ifndef IO_SOCKET_FUNCTIONS_HPP
-#define IO_SOCKET_FUNCTIONS_HPP
-#include "socket_types.hpp"
+#ifndef IO_SOCKET_IMPL_HPP
+#define IO_SOCKET_IMPL_HPP
+#include "io/socket/detail/socket.hpp"
 
+#include <cassert>
 #include <ios>
 #include <utility>
 
 #include <fcntl.h>
 #include <unistd.h>
 namespace io::socket {
+inline auto operator+=(native_buffer_type &buf,
+                       std::size_t len) noexcept -> native_buffer_type &
+{
+  if (buf.iov_len <= len)
+    return (buf = {.iov_base = nullptr, .iov_len = 0});
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  buf.iov_base = static_cast<char *>(buf.iov_base) + len;
+  buf.iov_len -= len;
+  return buf;
+}
+
+inline auto operator+(native_buffer_type buf,
+                      std::streamsize len) noexcept -> native_buffer_type
+{
+  return (buf += len);
+}
 
 inline auto close(native_socket_type socket) noexcept -> int
 {

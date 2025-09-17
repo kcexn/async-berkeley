@@ -30,6 +30,22 @@
 #include <ios>
 namespace io::socket {
 /**
+ * @brief Advances the buffer by a given number of bytes.
+ * @param buf The buffer to advance.
+ * @param len The number of bytes to advance the buffer.
+ * @return A reference to the advanced buffer.
+ */
+inline auto operator+=(native_buffer_type &buf,
+                       std::size_t len) noexcept -> native_buffer_type &;
+/**
+ * @brief Creates a new buffer advanced by a given number of bytes.
+ * @param buf The original buffer.
+ * @param len The number of bytes to advance.
+ * @return A new buffer advanced by `len` bytes.
+ */
+inline auto operator+(native_buffer_type buf,
+                      std::size_t len) noexcept -> native_buffer_type;
+/**
  * @brief Closes a socket descriptor on POSIX systems.
  * @param socket The native socket handle to close.
  * @return 0 on success, or an error code on failure.
@@ -69,9 +85,9 @@ inline auto recvmsg(native_socket_type socket, socket_message_type *msg,
 } // namespace io::socket
 
 #if OS_WINDOWS
-#include "platforms/windows/socket_functions.hpp" // IWYU pragma: export
+#include "platforms/windows/socket_impl.hpp" // IWYU pragma: export
 #else
-#include "platforms/posix/socket_functions.hpp" // IWYU pragma: export
+#include "platforms/posix/socket_impl.hpp" // IWYU pragma: export
 #endif
 
 #endif // IO_SOCKET_HPP

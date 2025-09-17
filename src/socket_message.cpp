@@ -17,25 +17,44 @@
  * @file socket_message.cpp
  */
 #include "io/socket/socket_message.hpp"
+#include "io/config.h"
+
+#include <algorithm>
 namespace io::socket {
-message_header::operator socket_message_type() noexcept
+
+auto scatter_gather_buffers::operator+=(std::size_t len) noexcept
+    -> scatter_gather_buffers &
 {
-  // TODO: Windows support.
-  return {.msg_name = name.data(),
-          .msg_namelen = static_cast<socklen_t>(name.size()),
-          .msg_iov = iov.data(),
-          .msg_iovlen = iov.size(),
-          .msg_control = control.data(),
-          .msg_controllen = control.size(),
-          .msg_flags = flags};
+  auto [ret, last] = std::ranges::remove_if(buffers_, [&](auto &buf) -> bool {
+    if (!len)
+      return false;
+
+#if OS_WINDOWS
+    auto count = buf.len;
+#else
+    auto count = buf.iov_len;
+#endif // OS_WINDOWS
+
+    buf += len;
+    return (len < count) ? (len = 0) : (len -= count) >= 0;
+  });
+
+  buffers_.erase(ret, last);
+  return *this;
 }
 
-socket_message::operator socket_message_type() noexcept
+#if OS_WINDOWS
+#else
+message_header::operator socket_message_type() noexcept
 {
-  message_header header = {.iov = buffers, .control = control};
-  if (address)
-    header.name = *address;
-  return static_cast<socket_message_type>(header);
+  return {.msg_name = msg_name.data(),
+          .msg_namelen = static_cast<socklen_t>(msg_name.size()),
+          .msg_iov = msg_iov.data(),
+          .msg_iovlen = msg_iov.size(),
+          .msg_control = msg_control.data(),
+          .msg_controllen = msg_control.size(),
+          .msg_flags = flags};
 }
+#endif // OS_WINDOWS
 
 } // namespace io::socket

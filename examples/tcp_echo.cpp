@@ -2,7 +2,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * you may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -14,11 +14,13 @@
  */
 
 /**
- * @file async_ping_pong_client.cpp
- * @brief Asynchronous ping/pong client example using the iosched library.
+ * @file tcp_echo.cpp
+ * @brief A simple TCP echo server using the async-berkeley library.
  *
- * This client connects to a server, sends "ping" messages, and waits for
- * "pong" responses using the asynchronous API.
+ * This example demonstrates a basic TCP echo server that listens for incoming
+ * connections and echoes back any data it receives. It showcases the use of
+ * asynchronous operations for accepting connections, reading data, and writing
+ * data.
  */
 // NOLINTBEGIN
 #include <io.hpp>
@@ -27,15 +29,25 @@
 
 #include <arpa/inet.h>
 
+// Using declarations for brevity
 using namespace io;
 using namespace io::socket;
 using namespace io::execution;
 using namespace stdexec;
 using namespace exec;
 
-using poll_triggers = basic_triggers<poll_multiplexer>;
-using poll_dialog = socket_dialog<poll_multiplexer>;
+// Type aliases for the specific implementations used in this example
+using triggers = basic_triggers<poll_multiplexer>;
+using dialog = socket_dialog<poll_multiplexer>;
+using buffer = std::vector<char>;
+using message = socket_message<sockaddr_in>;
 
+/**
+ * @brief A simple error handler for asynchronous operations.
+ *
+ * This function is called when an error occurs in a sender chain. It prints
+ * the error message to stderr.
+ */
 static constexpr auto error_handler = [](const auto &error) {
   if constexpr (std::is_same_v<decltype(error), int>)
   {
@@ -45,67 +57,95 @@ static constexpr auto error_handler = [](const auto &error) {
   }
 };
 
-auto reader(async_scope &scope, const poll_dialog &client) -> void;
-static auto writer(async_scope &scope, const poll_dialog &client,
-                   const std::vector<char> &buf) -> void
+// Forward declare the reader so that it can be used from writer().
+static auto reader(async_scope &scope, const dialog &client) -> void;
+
+/**
+ * @brief Asynchronously writes data to a client socket.
+ * @param scope The async_scope to spawn the operation on.
+ * @param client The client socket to write to.
+ * @param msg The socket_message containing the data to write.
+ * @param buf The buffer holding the data.
+ */
+static auto writer(async_scope &scope, const dialog &client,
+                   const std::shared_ptr<message> &msg,
+                   const std::shared_ptr<buffer> &buf) -> void
 {
-  auto writebuf = std::make_shared<std::vector<char>>(buf.cbegin(), buf.cend());
-  socket_message msg;
-  msg.buffers.emplace_back(writebuf->data(), writebuf->size());
-  sender auto send_sendmsg =
-      sendmsg(client, msg, 0) | then([&, client, buf = writebuf](auto len) {
-        if (static_cast<std::size_t>(len) < buf->size())
-        {
-          buf->erase(buf->begin(), buf->begin() + len);
-          writer(scope, client, *buf);
-          return;
-        }
-        reader(scope, client);
-      }) |
-      upon_error(error_handler);
+  // Create a sender that sends the message and, upon completion, either
+  // continues writing if not all data was sent, or starts reading again.
+  sender auto send_sendmsg = sendmsg(client, *msg, 0) |
+                             then([=, &scope](auto len) {
+                               // len is guaranteed >= 0 since errors are
+                               // reported separately.
+                               if (msg->buffers += len)
+                                 return writer(scope, client, msg, buf);
+
+                               reader(scope, client);
+                             }) |
+                             upon_error(error_handler);
 
   scope.spawn(std::move(send_sendmsg));
 }
 
-auto reader(async_scope &scope, const poll_dialog &client) -> void
+/**
+ * @brief Asynchronously reads data from a client socket.
+ * @param scope The async_scope to spawn the operation on.
+ * @param client The client socket to read from.
+ */
+static auto reader(async_scope &scope, const dialog &client) -> void
 {
-  auto msg = std::make_shared<socket_message>();
-  auto readbuf = std::make_shared<std::vector<char>>(1024);
-  msg->buffers.emplace_back(readbuf->data(), readbuf->size());
-  sender auto send_recvmsg =
-      recvmsg(client, *msg, 0) |
-      then([&, client, msg, buf = readbuf](auto len) {
-        if (len > 0)
-        {
-          buf->erase(buf->begin() + len, buf->end());
-          writer(scope, client, *buf);
-        }
-      }) |
-      upon_error(error_handler);
+  auto msg = std::make_shared<message>();
+  auto buf = std::make_shared<buffer>(1024);
+  msg->buffers.push_back(*buf);
+
+  // Create a sender that receives a message and, upon completion, echoes it
+  // back to the client by calling writer.
+  sender auto send_recvmsg = recvmsg(client, *msg, 0) |
+                             then([=, &scope](auto len) {
+                               // len is guaranteed >= 0 since errors are
+                               // reported separately.
+                               if (!len) // 0 indicates the client disconnected
+                                 return;
+
+                               writer(scope, client, msg, buf);
+                             }) |
+                             upon_error(error_handler);
 
   scope.spawn(std::move(send_recvmsg));
 }
 
-static auto acceptor(async_scope &scope, const poll_dialog &server) -> void
+/**
+ * @brief Asynchronously accepts incoming client connections.
+ * @param scope The async_scope to spawn the acceptor on.
+ * @param server The server socket to accept connections on.
+ */
+static auto acceptor(async_scope &scope, const dialog &server) -> void
 {
-  sender auto send_accept =
-      accept(server) | then([&](auto result) {
-        auto [client, addr] = std::move(result);
-        reader(scope, client);
-        acceptor(scope, server);
-      }) |
-      upon_error(error_handler);
+  // Create a sender that accepts a new client and, upon completion,
+  // starts reading from the new client and continues to accept more clients.
+  sender auto send_accept = accept(server) | then([&, server](auto result) {
+                              auto [client, addr] = std::move(result);
+                              reader(scope, client);
+                              acceptor(scope, server);
+                            }) |
+                            upon_error(error_handler);
 
   scope.spawn(std::move(send_accept));
 }
 
-static auto make_server(async_scope &scope, const poll_dialog &server) -> void
+/**
+ * @brief Creates and configures the server socket.
+ * @param scope The async_scope to spawn the acceptor on.
+ * @param server The server socket to configure.
+ */
+static auto make_server(async_scope &scope, const dialog &server) -> void
 {
   auto server_address = make_address<sockaddr_in>();
   server_address->sin_family = AF_INET;
   server_address->sin_addr.s_addr = inet_addr("127.0.0.1");
   server_address->sin_port = htons(8080);
 
+  // Set SO_REUSEADDR to allow the server to restart quickly
   socket_option<int> reuse{1};
   if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, reuse))
     throw std::system_error({errno, std::system_category()},
@@ -117,25 +157,23 @@ static auto make_server(async_scope &scope, const poll_dialog &server) -> void
   if (listen(server, SOMAXCONN))
     throw std::system_error({errno, std::system_category()}, "listen failed.");
 
+  // Start accepting connections
   acceptor(scope, server);
 }
 
+/**
+ * @brief The main entry point of the program.
+ */
 auto main(int argc, char *argv[]) -> int
 {
-  try
-  {
-    async_scope scope;
-    poll_triggers triggers;
+  async_scope scope;
+  triggers trigs;
 
-    auto server = triggers.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    make_server(scope, server);
+  // Create the server socket
+  make_server(scope, trigs.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP));
 
-    while (triggers.wait());
-    return 0;
-  }
-  catch (...)
-  {
-    return 1;
-  }
+  // Run the event loop until there are no more pending operations
+  while (trigs.wait());
+  return 0;
 }
 // NOLINTEND

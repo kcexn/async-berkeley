@@ -36,9 +36,10 @@ if(IO_DOCS_PUBLIC_ONLY)
 
     # Explicitly add the configuration preprocessor macros to the public documentation.
     list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/config.h")
-
     # Explicitly add the customization points to the public documentation.
     list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/detail/customization.hpp")
+    # Explicitly add the concepts to the public documentation.
+    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/detail/concepts.hpp")
 
     # Doxygen's INPUT tag requires a space-separated string.
     # We must create a single string variable containing all paths.

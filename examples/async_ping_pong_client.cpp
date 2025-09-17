@@ -23,6 +23,7 @@
 // NOLINTBEGIN
 #include <exec/async_scope.hpp>
 #include <io.hpp>
+#include <io/config.h>
 #include <stdexec/execution.hpp>
 
 #include <chrono>
@@ -47,7 +48,7 @@ public:
       : server_(std::move(server)), ping_count_{ping_count}, triggers_()
   {
     static std::array<char, 256> pong_buf{};
-    pong_msg.buffers.emplace_back(pong_buf.data(), pong_buf.size());
+    pong_msg.buffers.push_back(pong_buf);
   }
 
   void run()
@@ -107,12 +108,16 @@ private:
   void wait_for_pong(const socket_dialog<poll_multiplexer> &client,
                      int sequence)
   {
-    auto &buf = pong_msg.buffers.front();
+    auto buf = std::ranges::begin(pong_msg.buffers);
     // Receive message asynchronously
     auto recvmsg = io::recvmsg(client, pong_msg, 0) |
                    then([this, client, sequence, buf](auto bytes_received) {
-                     std::string message(static_cast<char *>(buf.iov_base),
+#if OS_WINDOWS
+                     std::string message(buf->buf, bytes_received);
+#else
+                     std::string message(static_cast<char *>(buf->iov_base),
                                          bytes_received);
+#endif
                      int next = sequence;
                      // Check if it's a pong response
                      if (message.find("pong") != std::string::npos)
@@ -147,7 +152,7 @@ private:
   std::atomic<int> pongs_received_;
   basic_triggers<poll_multiplexer> triggers_;
   async_scope scope_;
-  socket_message pong_msg{};
+  socket_message<sockaddr_in> pong_msg{};
 };
 
 auto main(int argc, char *argv[]) -> int

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+//NOLINTBEGIN
 #include "io.hpp"
 
 #include <gtest/gtest.h>
@@ -55,3 +56,31 @@ TEST_F(SocketMessageTest, SendRecvMsgTest)
   EXPECT_EQ(len, 14);
   EXPECT_EQ(std::strncmp(msg.data(), "Hello, world!", 14), 0);
 }
+
+TEST_F(SocketMessageTest, CompoundAdditionTest)
+{
+  std::vector<char> buf1(256);
+  std::vector<char> buf2(256);
+  socket_message message{};
+
+  auto &buffers = message.buffers;
+  buffers.push_back(buf1);
+  buffers.push_back(buf2);
+  ASSERT_EQ(buffers.size(), 2);
+
+  buffers += 256;
+  EXPECT_EQ(buffers.size(), 1);
+
+  buffers.push_back(buf1);
+  ASSERT_EQ(buffers.size(), 2);
+
+  buffers += 128;
+  EXPECT_EQ(buffers.size(), 2);
+
+  buffers += 128;
+  EXPECT_EQ(buffers.size(), 1);
+
+  buffers += 512;
+  EXPECT_TRUE(buffers.empty());
+}
+//NOLINTEND

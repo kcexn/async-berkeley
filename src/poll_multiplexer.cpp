@@ -186,8 +186,7 @@ static auto copy_active(std::vector<pollfd> &list) -> std::vector<pollfd>
  * @param list The interest list managed by the poll_multiplexer.
  */
 IO_STATIC(auto)
-clear_events(const std::vector<pollfd> &events,
-             std::vector<pollfd> &list) -> void
+clear_events(const std::vector<pollfd> &events, std::vector<pollfd> &list)->void
 {
   for (const auto &event : events)
   {

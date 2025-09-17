@@ -14,13 +14,13 @@
  */
 
 /**
- * @file socket_functions.hpp
- * @brief This file contains the Windows-specific socket functions.
+ * @file socket_impl.hpp
+ * @brief This file contains the POSIX-specific socket implementations.
  */
 #pragma once
-#ifndef IO_SOCKET_FUNCTIONS_HPP
-#define IO_SOCKET_FUNCTIONS_HPP
-#include "socket_types.hpp"
+#ifndef IO_SOCKET_IMPL_HPP
+#define IO_SOCKET_IMPL_HPP
+#include "io/socket/detail/socket.hpp"
 
 #include <cassert>
 #include <ios>
@@ -28,6 +28,23 @@
 
 #include <ws2tcpip.h>
 namespace io::socket {
+inline auto operator+=(native_buffer_type &buf,
+                       std::size_t len) noexcept -> native_buffer_type &
+{
+  if (buf.len <= len)
+    return (buf = {.len = 0, .buf = nullptr});
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  buf.buf += len;
+  buf.len -= len;
+  return buf;
+}
+
+inline auto operator+(native_buffer_type buf,
+                      std::size_t len) noexcept -> native_buffer_type
+{
+  return (buf += len);
+}
 
 /** @brief POSIX `fcntl` command to set file status flags. */
 static constexpr int F_SETFL = 4;

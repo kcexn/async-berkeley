@@ -46,6 +46,13 @@ enum struct execution_trigger : std::uint8_t;
  */
 namespace io {
 
+/** @brief A concept that describes a scatter/gather like buffer object. */
+template <typename B>
+concept ScatterGatherLike = requires(B buf) {
+  std::ranges::data(buf);
+  std::ranges::size(buf);
+};
+
 /**
  * @brief Concept for a multiplexer tag.
  *
