@@ -46,6 +46,14 @@ enum struct execution_trigger : std::uint8_t;
  */
 namespace io {
 
+/** @brief A concept that checks if a type is an allocator. */
+template <typename Allocator>
+concept AllocatorLike =
+    requires(Allocator alloc, typename Allocator::value_type *ptr) {
+      { alloc.allocate(0) } -> std::same_as<decltype(ptr)>;
+      { alloc.deallocate(ptr, 0) } -> std::same_as<void>;
+    };
+
 /** @brief A concept that describes a scatter/gather like buffer object. */
 template <typename B>
 concept ScatterGatherLike = requires(B buf) {
@@ -131,7 +139,7 @@ concept DialogLike = requires(Dialog &dialog) {
  */
 template <typename Message>
 concept MessageLike =
-    requires { static_cast<socket::socket_message_type>(Message{}); };
+    requires(Message msg) { static_cast<socket::socket_message_type>(msg); };
 
 } // namespace io
 #endif // IO_CONCEPTS_HPP

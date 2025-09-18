@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//NOLINTBEGIN
+// NOLINTBEGIN
 #include "io.hpp"
 
 #include <gtest/gtest.h>
@@ -27,9 +27,15 @@ protected:
   void TearDown() override {}
 };
 
+TEST_F(SocketMessageTest, CustomAllocatorConstruction)
+{
+  auto alloc = std::allocator<native_buffer_type>();
+  message_buffer<decltype(alloc)> msg(alloc);
+}
+
 TEST_F(SocketMessageTest, SendRecvMsgTest)
 {
-  socket_message message{};
+  socket_message message;
   std::array<int, 2> pair{};
   ASSERT_EQ(socketpair(AF_UNIX, SOCK_STREAM, 0, pair.data()), 0);
   socket_handle sender{pair[0]};
@@ -83,4 +89,4 @@ TEST_F(SocketMessageTest, CompoundAdditionTest)
   buffers += 512;
   EXPECT_TRUE(buffers.empty());
 }
-//NOLINTEND
+// NOLINTEND

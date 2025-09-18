@@ -25,7 +25,6 @@
 #include "io/socket/socket_handle.hpp"
 
 #include <memory>
-
 // Forward declarations
 namespace io::execution {
 template <Multiplexer Mux> class executor;

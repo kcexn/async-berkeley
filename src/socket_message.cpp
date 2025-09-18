@@ -19,29 +19,7 @@
 #include "io/socket/socket_message.hpp"
 #include "io/config.h"
 
-#include <algorithm>
 namespace io::socket {
-
-auto scatter_gather_buffers::operator+=(std::size_t len) noexcept
-    -> scatter_gather_buffers &
-{
-  auto [ret, last] = std::ranges::remove_if(buffers_, [&](auto &buf) -> bool {
-    if (!len)
-      return false;
-
-#if OS_WINDOWS
-    auto count = buf.len;
-#else
-    auto count = buf.iov_len;
-#endif // OS_WINDOWS
-
-    buf += len;
-    return (len < count) ? (len = 0) : (len -= count) >= 0;
-  });
-
-  buffers_.erase(ret, last);
-  return *this;
-}
 
 #if OS_WINDOWS
 #else

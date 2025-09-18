@@ -21,9 +21,9 @@
 #ifndef IO_SOCKET_HANDLE_HPP
 #define IO_SOCKET_HANDLE_HPP
 #include "detail/socket.hpp"
+
 #include <atomic>
 #include <mutex>
-
 // Forward Declarations for testing.
 /** \cond */
 #ifndef NDEBUG

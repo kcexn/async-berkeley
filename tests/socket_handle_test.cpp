@@ -273,7 +273,8 @@ TEST_F(SocketHandleTest, ThreadSafetyComparison)
             {
               [[maybe_unused]] auto result = handle1 <=> handle2;
               successful_operations.fetch_add(1, std::memory_order_relaxed);
-            } catch (...)
+            }
+            catch (...)
             {
               // Unexpected exception
             }
@@ -378,7 +379,8 @@ TEST_F(SocketHandleTest, ExplicitNativeSocketTypeConversion)
           break;
         }
       }
-    } catch (...)
+    }
+    catch (...)
     {
       conversion_succeeded = false;
     }
@@ -454,7 +456,8 @@ TEST_F(SocketHandleTest, ErrorHandlingThreadSafety)
               }
 
               std::this_thread::sleep_for(std::chrono::microseconds(1));
-            } catch (...)
+            }
+            catch (...)
             {
               // Unexpected exception
             }
