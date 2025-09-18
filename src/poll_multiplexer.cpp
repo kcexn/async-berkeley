@@ -118,9 +118,8 @@ set_error(::io::socket::socket_handle &socket)->void
       case ENOTSOCK:
         break;
 
-      default:                                       // GCOVR_EXCL_LINE
-        throw_system_error(                          // GCOVR_EXCL_LINE
-            IO_ERROR_MESSAGE("getsockopt failed.")); // GCOVR_EXCL_LINE
+      default:
+        throw_system_error(IO_ERROR_MESSAGE("getsockopt failed."));
     }
   }
   socket.set_error(error);

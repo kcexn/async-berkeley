@@ -54,13 +54,11 @@ struct message_header {
  * that can be used in readv/writev (scatter/gather) style I/O operations.
  */
 template <AllocatorLike Allocator = std::allocator<native_buffer_type>>
+  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 class message_buffer {
 public:
-  /** @brief The allocator type. */
-  using allocator_type = std::allocator_traits<
-      Allocator>::template rebind_alloc<native_buffer_type>;
   /** @brief The underlying buffer type. */
-  using buffer_type = std::vector<native_buffer_type, allocator_type>;
+  using buffer_type = std::vector<native_buffer_type, Allocator>;
   /** @brief Iterator for the buffer. */
   using iterator = typename buffer_type::iterator;
   /** @brief Constant iterator for the buffer. */
@@ -68,13 +66,12 @@ public:
   /** @brief Size type for the buffer. */
   using size_type = typename buffer_type::size_type;
 
-  /**
-   * @brief Default construct a new message buffer object
-   * @param alloc The allocator to use for the buffer.
-   */
-  constexpr message_buffer(
-      const allocator_type &alloc =
-          allocator_type()) noexcept(noexcept(allocator_type()));
+  // /**
+  //  * @brief Default construct a new message buffer object
+  //  * @param alloc The allocator to use for the buffer.
+  //  */
+  constexpr message_buffer(const Allocator &alloc = Allocator()) noexcept(
+      noexcept(Allocator()));
 
   /**
    * @brief Adds a buffer to the collection.

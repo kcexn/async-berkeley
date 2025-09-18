@@ -37,8 +37,11 @@ TEST_F(SocketAddressTest, TestPointerConstruction)
   addr.sin_port = 0;
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  socket_address address{reinterpret_cast<sockaddr_type *>(&addr),
+  socket_address<sockaddr_in> address1{reinterpret_cast<sockaddr_type *>(&addr),
                          sizeof(addr)};
-  auto *data = std::ranges::data(address);
+  auto *data = std::ranges::data(address1);
   EXPECT_EQ(std::memcmp(data, &addr, sizeof(addr)), 0);
+
+  auto address2 = make_address(&addr);
+  EXPECT_EQ(address1, address2);
 }

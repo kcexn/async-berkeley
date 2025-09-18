@@ -133,7 +133,6 @@ public:
     return reinterpret_cast<value_type *>(storage_.data());
   }
 
-  // GCOVR_EXCL_START
   /**
    * @brief Gets an iterator to the beginning of the option's byte
    * representation.
@@ -172,7 +171,6 @@ public:
   {
     return storage_.cbegin() + size_;
   }
-  // GCOVR_EXCL_STOP
 
   /**
    * @brief Compares this socket_option with another for ordering.

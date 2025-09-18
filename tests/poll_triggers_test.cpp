@@ -205,6 +205,12 @@ TEST_F(PollTriggersTest, SubmitTest)
   EXPECT_EQ(buf[0], 'b');
 }
 
+TEST_F(PollTriggersTest, WaitTest)
+{
+  basic_triggers<poll_multiplexer> triggers1;
+  EXPECT_EQ(triggers1.wait(), 0);
+}
+
 TEST_F(PollTriggersTest, AsyncAcceptTest)
 {
   using ::io::socket::make_address;

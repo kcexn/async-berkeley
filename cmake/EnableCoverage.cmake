@@ -26,7 +26,7 @@ add_custom_target(coverage
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
     COMMAND ${GCOVR_EXECUTABLE}
       --root ${CMAKE_SOURCE_DIR}
-      --filter ${CMAKE_SOURCE_DIR}/src/
+      --filter \"${CMAKE_SOURCE_DIR}/\(src/|include/\)\"
       --exclude-lines-by-pattern ".*= default.*"
       --html --html-details
       --output ${CMAKE_BINARY_DIR}/coverage/index.html
@@ -42,7 +42,7 @@ add_custom_target(coverage-xml
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
     COMMAND ${GCOVR_EXECUTABLE}
       --root ${CMAKE_SOURCE_DIR}
-      --filter ${CMAKE_SOURCE_DIR}/src/
+      --filter \"${CMAKE_SOURCE_DIR}/\(src/|include/\)\"
       --exclude-lines-by-pattern ".*= default.*"
       --xml
       --output ${CMAKE_BINARY_DIR}/coverage/coverage.xml

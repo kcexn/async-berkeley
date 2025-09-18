@@ -82,10 +82,7 @@ public:
   template <typename... Args>
   static auto emplace(Args &&...args) -> std::shared_ptr<socket_handle>
   {
-    auto ptr = std::make_shared<socket_handle>(std::forward<Args>(args)...);
-    if (::io::fcntl(*ptr, F_SETFL, ::io::fcntl(*ptr, F_GETFL) | O_NONBLOCK))
-      throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
-    return std::move(ptr);
+    return push(socket_handle{std::forward<Args>(args)...});
   }
   /**
    * @brief Sets a completion handler for an event.

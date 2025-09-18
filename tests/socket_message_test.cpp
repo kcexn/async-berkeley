@@ -30,7 +30,7 @@ protected:
 TEST_F(SocketMessageTest, CustomAllocatorConstruction)
 {
   auto alloc = std::allocator<native_buffer_type>();
-  message_buffer<decltype(alloc)> msg(alloc);
+  message_buffer msg(alloc);
 }
 
 TEST_F(SocketMessageTest, SendRecvMsgTest)
