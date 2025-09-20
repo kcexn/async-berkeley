@@ -77,6 +77,23 @@ template <MuxTag Tag> struct basic_multiplexer : public Tag {
       head_.tail = std::get<0>(head_.tail)->next = task;
     }
 
+    /**
+     * @brief Moves all tasks from one intrusive queue onto the back of
+     *        another.
+     */
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+    auto move_back(intrusive_task_queue &&other) noexcept -> void
+    {
+      if (!other.is_empty())
+      {
+        std::get<0>(other.head_.tail)->next = std::get<0>(head_.tail)->next;
+        std::get<0>(head_.tail)->next = other.head_.next;
+        head_.tail = other.head_.tail;
+
+        other.head_.next = std::get<0>(other.head_.tail) = &other.head_;
+      }
+    }
+
     /** @brief Pops a task from the front of the queue. */
     auto pop() noexcept -> task *
     {

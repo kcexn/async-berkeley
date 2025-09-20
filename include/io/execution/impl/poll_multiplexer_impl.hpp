@@ -200,8 +200,8 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::connect(Receiver &&receiver)
  */
 template <AllocatorLike Allocator>
 template <Completion Fn>
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 auto basic_poll_multiplexer<Allocator>::set(
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<socket_handle> socket, execution_trigger trigger,
     Fn &&func) -> sender<std::decay_t<Fn>>
 {
@@ -327,22 +327,10 @@ auto prepare_handles(
     set_error(*demux.socket);
 
   if (revents & (POLLOUT | POLLERR | POLLNVAL))
-  {
-    auto &write_queue = demux.write_queue;
-    while (!write_queue.is_empty())
-    {
-      ready.push(write_queue.pop());
-    }
-  }
+    ready.move_back(std::move(demux.write_queue));
 
   if (revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL))
-  {
-    auto &read_queue = demux.read_queue;
-    while (!read_queue.is_empty())
-    {
-      ready.push(read_queue.pop());
-    }
-  }
+    ready.move_back(std::move(demux.read_queue));
 }
 
 /**
