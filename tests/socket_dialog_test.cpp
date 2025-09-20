@@ -26,6 +26,7 @@
 
 using namespace io::socket;
 using namespace io::execution;
+using namespace io::socket::detail;
 
 class SocketDialogTest : public ::testing::TestWithParam<bool> {
 protected:
@@ -40,7 +41,6 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
 {
   if (is_lazy_)
   {
-    using namespace detail;
     // Set the fairness counter to max value to force lazy evaluation.
     fairness::counter() = -1;
   }
@@ -95,7 +95,6 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
 
   if (is_lazy_)
   {
-    using namespace detail;
     // Set the fairness counter to max value to force lazy evaluation.
     fairness::counter() = -1;
   }
@@ -105,7 +104,6 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
 
   if (is_lazy_)
   {
-    using namespace detail;
     // Set the fairness counter to max value to force lazy evaluation.
     fairness::counter() = -1;
   }

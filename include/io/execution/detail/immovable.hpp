@@ -26,18 +26,19 @@
  * @brief Provides high-level interfaces for executors and completion triggers.
  */
 namespace io::execution {
-/**
- * @brief A base struct to make a class immovable.
- *
- * This struct deletes the move constructor and move assignment operator, making
- * any class that inherits from it immovable.
- */
+/** @brief A base struct to make a class immovable. */
 struct immovable {
+  /** @brief Default constructor. */
   immovable() = default;
+  /** @brief Default copy constructor. */
   immovable(const immovable &) = delete;
-  auto operator=(const immovable &) -> immovable & = delete;
+  /** @brief Deleted move constructor. */
   immovable(immovable &&) = delete;
+  /** @brief Default copy assignment. */
+  auto operator=(const immovable &) -> immovable & = delete;
+  /** @brief Deleted move assignemtn. */
   auto operator=(immovable &&) noexcept -> immovable & = delete;
+  /** @brief Default destructor. */
   ~immovable() = default;
 };
 } // namespace io::execution

@@ -62,6 +62,8 @@ template <Multiplexer Mux> class executor : public Mux {
   using async_scope = exec::async_scope;
 
 public:
+  /** @brief Use the base class constructor. */
+  using Mux::Mux;
   /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.

@@ -48,9 +48,7 @@ template <Multiplexer Mux> class basic_triggers {
   using socket_dialog = ::io::socket::socket_dialog<Mux>;
 
 public:
-  /**
-   * @brief The executor type.
-   */
+  /** @brief The executor type. */
   using executor_type = executor<Mux>;
 
   /** @brief Default constructor. */
@@ -61,6 +59,13 @@ public:
 
   /** @brief Default move constructor. */
   basic_triggers(basic_triggers &&) = default;
+
+  /** @brief Construct with an allocator. */
+  template <AllocatorLike Allocator>
+  explicit basic_triggers(const Allocator &alloc = Allocator()) noexcept(
+      noexcept(Allocator()))
+      : executor_{std::make_shared<executor_type>(alloc)}
+  {}
 
   /** @brief Deleted copy assignment operator. */
   auto operator=(const basic_triggers &) -> basic_triggers & = delete;

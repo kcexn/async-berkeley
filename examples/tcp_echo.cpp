@@ -151,10 +151,10 @@ static auto make_server(async_scope &scope, const dialog &server) -> void
     throw std::system_error({errno, std::system_category()},
                             "setsockopt failed.");
 
-  if (bind(server, server_address))
+  if (::io::bind(server, server_address))
     throw std::system_error({errno, std::system_category()}, "bind failed.");
 
-  if (listen(server, SOMAXCONN))
+  if (::io::listen(server, SOMAXCONN))
     throw std::system_error({errno, std::system_category()}, "listen failed.");
 
   // Start accepting connections

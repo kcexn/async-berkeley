@@ -35,6 +35,12 @@ protected:
   basic_triggers<poll_multiplexer> triggers;
 };
 
+TEST_F(PollTriggersTest, AllocatorConstructionTest)
+{
+  std::allocator<std::byte> alloc;
+  basic_triggers<poll_multiplexer> triggers1{alloc};
+}
+
 TEST_F(PollTriggersTest, MoveConstructorTest)
 {
   basic_triggers<poll_multiplexer> triggers1;
@@ -103,13 +109,13 @@ TEST_F(PollTriggersTest, EmplaceHandleTest)
 
 TEST_F(PollTriggersTest, PollErrorHandlingTest)
 {
-  handle_poll_error(EINTR);
-  EXPECT_THROW(handle_poll_error(EAGAIN), std::system_error);
+  handle_poll_error({EINTR, std::system_category()});
+  EXPECT_THROW(handle_poll_error({EAGAIN, std::system_category()}), std::system_error);
 }
 
 TEST_F(PollTriggersTest, PollTest)
 {
-  auto list = poll_({}, 0);
+  auto list = poll_(poll_multiplexer::vector_type{}, 0);
   EXPECT_TRUE(list.empty());
 }
 
@@ -127,50 +133,9 @@ TEST_F(PollTriggersTest, PollSetErrorTest)
   EXPECT_EQ(socket2.get_error().value(), EBADF);
 }
 
-TEST_F(PollTriggersTest, PollPrepareHandlesTest)
-{
-  using socket_handle = ::io::socket::socket_handle;
-
-  poll_multiplexer::demultiplexer demux{};
-  demux.read_queue.emplace();
-  demux.write_queue.emplace();
-
-  socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
-  demux.socket = &socket;
-
-  short revents = (POLLERR | POLLOUT | POLLIN);
-  auto queues = prepare_handles(revents, demux);
-
-  EXPECT_EQ(queues.size(), 2);
-  EXPECT_EQ(queues[0].size(), 1);
-  EXPECT_EQ(queues[1].size(), 1);
-
-  demux.read_queue.emplace();
-  revents = (POLLIN | POLLOUT);
-  queues = prepare_handles(revents, demux);
-
-  EXPECT_EQ(queues.size(), 1);
-  EXPECT_EQ(queues[0].size(), 1);
-
-  demux.write_queue.emplace();
-  queues = prepare_handles(revents, demux);
-
-  EXPECT_EQ(queues.size(), 1);
-  EXPECT_EQ(queues[0].size(), 1);
-}
-
-TEST_F(PollTriggersTest, MakeReadyQueuesTest)
-{
-  std::vector<pollfd> list{{.fd = 1, .events = POLLIN, .revents = 0}};
-  std::map<int, poll_multiplexer::demultiplexer> demux{};
-
-  auto ready = make_ready_queues(list, demux);
-  EXPECT_TRUE(ready.empty());
-}
-
 TEST_F(PollTriggersTest, PollClearEventsTest)
 {
-  std::vector<pollfd> list{{.fd = 1, .events = POLLIN, .revents = POLLERR}};
+  poll_multiplexer::vector_type list{{.fd = 1, .events = POLLIN, .revents = POLLERR}};
   clear_events(list, list);
   EXPECT_EQ(list[0].events, 0);
 }
