@@ -20,7 +20,6 @@
 #pragma once
 #ifndef IO_EXECUTOR_HPP
 #define IO_EXECUTOR_HPP
-#include "execution_trigger.hpp"
 #include "io/detail/concepts.hpp"
 #include "io/detail/customization.hpp"
 #include "io/error.hpp"
@@ -88,16 +87,13 @@ public:
   }
   /**
    * @brief Sets a completion handler for an event.
-   * @param event The event to wait for.
-   * @param exec The completion handler.
-   * @return A future that will complete when the event occurs.
+   * @param args The arguments to forward to the multiplexer.
+   * @tparam Args The types of the perfectly forwarded arguments.
+   * @return A sender, scoped to the lifetime of the executor.
    */
-  template <Completion Fn>
-  auto set(std::shared_ptr<socket_handle> socket, execution_trigger event,
-           Fn &&exec) -> decltype(auto)
+  template <typename... Args> auto set(Args &&...args) -> decltype(auto)
   {
-    return scope_.spawn_future(
-        Mux::set(std::move(socket), event, std::forward<Fn>(exec)));
+    return scope_.nest(Mux::set(std::forward<Args>(args)...));
   }
 
 private:
@@ -115,9 +111,7 @@ private:
    * @return The number of events that occurred.
    */
   constexpr auto wait() -> decltype(auto) { return wait_for(); }
-  /**
-   * @brief The async scope for the executor.
-   */
+  /** @brief The async scope for the executor. */
   async_scope scope_;
 };
 

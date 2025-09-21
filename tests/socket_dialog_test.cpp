@@ -39,6 +39,10 @@ protected:
 
 TEST_P(SocketDialogTest, ConnectAcceptOperation)
 {
+  using async_scope = exec::async_scope;
+
+  async_scope scope;
+
   if (is_lazy_)
   {
     // Set the fairness counter to max value to force lazy evaluation.
@@ -64,12 +68,13 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
   auto client_addr = make_address<sockaddr_in>();
   stdexec::sender auto connect = ::io::connect(connect_dialog, bound_address);
   stdexec::sender auto accept = ::io::accept(accept_dialog, client_addr);
-  triggers.wait_for(0);
+  stdexec::sender auto connect_accept_future = scope.spawn_future(
+      stdexec::when_all(std::move(connect), std::move(accept)));
+
+  while (triggers.wait_for(0));
 
   auto [connect_result, accept_result] =
-      stdexec::sync_wait(
-          stdexec::when_all(std::move(connect), std::move(accept)))
-          .value();
+      stdexec::sync_wait(std::move(connect_accept_future)).value();
 
   EXPECT_EQ(connect_result, 0);
   auto [dialog, handle_addr] = std::move(accept_result);
@@ -78,6 +83,9 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
 
 TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
 {
+  using async_scope = exec::async_scope;
+
+  async_scope scope;
   const char *message = "Hello, World!";
   void *send_buf = reinterpret_cast<void *>(const_cast<char *>(message));
   std::array<char, 14> recv_buf{};
@@ -100,7 +108,8 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
   }
 
   stdexec::sender auto send_sender = ::io::sendmsg(send_dialog, send_msg, 0);
-  triggers.wait_for(0);
+  stdexec::sender auto send_future = scope.spawn_future(std::move(send_sender));
+  while (triggers.wait_for(0));
 
   if (is_lazy_)
   {
@@ -109,11 +118,12 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
   }
 
   stdexec::sender auto recv_sender = ::io::recvmsg(recv_dialog, recv_msg, 0);
-  triggers.wait_for(0);
+  stdexec::sender auto recv_future = scope.spawn_future(std::move(recv_sender));
+  while (triggers.wait_for(0));
 
   auto [send_len, recv_len] =
       stdexec::sync_wait(
-          stdexec::when_all(std::move(send_sender), std::move(recv_sender)))
+          stdexec::when_all(std::move(send_future), std::move(recv_future)))
           .value();
 
   EXPECT_EQ(send_len, recv_len);

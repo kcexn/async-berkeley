@@ -21,16 +21,16 @@
  * `poll` system call.
  */
 #pragma once
-#include <system_error>
 #ifndef IO_POLL_MULTIPLEXER_IMPL_HPP
 #define IO_POLL_MULTIPLEXER_IMPL_HPP
 #include "io/error.hpp"
-#include "io/execution/detail/poll_multiplexer.hpp"
 #include "io/execution/detail/utilities.hpp"
+#include "io/execution/poll_multiplexer.hpp"
 #include "io/socket/detail/socket.hpp"
 #include "io/socket/socket_handle.hpp"
 #include "io/socket/socket_option.hpp"
 
+#include <system_error>
 // Customization point forward declarations
 namespace io {
 struct accept_t;
@@ -173,19 +173,26 @@ template <typename Receiver>
 auto basic_poll_multiplexer<Allocator>::sender<Fn>::connect(Receiver &&receiver)
     -> state<std::decay_t<Receiver>>
 {
+  using socket_type = socket::native_socket_type;
   using enum execution_trigger;
+
+  demultiplexer *demux_ptr = nullptr;
   if (!socket->get_error() && trigger != EAGER)
   {
-    with_lock(std::unique_lock{*mtx}, [&] {
-      update_or_insert_event(list, make_poll_event(*socket, trigger));
-    });
+    std::lock_guard lock{*mtx};
+
+    auto [pair, emplaced] =
+        demux->try_emplace(static_cast<socket_type>(*socket));
+    demux_ptr = &pair->second;
+
+    update_or_insert_event(list, make_poll_event(*socket, trigger));
   }
 
-  return {.socket = std::move(socket),
-          .func = std::move(func),
-          .demux = demux,
-          .mtx = mtx,
+  return {.func = std::move(func),
+          .socket = std::move(socket),
           .receiver = std::forward<Receiver>(receiver),
+          .demux = demux_ptr,
+          .mtx = mtx,
           .trigger = trigger};
 }
 
@@ -205,17 +212,12 @@ auto basic_poll_multiplexer<Allocator>::set(
     std::shared_ptr<socket_handle> socket, execution_trigger trigger,
     Fn &&func) -> sender<std::decay_t<Fn>>
 {
-  using native_socket_type = ::io::socket::native_socket_type;
-
-  auto key = static_cast<native_socket_type>(*socket);
-  auto [demux_it, emplaced] = demux_.try_emplace(key);
-
-  return {.socket = std::move(socket),
-          .func = std::forward<Fn>(func),
-          .trigger = trigger,
-          .demux = &(demux_it->second),
+  return {.func = std::forward<Fn>(func),
+          .socket = std::move(socket),
+          .demux = &demux_,
           .list = &list_,
-          .mtx = &mtx_};
+          .mtx = &mtx_,
+          .trigger = trigger};
 }
 
 /**

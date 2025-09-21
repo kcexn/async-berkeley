@@ -21,11 +21,11 @@
  * handlers.
  */
 #pragma once
-#include <io/socket/detail/platforms/posix/socket_types.hpp>
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
+#include "detail/multiplexer.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
-#include "multiplexer.hpp"
+#include "io/socket/detail/platforms/posix/socket_types.hpp"
 
 #include <stdexec/execution.hpp>
 
@@ -142,22 +142,22 @@ public:
     template <typename Receiver> struct state : public task {
       /**
        * @brief Completes the operation.
-       * @param task The task to complete.
+       * @param task_ptr The task to complete.
        */
       static auto complete(task *task_ptr) noexcept -> void;
       /** @brief Starts the operation. */
       auto start() noexcept -> void;
 
-      /** @brief The socket to operate on. */
-      std::shared_ptr<socket_handle> socket;
       /** @brief The completion handler. */
       Fn func;
+      /** @brief The socket to operate on. */
+      std::shared_ptr<socket_handle> socket;
+      /** @brief The receiver to complete. */
+      Receiver receiver{};
       /** @brief The demultiplexer for the socket. */
       demultiplexer *demux = nullptr;
       /** @brief A mutex for thread safety. */
       std::mutex *mtx = nullptr;
-      /** @brief The receiver to complete. */
-      Receiver receiver{};
       /** @brief The poll trigger. */
       execution_trigger trigger{};
     };
@@ -170,18 +170,18 @@ public:
     template <typename Receiver>
     auto connect(Receiver &&receiver) -> state<std::decay_t<Receiver>>;
 
-    /** @brief The socket to operate on. */
-    std::shared_ptr<socket_handle> socket;
     /** @brief The completion handler. */
     Fn func;
-    /** @brief The poll trigger. */
-    execution_trigger trigger{};
+    /** @brief The socket to operate on. */
+    std::shared_ptr<socket_handle> socket;
     /** @brief The demultiplexer for the socket. */
-    demultiplexer *demux = nullptr;
+    map_type *demux = nullptr;
     /** @brief The list of poll events. */
-    std::vector<event_type> *list = nullptr;
+    vector_type *list = nullptr;
     /** @brief A mutex for thread safety. */
     std::mutex *mtx = nullptr;
+    /** @brief The poll trigger. */
+    execution_trigger trigger{};
   };
 
   /**
@@ -194,7 +194,7 @@ public:
   /**
    * @brief Sets a completion handler for an event.
    * @param socket The socket to set the completion handler for.
-   * @param event The event to wait for.
+   * @param trigger The event type to trigger on.
    * @param func The completion handler.
    * @return A sender that will complete when the event occurs.
    */

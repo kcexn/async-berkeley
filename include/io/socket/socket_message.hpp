@@ -66,10 +66,10 @@ public:
   /** @brief Size type for the buffer. */
   using size_type = typename buffer_type::size_type;
 
-  // /**
-  //  * @brief Default construct a new message buffer object
-  //  * @param alloc The allocator to use for the buffer.
-  //  */
+  /**
+   * @brief Default construct a new message buffer object
+   * @param alloc The allocator to use for the buffer.
+   */
   constexpr message_buffer(const Allocator &alloc = Allocator()) noexcept(
       noexcept(Allocator()));
 

@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_TRIGGERS_HPP
 #define IO_TRIGGERS_HPP
-#include "detail/executor.hpp"
+#include "executor.hpp"
 #include "io/detail/concepts.hpp"
 #include "io/socket/socket_dialog.hpp"
 #include "io/socket/socket_handle.hpp"
@@ -95,16 +95,13 @@ public:
 
   /**
    * @brief Sets a completion handler for an event.
-   * @param socket A shared pointer to guarantee the socket lifetime.
-   * @param event The event to wait for.
-   * @param exec The completion handler.
+   * @param args The arguments to perfectly forward to the executor.
+   * @tparam Args The argument types to perfectly forward.
    * @return A sender that will complete when the event occurs.
    */
-  template <Completion Fn>
-  auto set(std::shared_ptr<socket_handle> socket, execution_trigger event,
-           Fn &&exec) -> decltype(auto)
+  template <typename... Args> auto set(Args &&...args) -> decltype(auto)
   {
-    return executor_->set(std::move(socket), event, std::forward<Fn>(exec));
+    return executor_->set(std::forward<Args>(args)...);
   }
 
   /**

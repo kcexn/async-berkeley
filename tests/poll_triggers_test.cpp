@@ -15,7 +15,6 @@
 #include "io.hpp"
 
 #include <exec/async_scope.hpp>
-#include <exec/static_thread_pool.hpp>
 #include <gtest/gtest.h>
 #include <stdexec/execution.hpp>
 
@@ -110,7 +109,8 @@ TEST_F(PollTriggersTest, EmplaceHandleTest)
 TEST_F(PollTriggersTest, PollErrorHandlingTest)
 {
   handle_poll_error({EINTR, std::system_category()});
-  EXPECT_THROW(handle_poll_error({EAGAIN, std::system_category()}), std::system_error);
+  EXPECT_THROW(handle_poll_error({EAGAIN, std::system_category()}),
+               std::system_error);
 }
 
 TEST_F(PollTriggersTest, PollTest)
@@ -130,12 +130,13 @@ TEST_F(PollTriggersTest, PollSetErrorTest)
 
   socket_handle socket2{};
   EXPECT_NO_THROW(set_error(socket2));
-  EXPECT_EQ(socket2.get_error().value(), EBADF);
+  EXPECT_EQ(socket2.get_error(), std::errc::bad_file_descriptor);
 }
 
 TEST_F(PollTriggersTest, PollClearEventsTest)
 {
-  poll_multiplexer::vector_type list{{.fd = 1, .events = POLLIN, .revents = POLLERR}};
+  poll_multiplexer::vector_type list{
+      {.fd = 1, .events = POLLIN, .revents = POLLERR}};
   clear_events(list, list);
   EXPECT_EQ(list[0].events, 0);
 }
@@ -144,7 +145,9 @@ TEST_F(PollTriggersTest, SubmitTest)
 {
   using trigger = execution_trigger;
   using socket_handle = ::io::socket::socket_handle;
+  using async_scope = exec::async_scope;
 
+  async_scope scope;
   std::array<int, 2> sockets{};
   int status = ::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets.data());
   ASSERT_EQ(status, 0);
@@ -158,6 +161,7 @@ TEST_F(PollTriggersTest, SubmitTest)
     return std::optional(
         ::read(sockets[0], buf.data(), std::min(1UL, buf.size())));
   });
+  stdexec::sender auto read_future = scope.spawn_future(std::move(read));
   write(sockets[1], "a", 1);
   triggers.wait_for(0);
   EXPECT_EQ(buf[0], 'a');
@@ -165,6 +169,7 @@ TEST_F(PollTriggersTest, SubmitTest)
   stdexec::sender auto write = triggers.set(write_socket, trigger::WRITE, [&] {
     return std::optional(::write(sockets[1], "b", 1));
   });
+  stdexec::sender auto write_future = scope.spawn_future(std::move(write));
   triggers.wait_for(0);
   ::read(sockets[0], buf.data(), std::min(1UL, buf.size()));
   EXPECT_EQ(buf[0], 'b');
@@ -179,6 +184,9 @@ TEST_F(PollTriggersTest, WaitTest)
 TEST_F(PollTriggersTest, AsyncAcceptTest)
 {
   using ::io::socket::make_address;
+  using async_scope = exec::async_scope;
+
+  async_scope scope;
 
   basic_triggers<poll_multiplexer> triggers1;
   auto dialog = triggers1.emplace(AF_INET, SOCK_STREAM, 0);
@@ -203,8 +211,9 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   EXPECT_EQ(status, 0);
 
   stdexec::sender auto accept = ::io::accept(dialog, address);
+  stdexec::sender auto accept_future = scope.spawn_future(std::move(accept));
   triggers1.wait_for(0);
-  auto [result] = stdexec::sync_wait(std::move(accept)).value();
+  auto [result] = stdexec::sync_wait(std::move(accept_future)).value();
   auto [accept_dialog, accept_address] = std::move(result);
   EXPECT_TRUE(accept_dialog);
 

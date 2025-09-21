@@ -22,6 +22,7 @@
 #ifndef IO_ASYNC_OPERATIONS_HPP
 #define IO_ASYNC_OPERATIONS_HPP
 #include "io/detail/customization.hpp"
+#include "io/detail/small_functor.hpp"
 #include "io/error.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
 #include "io/socket/socket_dialog.hpp"
@@ -120,11 +121,15 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
                 const socket_dialog<Mux> &dialog,
                 std::span<std::byte> address) -> decltype(auto)
 {
+  using namespace ::io::detail;
+  using namespace detail;
+  using namespace ::io::execution;
+
   using socket_dialog = socket_dialog<Mux>;
   using result_t = std::pair<socket_dialog, std::span<const std::byte>>;
-  using callback = std::function<std::optional<result_t>()>;
-  using enum io::execution::execution_trigger;
-  using namespace detail;
+  using functor =
+      small_functor<std::optional<result_t>() noexcept, sizeof(result_t)>;
+  using enum execution_trigger;
 
   auto executor = get_executor(dialog);
   auto &socket = dialog.socket;
@@ -134,23 +139,22 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
     if (++fairness::counter())
     {
       auto [sock, addr] = ::io::accept(*socket, address);
-
       if (sock)
       {
-        auto res = std::make_shared<result_t>(
-            socket_dialog{executor, executor->push(std::move(sock))}, addr);
-        return executor->set(socket, EAGER, callback([res = std::move(res)] {
-                               return std::optional<result_t>{std::move(*res)};
+        auto res = result_t{{executor, executor->push(std::move(sock))}, addr};
+        return executor->set(socket, EAGER,
+                             functor([res = std::move(res)]() noexcept {
+                               return std::optional<result_t>{std::move(res)};
                              }));
       }
 
       if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, callback{});
+        return executor->set(socket, EAGER, functor{});
     }
   }
 
   return executor->set(
-      socket, READ, callback([=, socket = socket.get()] {
+      socket, READ, functor([=, socket = socket.get()]() noexcept {
         auto [sock, addr] = ::io::accept(*socket, address);
         return (sock) ? std::optional<result_t>(
                             {{executor, executor->push(std::move(sock))}, addr})
@@ -194,7 +198,7 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
   if (::io::connect(*socket, address))
     handle_connect_error(dialog);
 
-  return executor->set(socket, WRITE, [] { return std::optional<int>{0}; });
+  return executor->set(socket, WRITE, []() noexcept { return std::optional<int>{0}; });
 }
 
 /**
@@ -274,10 +278,14 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
                 const socket_dialog<Mux> &dialog, Message &msg,
                 int flags) -> decltype(auto)
 {
-  using result_t = std::streamsize;
-  using callback = std::function<std::optional<result_t>()>;
-  using enum io::execution::execution_trigger;
+  using namespace ::io::detail;
+  using namespace ::io::execution;
   using namespace detail;
+
+  using result_t = std::streamsize;
+  using functor = small_functor<std::optional<result_t>() noexcept,
+                                sizeof(dialog) + sizeof(msg) + sizeof(flags)>;
+  using enum execution_trigger;
 
   auto executor = get_executor(dialog);
   auto &socket = dialog.socket;
@@ -290,19 +298,19 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
 
       if (len >= 0)
       {
-        return executor->set(socket, EAGER, callback([len] {
+        return executor->set(socket, EAGER, functor([len]() noexcept {
                                return std::optional<result_t>{len};
                              }));
       }
 
       if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, callback{});
+        return executor->set(socket, EAGER, functor{});
     }
   }
 
   auto msghdr = static_cast<socket_message_type>(msg);
   return executor->set(
-      socket, READ, callback([=, socket = socket.get()] {
+      socket, READ, functor([=, socket = socket.get()]() noexcept {
         std::streamsize len = ::io::recvmsg(*socket, msghdr, flags);
         return (len < 0) ? std::nullopt : std::optional<result_t>{len};
       }));
@@ -323,10 +331,13 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
                 const socket_dialog<Mux> &dialog, const Message &msg,
                 int flags) -> decltype(auto)
 {
-  using result_t = std::streamsize;
-  using callback = std::function<std::optional<result_t>()>;
-  using enum io::execution::execution_trigger;
+  using namespace ::io::detail;
   using namespace detail;
+
+  using result_t = std::streamsize;
+  using functor = small_functor<std::optional<result_t>() noexcept,
+                                sizeof(dialog) + sizeof(msg) + sizeof(flags)>;
+  using enum io::execution::execution_trigger;
 
   auto executor = get_executor(dialog);
   auto &socket = dialog.socket;
@@ -339,18 +350,18 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
 
       if (len >= 0)
       {
-        return executor->set(socket, EAGER, callback([len] {
+        return executor->set(socket, EAGER, functor([len]() noexcept {
                                return std::optional<result_t>{len};
                              }));
       }
 
       if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, callback{});
+        return executor->set(socket, EAGER, functor{});
     }
   }
 
   return executor->set(
-      socket, WRITE, callback([=, socket = socket.get()] {
+      socket, WRITE, functor([=, socket = socket.get()]() noexcept {
         result_t len = ::io::sendmsg(*socket, msg, flags | MSG_NOSIGNAL);
         return (len < 0) ? std::nullopt : std::optional<result_t>{len};
       }));
