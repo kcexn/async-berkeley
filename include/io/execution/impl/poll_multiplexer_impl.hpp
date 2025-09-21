@@ -30,6 +30,7 @@
 #include "io/socket/socket_handle.hpp"
 #include "io/socket/socket_option.hpp"
 
+#include <algorithm>
 #include <system_error>
 // Customization point forward declarations
 namespace io {
@@ -256,15 +257,30 @@ inline auto handle_poll_error(const std::error_code &error) -> void
  * @return The list of file descriptors that have events.
  */
 template <AllocatorLike Allocator>
-inline auto poll_(std::vector<pollfd, Allocator> list,
-                  int duration) -> std::vector<pollfd>
+auto poll_(std::vector<pollfd, Allocator> list,
+           int duration) -> std::vector<pollfd>
 {
+  using clock = std::chrono::steady_clock;
+  static constexpr auto duration_cast =
+      []<typename Rep, typename Period>(
+          std::chrono::duration<Rep, Period> duration) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+      };
+
   if (list.empty())
     return list;
 
+  auto start = clock::now();
   while (poll(list.data(), list.size(), duration) < 0)
   {
     handle_poll_error({errno, std::system_category()}); // GCOVR_EXCL_LINE
+    if (duration > -1)
+    {
+      auto end = clock::now();
+      duration -= duration_cast(end - start).count();
+      duration = std::max(0, duration);
+      start = end;
+    }
   }
 
   auto [first, last] = std::ranges::remove_if(

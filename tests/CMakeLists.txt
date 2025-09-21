@@ -7,6 +7,7 @@ set(TEST_NAMES
   socket_option_test
   socket_message_test
   socket_dialog_test
+  mock_poll_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

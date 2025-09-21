@@ -198,7 +198,8 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
   if (::io::connect(*socket, address))
     handle_connect_error(dialog);
 
-  return executor->set(socket, WRITE, []() noexcept { return std::optional<int>{0}; });
+  return executor->set(socket, WRITE,
+                       []() noexcept { return std::optional<int>{0}; });
 }
 
 /**
