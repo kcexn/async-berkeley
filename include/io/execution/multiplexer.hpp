@@ -20,7 +20,7 @@
 #pragma once
 #ifndef IO_MULTIPLEXER_HPP
 #define IO_MULTIPLEXER_HPP
-#include "immovable.hpp"
+#include "detail/immovable.hpp"
 #include "io/detail/concepts.hpp"
 
 #include <variant>

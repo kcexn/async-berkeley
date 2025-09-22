@@ -23,9 +23,8 @@
 #pragma once
 #ifndef IO_POLL_MULTIPLEXER_HPP
 #define IO_POLL_MULTIPLEXER_HPP
-#include "detail/multiplexer.hpp"
-#include "io/execution/detail/execution_trigger.hpp"
-#include "io/socket/detail/platforms/posix/socket_types.hpp"
+#include "detail/execution_trigger.hpp"
+#include "multiplexer.hpp"
 
 #include <stdexec/execution.hpp>
 
