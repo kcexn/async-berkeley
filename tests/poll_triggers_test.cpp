@@ -86,7 +86,7 @@ TEST_F(PollTriggersTest, PushHandleTest)
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   auto sockfd = static_cast<int>(socket);
 
-  auto dialog = triggers.push(std::move(socket));
+  auto dialog = triggers.emplace(std::move(socket));
   auto ptr = dialog.socket;
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(sockfd == *ptr);
@@ -100,7 +100,7 @@ TEST_F(PollTriggersTest, EmplaceHandleTest)
 
   auto sockfd = static_cast<int>(*ptr);
 
-  dialog = triggers.push(std::move(*ptr));
+  dialog = triggers.push(ptr);
   ptr = dialog.socket;
   EXPECT_TRUE(ptr);
   EXPECT_TRUE(*ptr == sockfd);

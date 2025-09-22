@@ -64,7 +64,7 @@ public:
   template <AllocatorLike Allocator>
   explicit basic_triggers(const Allocator &alloc = Allocator()) noexcept(
       noexcept(Allocator()))
-      : executor_{std::make_shared<executor_type>(alloc)}
+      : executor_{std::allocate_shared<executor_type>(alloc, alloc)}
   {}
 
   /** @brief Deleted copy assignment operator. */
@@ -74,17 +74,24 @@ public:
   auto operator=(basic_triggers &&) -> basic_triggers & = default;
 
   /**
-   * @brief Pushes a socket handle to the collection.
-   * @param handle The socket handle to push.
-   * @return A weak pointer to the pushed socket handle.
+   * @brief Constructs a `socket_dialog` associated to the executor.
+   *
+   * This method can be used to create socket dialogs with a custom
+   * allocator.
+   *
+   * @tparam Socket The socket like object to use in the socket_dialog.
+   * @param socket A shared pointer to the socket handle.
+   * @return A `socket_dialog` to be used in asynchronous I/O.
    */
-  template <SocketLike Socket> auto push(Socket &&handle) -> socket_dialog
+  template <SocketLike Socket>
+  auto push(std::shared_ptr<Socket> socket) -> socket_dialog
   {
-    return {executor_, executor_type::push(std::forward<Socket>(handle))};
+    return {executor_, executor_type::push(std::move(socket))};
   }
 
   /**
-   * @brief Emplaces a socket handle in the collection.
+   * @brief In-place constructs a `socket_dialog` associated to the executor.
+   * @tparam Args The argument types to be forwarded to the executor.
    * @param ...args The arguments to forward to the socket handle constructor.
    * @return A shared pointer to the emplaced socket handle.
    */

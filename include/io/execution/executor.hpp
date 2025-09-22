@@ -64,6 +64,26 @@ public:
   /** @brief Use the base class constructor. */
   using Mux::Mux;
   /**
+   * @brief Configures the socket to be non-blocking.
+   *
+   * This overload can be used to create socket_dialogs
+   * using a custom allocator for the socket handle.
+   *
+   * @tparam Socket A socket handle like object.
+   * @param socket A shared pointer to a non-blocking socket.
+   * @return A shared pointer to a non-blocking socket.
+   */
+  template <SocketLike Socket>
+  static auto push(std::shared_ptr<Socket> socket) -> decltype(auto)
+  {
+    if (::io::fcntl(*socket, F_SETFL,
+                    ::io::fcntl(*socket, F_GETFL) | O_NONBLOCK))
+    {
+      throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
+    }
+    return socket;
+  }
+  /**
    * @brief Pushes a socket handle to the collection.
    * @param handle The socket handle to push.
    * @return A weak pointer to the pushed socket handle.
@@ -71,9 +91,7 @@ public:
   template <SocketLike Socket>
   static auto push(Socket &&handle) -> decltype(auto)
   {
-    if (::io::fcntl(handle, F_SETFL, ::io::fcntl(handle, F_GETFL) | O_NONBLOCK))
-      throw_system_error(IO_ERROR_MESSAGE("fcntl failed."));
-    return std::make_shared<Socket>(std::forward<Socket>(handle));
+    return push(std::make_shared<Socket>(std::forward<Socket>(handle)));
   }
   /**
    * @brief Emplaces a socket handle in the collection.
