@@ -69,11 +69,11 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
   stdexec::sender auto connect = ::io::connect(connect_dialog, bound_address);
   stdexec::sender auto accept = ::io::accept(accept_dialog, client_addr);
   stdexec::sender auto connect_accept_future = scope.spawn_future(
-      stdexec::when_all(std::move(connect), std::move(accept)));
+      stdexec::when_all(std::move(accept), std::move(connect)));
 
   while (triggers.wait_for(0));
 
-  auto [connect_result, accept_result] =
+  auto [accept_result, connect_result] =
       stdexec::sync_wait(std::move(connect_accept_future)).value();
 
   EXPECT_EQ(connect_result, 0);
@@ -134,4 +134,60 @@ INSTANTIATE_TEST_SUITE_P(SocketDialogTests, SocketDialogTest, ::testing::Bool(),
                          [](const auto &info) {
                            return info.param ? "Lazy" : "Normal";
                          });
+
+class SocketDialogHelperTest : public ::testing::Test {
+protected:
+  void SetUp() override {}
+  void TearDown() override {}
+};
+
+TEST_F(SocketDialogHelperTest, getExecutorTest)
+{
+  using socket_dialog = socket_dialog<poll_multiplexer>;
+  auto dialog = socket_dialog{};
+  EXPECT_THROW(get_executor(dialog), std::invalid_argument);
+}
+
+TEST_F(SocketDialogHelperTest, HandleConnectErrorTest)
+{
+  using triggers_type = basic_triggers<poll_multiplexer>;
+
+  auto poller = triggers_type();
+  auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
+  errno = ENOMEM;
+
+  handle_connect_error(dialog);
+  EXPECT_EQ(dialog.socket->get_error(), std::errc::not_enough_memory);
+}
+
+TEST_F(SocketDialogHelperTest, SetErrorIfNotBlocked)
+{
+  using socket_handle = ::io::socket::socket_handle;
+
+  auto sock = socket_handle{AF_UNIX, SOCK_STREAM, 0};
+  EXPECT_FALSE(set_error_if_not_blocked(sock, EWOULDBLOCK));
+  EXPECT_FALSE(set_error_if_not_blocked(sock, EAGAIN));
+  EXPECT_TRUE(set_error_if_not_blocked(sock, ENOMEM));
+}
+
+TEST_F(SocketDialogHelperTest, SetSockOptTest)
+{
+  using triggers_type = basic_triggers<poll_multiplexer>;
+
+  auto poller = triggers_type{};
+  auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
+
+  auto reuse = socket_option<int>{1};
+  EXPECT_EQ(::io::setsockopt(dialog, SOL_SOCKET, SO_REUSEADDR, reuse), 0);
+}
+
+TEST_F(SocketDialogHelperTest, ShutdownTest)
+{
+  using triggers_type = basic_triggers<poll_multiplexer>;
+
+  auto poller = triggers_type{};
+  auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
+
+  EXPECT_EQ(::io::shutdown(dialog, SHUT_RD), 0);
+}
 // NOLINTEND

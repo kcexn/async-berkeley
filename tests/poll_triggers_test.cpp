@@ -173,6 +173,24 @@ TEST_F(PollTriggersTest, SubmitTest)
   triggers.wait_for(0);
   ::read(sockets[0], buf.data(), std::min(1UL, buf.size()));
   EXPECT_EQ(buf[0], 'b');
+
+  stdexec::sender auto write_error =
+      triggers.set(write_socket, trigger::WRITE, [&] {
+        errno = ECONNRESET;
+        return std::optional<int>();
+      });
+  stdexec::sender auto write_error_fut =
+      scope.spawn_future(std::move(write_error));
+  triggers.wait_for(0);
+  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut)), int);
+
+  write_socket->set_error(ECONNRESET);
+  stdexec::sender auto write_error2 = triggers.set(
+      write_socket, trigger::WRITE, [&] { return std::optional<int>(); });
+  stdexec::sender auto write_error_fut2 =
+      scope.spawn_future(std::move(write_error2));
+  triggers.wait_for(0);
+  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut2)), int);
 }
 
 TEST_F(PollTriggersTest, WaitTest)
@@ -221,4 +239,25 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   auto client_addr = ::io::getsockname(client, client_address);
   ASSERT_EQ(client_addr, client_address);
   EXPECT_EQ(client_address, accept_address);
+}
+
+TEST_F(PollTriggersTest, UpdateOrInsertEventTest)
+{
+  std::vector<pollfd> list{{.fd = 0, .events = 0, .revents = 0}};
+  pollfd pfd = {.fd = 0, .events = POLLIN, .revents = 0};
+  update_or_insert_event(&list, pfd);
+
+  EXPECT_EQ(list[0].events, POLLIN);
+}
+
+TEST_F(PollTriggersTest, HandleGetSockOptErrorTest)
+{
+  int value = handle_getsockopt_error({EBADF, std::system_category()});
+  EXPECT_EQ(value, EBADF);
+
+  value = handle_getsockopt_error({ENOTSOCK, std::system_category()});
+  EXPECT_EQ(value, ENOTSOCK);
+
+  EXPECT_THROW(handle_getsockopt_error({EFAULT, std::system_category()}),
+               std::system_error);
 }

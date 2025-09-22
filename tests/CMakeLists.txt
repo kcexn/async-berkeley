@@ -8,6 +8,10 @@ set(TEST_NAMES
   socket_message_test
   socket_dialog_test
   mock_poll_test
+  mock_fcntl_test
+  mock_accept_test
+  mock_recvmsg_test
+  mock_sendmsg_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

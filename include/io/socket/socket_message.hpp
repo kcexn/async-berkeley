@@ -54,7 +54,6 @@ struct message_header {
  * that can be used in readv/writev (scatter/gather) style I/O operations.
  */
 template <AllocatorLike Allocator = std::allocator<native_buffer_type>>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 class message_buffer {
 public:
   /** @brief The underlying buffer type. */

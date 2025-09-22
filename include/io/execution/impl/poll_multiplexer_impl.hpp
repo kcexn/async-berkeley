@@ -290,6 +290,26 @@ auto poll_(std::vector<pollfd, Allocator> list,
 }
 
 /**
+ * @brief Checks if the error is recoverable.
+ *
+ * This function checks if the error set by getsockopt is a recoverable
+ * one. If it is recoverable, return the value. Otherwise throw an exception.
+ *
+ * @param error The error code to test.
+ * @returns The error code to set on the socket.
+ */
+inline auto handle_getsockopt_error(std::error_code error) -> int
+{
+  if (error != std::errc::bad_file_descriptor &&
+      error != std::errc::not_a_socket)
+  {
+    throw_system_error(IO_ERROR_MESSAGE("getsockopt failed."));
+  }
+
+  return error.value();
+}
+
+/**
  * @brief Gets the socket error and sets it on the socket handle.
  * @details This function gets the value of the SO_ERROR socket option and sets
  * it on the socket handle. This is used to get the error that occurred during
@@ -303,17 +323,7 @@ inline auto set_error(::io::socket::socket_handle &socket) -> void
   socket_option error{0};
   auto [ret, optval] = ::io::getsockopt(socket, SOL_SOCKET, SO_ERROR, error);
   if (ret)
-  {
-    switch (*error = errno)
-    {
-      case EBADF:
-      case ENOTSOCK:
-        break;
-
-      default:
-        throw_system_error(IO_ERROR_MESSAGE("getsockopt failed."));
-    }
-  }
+    *error = handle_getsockopt_error({errno, std::system_category()});
   socket.set_error(*error);
 }
 
@@ -342,7 +352,7 @@ auto prepare_handles(
    * of the underlying socket.
    */
   if (revents & (POLLERR | POLLNVAL))
-    set_error(*demux.socket);
+    set_error(*demux.socket); // GCOVR_EXCL_LINE
 
   if (revents & (POLLOUT | POLLERR | POLLNVAL))
     ready.move_back(std::move(demux.write_queue));

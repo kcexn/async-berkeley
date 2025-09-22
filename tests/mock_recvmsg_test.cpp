@@ -24,48 +24,31 @@
 
 using namespace io::execution;
 
-static int poll_call_count = 0;
-static int interruptions = 3;
-static bool exception_test = false;
-int poll(struct pollfd *fds, nfds_t nfds, int timeout)
+static bool error_test = false;
+ssize_t recvmsg(int __fd, struct msghdr *__message, int flags)
 {
-  if (exception_test)
+  if (error_test)
   {
     errno = ENOMEM;
     return -1;
   }
-
-  poll_call_count++;
-  if (timeout > 0 && poll_call_count <= interruptions)
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds(8));
-    errno = EINTR;
-    return -1;
-  }
-
   return 0;
 }
 
-class MockPollTest : public ::testing::Test {
+class MockRecvmsgTest : public ::testing::Test {
 protected:
   void SetUp() override {}
   void TearDown() override {}
-
-  std::vector<pollfd> list{{.fd = 0, .events = POLLIN, .revents = 0}};
 };
 
-TEST_F(MockPollTest, TestPoll_)
+TEST_F(MockRecvmsgTest, TestRecvmsg)
 {
-  poll_call_count = 0;
-  interruptions = 3;
-  auto ret = poll_(list, 10);
+  using socket_handle = ::io::socket::socket_handle;
+  using message = ::io::socket::socket_message<>;
 
-  EXPECT_LT(poll_call_count, interruptions + 1);
-}
-
-TEST_F(MockPollTest, TestExceptionsPoll_)
-{
-  exception_test = true;
-  EXPECT_THROW(poll_(list, 0), std::system_error);
+  error_test = true;
+  auto sock = socket_handle{AF_UNIX, SOCK_STREAM, 0};
+  auto msg = message{};
+  EXPECT_EQ(::io::recvmsg(sock, msg, 0), -1);
 }
 // NOLINTEND

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// NOLINTBEGIN
 #include "io.hpp"
 
 #include <algorithm>
@@ -524,7 +525,7 @@ protected:
   socket_address<sockaddr_in> in_address{};
 };
 
-TEST_F(SocketHandleOperationsTest, AcceptTagInvoke)
+TEST_F(SocketHandleOperationsTest, AcceptTest)
 {
   socket_handle server(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -591,25 +592,35 @@ TEST_F(SocketHandleOperationsTest, FcntlTagInvoke)
   EXPECT_TRUE(new_flags & O_NONBLOCK);
 }
 
-TEST_F(SocketHandleOperationsTest, GetpeernameTagInvoke)
+TEST_F(SocketHandleOperationsTest, Getpeername)
 {
-  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto address = make_address<sockaddr_un>();
+  std::array<native_socket_type, 2> sockets{};
+  ASSERT_EQ(::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets.data()), 0);
 
-  auto address = make_address<sockaddr_in>();
-  auto result = ::io::getpeername(handle, address);
+  socket_handle error_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  auto result = ::io::getpeername(error_handle, address);
   EXPECT_EQ(result.data(), nullptr);
+
+  auto client = socket_handle{sockets[0]};
+  auto server = socket_handle{sockets[1]};
+
+  auto addr_ = ::io::getpeername(client, address);
+  EXPECT_EQ(std::memcmp(addr_.data(), std::ranges::data(address), addr_.size()),
+            0);
 }
 
-TEST_F(SocketHandleOperationsTest, GetsocknameTagInvoke)
+TEST_F(SocketHandleOperationsTest, Getsockname)
 {
-  socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  ASSERT_EQ(::io::bind(handle, in_address), 0);
-
+  auto error_handle = socket_handle{-1};
   auto address = make_address<sockaddr_in>();
-  auto result = ::io::getsockname(handle, address);
-  EXPECT_EQ(std::ranges::data(address), result.data());
-  EXPECT_LT(result.size(), sizeof(sockaddr_storage_type));
+  auto result = ::io::getsockname(error_handle, address);
+  EXPECT_EQ(result.data(), nullptr);
+
+  auto handle = socket_handle{AF_INET, SOCK_STREAM, IPPROTO_TCP};
+  ASSERT_EQ(::io::bind(handle, in_address), 0);
+  result = ::io::getsockname(handle, address);
+  EXPECT_EQ(address, result);
 }
 
 TEST_F(SocketHandleOperationsTest, GetsockoptTagInvoke)
@@ -635,3 +646,4 @@ TEST_F(SocketHandleOperationsTest, SetsockoptTagInvoke)
   EXPECT_EQ(reuse, optval);
   EXPECT_EQ(*reuse, 1);
 }
+// NOLINTEND

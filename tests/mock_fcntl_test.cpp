@@ -24,48 +24,27 @@
 
 using namespace io::execution;
 
-static int poll_call_count = 0;
-static int interruptions = 3;
 static bool exception_test = false;
-int poll(struct pollfd *fds, nfds_t nfds, int timeout)
+int fcntl(int fd, int __cmd, ...)
 {
   if (exception_test)
   {
     errno = ENOMEM;
     return -1;
   }
-
-  poll_call_count++;
-  if (timeout > 0 && poll_call_count <= interruptions)
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds(8));
-    errno = EINTR;
-    return -1;
-  }
-
   return 0;
 }
 
-class MockPollTest : public ::testing::Test {
+class MockFcntlTest : public ::testing::Test {
 protected:
   void SetUp() override {}
   void TearDown() override {}
-
-  std::vector<pollfd> list{{.fd = 0, .events = POLLIN, .revents = 0}};
 };
 
-TEST_F(MockPollTest, TestPoll_)
-{
-  poll_call_count = 0;
-  interruptions = 3;
-  auto ret = poll_(list, 10);
-
-  EXPECT_LT(poll_call_count, interruptions + 1);
-}
-
-TEST_F(MockPollTest, TestExceptionsPoll_)
+TEST_F(MockFcntlTest, TestPushSocket)
 {
   exception_test = true;
-  EXPECT_THROW(poll_(list, 0), std::system_error);
+  basic_triggers<poll_multiplexer> poller;
+  EXPECT_THROW(poller.emplace(AF_INET, SOCK_STREAM, 0), std::system_error);
 }
 // NOLINTEND

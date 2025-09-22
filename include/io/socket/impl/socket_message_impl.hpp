@@ -27,14 +27,12 @@
 namespace io::socket {
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 constexpr message_buffer<Allocator>::message_buffer(
     const Allocator &alloc) noexcept(noexcept(Allocator()))
     : buffer_(alloc)
 {}
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 template <ScatterGatherLike B>
 constexpr auto message_buffer<Allocator>::push_back(const B &buf) -> void
 {
@@ -51,7 +49,6 @@ constexpr auto message_buffer<Allocator>::push_back(const B &buf) -> void
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 constexpr auto
 message_buffer<Allocator>::push_back(native_buffer_type buf) -> void
 {
@@ -59,7 +56,6 @@ message_buffer<Allocator>::push_back(native_buffer_type buf) -> void
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 template <typename... Args>
 constexpr auto
 message_buffer<Allocator>::emplace_back(Args &&...args) -> decltype(auto)
@@ -68,7 +64,6 @@ message_buffer<Allocator>::emplace_back(Args &&...args) -> decltype(auto)
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::begin() noexcept -> iterator
 {
@@ -76,7 +71,6 @@ message_buffer<Allocator>::begin() noexcept -> iterator
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::begin() const noexcept -> const_iterator
 {
@@ -84,7 +78,6 @@ message_buffer<Allocator>::begin() const noexcept -> const_iterator
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::end() noexcept -> iterator
 {
@@ -92,7 +85,6 @@ message_buffer<Allocator>::end() noexcept -> iterator
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::end() const noexcept -> const_iterator
 {
@@ -100,7 +92,6 @@ message_buffer<Allocator>::end() const noexcept -> const_iterator
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::size() const noexcept -> size_type
 {
@@ -108,7 +99,6 @@ message_buffer<Allocator>::size() const noexcept -> size_type
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::empty() const noexcept -> bool
 {
@@ -116,7 +106,6 @@ message_buffer<Allocator>::empty() const noexcept -> bool
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 [[nodiscard]] constexpr message_buffer<Allocator>::operator bool()
     const noexcept
 {
@@ -124,7 +113,6 @@ template <AllocatorLike Allocator>
 }
 
 template <AllocatorLike Allocator>
-  requires std::is_same_v<typename Allocator::value_type, native_buffer_type>
 auto message_buffer<Allocator>::operator+=(std::size_t len) noexcept
     -> message_buffer &
 {

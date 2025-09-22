@@ -29,8 +29,8 @@ protected:
 
 TEST_F(SocketMessageTest, CustomAllocatorConstruction)
 {
-  auto alloc = std::allocator<native_buffer_type>();
-  message_buffer msg(alloc);
+  auto alloc = std::allocator<char>();
+  auto msg = message_buffer<>(alloc);
 }
 
 TEST_F(SocketMessageTest, SendRecvMsgTest)

@@ -142,7 +142,7 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
       if (sock)
       {
         auto res = result_t{{executor, executor->push(std::move(sock))}, addr};
-        return executor->set(socket, EAGER,
+        return executor->set(socket, EAGER, // GCOVR_EXCL_LINE
                              functor([res = std::move(res)]() noexcept {
                                return std::optional<result_t>{std::move(res)};
                              }));
@@ -198,7 +198,7 @@ auto tag_invoke([[maybe_unused]] connect_t *ptr,
   if (::io::connect(*socket, address))
     handle_connect_error(dialog);
 
-  return executor->set(socket, WRITE,
+  return executor->set(socket, WRITE, // GCOVR_EXCL_LINE
                        []() noexcept { return std::optional<int>{0}; });
 }
 
