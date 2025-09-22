@@ -248,6 +248,41 @@ inline auto handle_poll_error(const std::error_code &error) -> void
     throw_system_error(IO_ERROR_MESSAGE("poll failed."));
 }
 
+namespace detail {
+
+/**
+ * @brief Calculates the remaining duration from a start time and updates the
+ * start time.
+ *
+ * This function measures the time elapsed since the `start` time_point,
+ * subtracts it from the initial `duration`, and returns the remaining time. It
+ * also updates the `start` time_point to the current time.
+ *
+ * @tparam Clock The clock type used for the time_point.
+ * @tparam Duration The duration type used for the time_point.
+ * @param duration The initial duration in milliseconds.
+ * @param[in,out] start The time_point marking the beginning of the duration.
+ * This parameter is updated to the current time (`Clock::now()`) on each call.
+ * @return The remaining time in milliseconds, guaranteed to be non-negative.
+ */
+template <typename Clock, typename Duration>
+auto remaining_duration(int duration,
+                        std::chrono::time_point<Clock, Duration> &start) -> int
+{
+  using clock = std::decay_t<decltype(start)>::clock;
+  static constexpr auto to_milliseconds = [](const auto &duration) -> int {
+    using namespace std::chrono;
+
+    return duration_cast<milliseconds>(duration).count();
+  };
+
+  auto old_start = start;
+  start = clock::now();
+  return std::max(0, duration - to_milliseconds(start - old_start));
+}
+
+} // namespace detail
+
 /**
  * @brief A wrapper around the poll system call.
  * @details This function calls the poll system call and handles any errors. It
@@ -260,12 +295,8 @@ template <AllocatorLike Allocator>
 auto poll_(std::vector<pollfd, Allocator> list,
            int duration) -> std::vector<pollfd>
 {
+  using namespace detail;
   using clock = std::chrono::steady_clock;
-  static constexpr auto duration_cast =
-      []<typename Rep, typename Period>(
-          std::chrono::duration<Rep, Period> duration) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-      };
 
   if (list.empty())
     return list;
@@ -273,18 +304,13 @@ auto poll_(std::vector<pollfd, Allocator> list,
   auto start = clock::now();
   while (poll(list.data(), list.size(), duration) < 0)
   {
-    handle_poll_error({errno, std::system_category()}); // GCOVR_EXCL_LINE
+    handle_poll_error({errno, std::system_category()});
     if (duration > -1)
-    {
-      auto end = clock::now();
-      duration -= duration_cast(end - start).count();
-      duration = std::max(0, duration);
-      start = end;
-    }
+      duration = remaining_duration(duration, start);
   }
 
   auto [first, last] = std::ranges::remove_if(
-      list, [](const auto &event) { return !event.revents; });
+      list, [](const auto &event) { return event.revents == 0; });
   list.erase(first, last);
   return list;
 }
