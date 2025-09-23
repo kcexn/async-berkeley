@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build gcc g++ ccache cmake python3-all
+        sudo apt-get install -y ninja-build gcc g++ ccache cmake python3-all doxygen
 
     - name: Cache Python dependencies
       uses: actions/cache@v4
@@ -41,19 +41,17 @@ jobs:
         key: ccache-test-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.h', '**/*.c') }}
         restore-keys: |
           ccache-test-${{ runner.os }}-
-          ccache-build-${{ runner.os }}-
 
     - name: Cache CMake build directory
       uses: actions/cache@v4
       with:
         path: |
-          build/_deps
-          build/CMakeCache.txt
-          build/CMakeFiles
+          build/debug/_deps
+          build/debug/CMakeCache.txt
+          build/debug/CMakeFiles
         key: test-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
         restore-keys: |
           test-${{ runner.os }}-
-          build-${{ runner.os }}-
 
     - name: Configure ccache
       run: |
@@ -63,41 +61,34 @@ jobs:
 
     - name: Configure CMake with tests and coverage
       run: |
-        cmake -B build \
-          -G Ninja \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_FLAGS="-Wall -Wpedantic -std=c++20" \
-          -DSTDEXEC_BUILD_EXAMPLES=OFF \
-          -DSTDEXEC_BUILD_TESTS=OFF \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        cmake --preset debug \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-          -DIO_ENABLE_COVERAGE=ON
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
     - name: Build with tests
-      run: cmake --build build
+      run: cmake --build --preset debug
 
     - name: Print ccache stats
       run: ccache --show-stats
 
     - name: Run tests
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --preset debug --output-on-failure
 
     - name: Generate coverage XML
       if: github.ref == 'refs/heads/main'
-      run: cmake --build build --target coverage-xml
+      run: cmake --build --preset debug --target coverage-xml
 
     - name: Upload coverage to Codacy
       if: github.ref == 'refs/heads/main'
       uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 #v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        coverage-reports: "./build/coverage/coverage.xml"
+        coverage-reports: "./build/debug/coverage/coverage.xml"
 
     - name: Upload coverage reports
       if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: coverage-reports
-        path: build/coverage/
+        path: build/debug/coverage/
         retention-days: 7

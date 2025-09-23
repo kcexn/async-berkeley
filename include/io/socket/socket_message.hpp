@@ -73,12 +73,21 @@ public:
       noexcept(Allocator()));
 
   /**
+   * @brief Construct a message_buffer from a list of scatter-gather buffers.
+   * @tparam Bufs A variadic template argument determining the types of buffers.
+   * @param bufs The variadic list of bufs to construct the message buffer from.
+   */
+  template <ScatterGatherLike... Bufs>
+  constexpr message_buffer(const Bufs &...bufs) noexcept;
+
+  /**
    * @brief Adds a buffer to the collection.
    * @tparam B The type of the buffer, which must satisfy the ScatterGatherLike
    * concept.
    * @param buf The buffer to add.
    */
-  template <ScatterGatherLike B> constexpr auto push_back(const B &buf) -> void;
+  template <ScatterGatherLike Buf>
+  constexpr auto push_back(const Buf &buf) -> void;
 
   /**
    * @brief Adds a native buffer to the collection.

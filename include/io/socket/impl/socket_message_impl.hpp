@@ -18,6 +18,7 @@
  * @brief Defines structures for handling socket messages.
  */
 #pragma once
+#include <io/detail/concepts.hpp>
 #ifndef IO_SOCKET_MESSAGE_IMPL_HPP
 #define IO_SOCKET_MESSAGE_IMPL_HPP
 #include "io/config.h"
@@ -33,8 +34,16 @@ constexpr message_buffer<Allocator>::message_buffer(
 {}
 
 template <AllocatorLike Allocator>
-template <ScatterGatherLike B>
-constexpr auto message_buffer<Allocator>::push_back(const B &buf) -> void
+template <ScatterGatherLike... Bufs>
+constexpr message_buffer<Allocator>::message_buffer(
+    const Bufs &...bufs) noexcept
+{
+  (push_back(bufs), ...);
+}
+
+template <AllocatorLike Allocator>
+template <ScatterGatherLike Buf>
+constexpr auto message_buffer<Allocator>::push_back(const Buf &buf) -> void
 {
   using element_type = std::remove_pointer_t<decltype(std::ranges::data(buf))>;
   using pointer_type = std::decay_t<element_type> *;

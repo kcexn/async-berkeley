@@ -1,6 +1,6 @@
-# EnableTests.cmake - Configure GoogleTest for iosched project
+# EnableTests.cmake - Configure GoogleTest for AsyncBerkeley project
 #
-# This module configures GoogleTest when IOSCHED_ENABLE_TESTS is enabled.
+# This module configures GoogleTest when IO_ENABLE_TESTS is enabled.
 # It handles fetching GoogleTest, setting up testing, and adding the tests subdirectory.
 message(STATUS "Configuring tests with GoogleTest")
 

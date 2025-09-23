@@ -21,7 +21,6 @@ CPMAddPackage(
 # Include directories for build and distribution.
 set(INCLUDE_DIRS
   "${CMAKE_SOURCE_DIR}/include/"
-  "${CMAKE_SOURCE_DIR}/vendor/"
 )
 
 # enable and configure code coverage
@@ -31,8 +30,16 @@ if (IO_ENABLE_COVERAGE)
 endif()
 
 # Configure tests with googletest
+option(IO_BUILD_TESTING "Enable code testing." ON)
+set(BUILD_TESTING ${IO_BUILD_TESTING})
 if (BUILD_TESTING)
   include(cmake/EnableTests.cmake)
+endif()
+
+# Configure benchmarks with googlebenchmark.
+option(IO_ENABLE_BENCHMARKS "Enable benchmarking with google benchmark." OFF)
+if (IO_ENABLE_BENCHMARKS)
+  include(cmake/EnableBenchmarks.cmake)
 endif()
 
 # enable and configure doxygen documentation
