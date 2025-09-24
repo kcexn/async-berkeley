@@ -2,7 +2,7 @@
 find_package(Boost REQUIRED)
 
 set(BENCHMARK_NAMES
-  simple_echo_benchmark
+  echo_benchmark
 )
 
 foreach(BENCHMARK_NAME IN LISTS BENCHMARK_NAMES)
