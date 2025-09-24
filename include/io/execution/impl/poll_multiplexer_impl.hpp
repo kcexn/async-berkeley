@@ -414,21 +414,18 @@ auto copy_active(std::vector<pollfd, Allocator> &list)
  * @param list The interest list managed by the poll_multiplexer.
  */
 template <AllocatorLike Allocator>
-auto clear_events(const std::vector<pollfd, Allocator> &events,
-                  std::vector<pollfd, Allocator> &list) -> void
+auto clear_event(const struct pollfd &event,
+                 std::vector<pollfd, Allocator> &list) -> void
 {
-  for (const auto &event : events)
+  auto pfd = std::ranges::lower_bound(list, event.fd, {},
+                                      [](const auto &tmp) { return tmp.fd; });
+  if (pfd != std::end(list) && pfd->fd == event.fd)
   {
-    auto pfd = std::ranges::lower_bound(list, event.fd, {},
-                                        [](const auto &tmp) { return tmp.fd; });
-    if (pfd != std::end(list) && pfd->fd == event.fd)
-    {
-      if (event.revents & (POLLERR | POLLNVAL))
-        pfd->events = 0;
+    if (event.revents & (POLLERR | POLLNVAL))
+      pfd->events = 0;
 
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions)
-      pfd->events &= ~(event.revents);
-    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
+    pfd->events &= ~(event.revents);
   }
 }
 
@@ -452,11 +449,10 @@ auto basic_poll_multiplexer<Allocator>::wait_for(interval_type interval)
   intrusive_task_queue ready_queue;
 
   with_lock(std::unique_lock{mtx_}, [&] {
-    clear_events(list, list_);
     for (const auto &event : list)
     {
-      auto dem = demux_.find(event.fd);
-      if (dem != std::end(demux_))
+      clear_event(event, list_);
+      if (auto dem = demux_.find(event.fd); dem != std::end(demux_))
         prepare_handles<Allocator>(event.revents, dem->second, ready_queue);
     }
   });

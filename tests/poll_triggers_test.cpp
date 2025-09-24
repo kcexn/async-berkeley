@@ -137,7 +137,7 @@ TEST_F(PollTriggersTest, PollClearEventsTest)
 {
   poll_multiplexer::vector_type list{
       {.fd = 1, .events = POLLIN, .revents = POLLERR}};
-  clear_events(list, list);
+  clear_event({.fd = 1, .events = POLLIN, .revents = POLLERR}, list);
   EXPECT_EQ(list[0].events, 0);
 }
 

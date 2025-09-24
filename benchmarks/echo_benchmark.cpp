@@ -211,8 +211,11 @@ BENCHMARK_DEFINE_F(AsyncBerkeleyEchoFixture, EchoTest)
 }
 BENCHMARK_REGISTER_F(AsyncBerkeleyEchoFixture, EchoTest)
     ->Args({64, 100, 100})
+    ->Args({64, 100, 1000})
+    ->Args({64, 1000, 100})
     ->Args({64, 100000, 100})
     ->Unit(benchmark::kMillisecond);
+
 
 using namespace boost::asio;
 using local::stream_protocol;
@@ -311,6 +314,8 @@ BENCHMARK_DEFINE_F(AsioEchoFixture, EchoTest)(benchmark::State &state)
 }
 BENCHMARK_REGISTER_F(AsioEchoFixture, EchoTest)
     ->Args({64, 100, 100})
+    ->Args({64, 100, 1000})
+    ->Args({64, 1000, 100})
     ->Args({64, 100000, 100})
     ->Unit(benchmark::kMillisecond);
 
