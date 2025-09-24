@@ -12,6 +12,7 @@ set(TEST_NAMES
   mock_accept_test
   mock_recvmsg_test
   mock_sendmsg_test
+  small_functor_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)

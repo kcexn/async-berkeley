@@ -21,6 +21,7 @@
 #ifndef IO_SMALL_FUNCTOR_HPP
 #define IO_SMALL_FUNCTOR_HPP
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
@@ -71,6 +72,8 @@ class small_functor_impl<Ret(Args...), Size, IsNoexcept> {
     void (*destroy)(void *) noexcept = nullptr;
     /** @brief A pointer to a function that moves the stored callable. */
     void (*move)(void *, void *) noexcept = nullptr;
+    /** @brief A pointer to a function that copies the stored callable. */
+    void (*copy)(const void *, void *) = nullptr;
   };
 
   /**
@@ -86,7 +89,20 @@ class small_functor_impl<Ret(Args...), Size, IsNoexcept> {
       .move =
           [](void *src, void *dst) noexcept {
             new (dst) T(std::move(*static_cast<T *>(src)));
-          }};
+          },
+      .copy =
+          [] {
+            if constexpr (std::is_copy_constructible_v<T>)
+            {
+              return [](const void *src, void *dst) {
+                new (dst) T(*static_cast<const T *>(src));
+              };
+            }
+            else
+            {
+              return nullptr;
+            }
+          }()};
 
 public:
   /** @brief Default constructor. Constructs an empty small_functor. */
@@ -106,10 +122,19 @@ public:
     new (&storage_) std::decay_t<T>(std::forward<T>(callable));
   }
 
-  /** @brief Deleted copy constructor. */
-  small_functor_impl(const small_functor_impl &) = delete;
-  /** @brief Deleted copy assignment. */
-  auto operator=(const small_functor_impl &) -> small_functor_impl & = delete;
+  /** @brief Copy constructor. */
+  small_functor_impl(const small_functor_impl &other)
+  {
+    if (other.vptr_)
+    {
+      assert(other.vptr_->copy && "Attempted to copy a non-copyable functor.");
+      if (other.vptr_->copy)
+      {
+        other.vptr_->copy(&other.storage_, &storage_);
+        vptr_ = other.vptr_;
+      }
+    }
+  }
 
   /**
    * @brief Move constructor.
@@ -119,6 +144,21 @@ public:
   {
     if (vptr_)
       vptr_->move(&other.storage_, &storage_);
+    other.vptr_ = nullptr;
+  }
+
+  /**
+   * @brief Copy assignment operator.
+   * @param other The other functor to copy-assign from.
+   */
+  auto operator=(const small_functor_impl &other) -> small_functor_impl &
+  {
+    if (this == &other)
+      return *this;
+
+    auto tmp = other;
+    swap(*this, tmp);
+    return *this;
   }
 
   /**
@@ -128,17 +168,32 @@ public:
    */
   auto operator=(small_functor_impl &&other) noexcept -> small_functor_impl &
   {
-    if (this != &other)
-    {
-      if (vptr_)
-        vptr_->destroy(&storage_);
-
-      vptr_ = other.vptr_;
-
-      if (vptr_)
-        vptr_->move(&other.storage_, &storage_);
-    }
+    swap(*this, other);
     return *this;
+  }
+
+  /**
+   * @brief Swaps this small_functor with another.
+   * @param other The other small_functor to swap with.
+   */
+  friend void swap(small_functor_impl &lhs, small_functor_impl &rhs) noexcept
+  {
+    using std::swap;
+    if (&lhs == &rhs)
+      return;
+
+    alignas(std::max_align_t) std::array<std::byte, Size> temp_storage;
+
+    if (lhs.vptr_)
+      lhs.vptr_->move(&lhs.storage_, &temp_storage);
+
+    if (rhs.vptr_)
+      rhs.vptr_->move(&rhs.storage_, &lhs.storage_);
+
+    if (lhs.vptr_)
+      lhs.vptr_->move(&temp_storage, &rhs.storage_);
+
+    swap(lhs.vptr_, rhs.vptr_);
   }
 
   /** @brief Destructor. */
