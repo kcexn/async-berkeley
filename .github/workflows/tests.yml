@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build gcc g++ ccache cmake python3-all doxygen
+        sudo apt-get install -y ninja-build gcc g++ ccache cmake python3-all
 
     - name: Cache Python dependencies
       uses: actions/cache@v4
@@ -63,7 +63,9 @@ jobs:
       run: |
         cmake --preset debug \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DIO_BUILD_EXAMPLES=OFF \
+          -DIO_ENABLE_DOCS=OFF
 
     - name: Build with tests
       run: cmake --build --preset debug
