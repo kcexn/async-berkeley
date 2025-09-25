@@ -15,12 +15,13 @@ foreach(BENCHMARK_NAME IN LISTS BENCHMARK_NAMES)
     ${BENCHMARK_NAME}
     PRIVATE
     ${Boost_INCLUDE_DIRS}
+    ${INCLUDE_DIRS}
+    ${CMAKE_BINARY_DIR}/_deps/stdexec-src/include
   )
 
   target_link_libraries(
     ${BENCHMARK_NAME}
     PRIVATE
     benchmark
-    io_static
   )
 endforeach()

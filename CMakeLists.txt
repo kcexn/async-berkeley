@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
-project(iosched)
+project(async-berkeley)
 
 # iosched requires at least C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-include(CTest)
 # include(CPack) already included by stdexec
 
 # Get CPM
@@ -23,16 +22,24 @@ set(INCLUDE_DIRS
   "${CMAKE_SOURCE_DIR}/include/"
 )
 
-# enable and configure code coverage
-option(IO_ENABLE_COVERAGE "Enable code coverage reporting with gcovr" OFF)
-if (IO_ENABLE_COVERAGE)
-  include(cmake/EnableCoverage.cmake)
+# Enable testing by default if this is a top-level project or
+# in submodules if the project has explicitly set BUILD_TESTING
+# by including CTest.
+if ((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) OR BUILD_TESTING)
+    set(IO_BUILD_TESTING_DEFAULT ON)
+else()
+    set(IO_BUILD_TESTING_DEFAULT OFF)
 endif()
+option(IO_BUILD_TESTING "Enable testing." ${IO_BUILD_TESTING_DEFAULT})
+if (IO_BUILD_TESTING)
+  # Enable and configure code coverage
+  option(IO_ENABLE_COVERAGE "Enable code coverage reporting with gcovr" ON)
+  if (IO_ENABLE_COVERAGE)
+    include(cmake/EnableCoverage.cmake)
+  endif()
 
-# Configure tests with googletest
-option(IO_BUILD_TESTING "Enable code testing." ON)
-set(BUILD_TESTING ${IO_BUILD_TESTING})
-if (BUILD_TESTING)
+  # Enable tests.
+  include(CTest)
   include(cmake/EnableTests.cmake)
 endif()
 
@@ -47,9 +54,6 @@ option(IO_ENABLE_DOCS "Build Doxygen documentation" OFF)
 if (IO_ENABLE_DOCS)
   include(cmake/EnableDocs.cmake)
 endif()
-
-# Add the static and shared libraries to the build and installation list.
-add_subdirectory(src)
 
 # Add examples
 option(IO_BUILD_EXAMPLES "Build example programs" ON)

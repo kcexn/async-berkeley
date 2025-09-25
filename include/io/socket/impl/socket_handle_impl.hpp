@@ -12,6 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#pragma once
+#ifndef IO_SOCKET_HANDLE_IMPL_HPP
+#define IO_SOCKET_HANDLE_IMPL_HPP
 #include "io/socket/socket_handle.hpp"
 #include "io/error.hpp"
 #include "io/macros.h"
@@ -19,7 +22,7 @@
 #include <atomic>
 
 namespace io::socket {
-namespace {
+namespace detail{
 /**
  * @brief Swaps the values of two atomic variables.
  * @tparam T The type of the atomic variables.
@@ -90,6 +93,7 @@ socket_handle::operator native_socket_type() const noexcept
 auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void
 {
   using std::swap;
+  using namespace detail;
   if (&lhs == &rhs)
     return;
 
@@ -146,3 +150,4 @@ auto socket_handle::close() noexcept -> void
 }
 
 } // namespace io::socket
+#endif // IO_SOCKET_HANDLE_IMPL_HPP

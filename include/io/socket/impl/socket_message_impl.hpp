@@ -154,5 +154,19 @@ template <SocketAddress Addr, AllocatorLike Allocator>
   return static_cast<socket_message_type>(header);
 }
 
+#if OS_WINDOWS
+#else
+message_header::operator socket_message_type() noexcept
+{
+  return {.msg_name = msg_name.data(),
+          .msg_namelen = static_cast<socklen_t>(msg_name.size()),
+          .msg_iov = msg_iov.data(),
+          .msg_iovlen = msg_iov.size(),
+          .msg_control = msg_control.data(),
+          .msg_controllen = msg_control.size(),
+          .msg_flags = flags};
+}
+#endif // OS_WINDOWS
+
 } // namespace io::socket
 #endif // IO_SOCKET_MESSAGE_IMPL_HPP

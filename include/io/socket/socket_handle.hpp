@@ -154,5 +154,6 @@ private:
 } // namespace io::socket
 
 #include "detail/sync_operations.hpp" // IWYU pragma: export
+#include "impl/socket_handle_impl.hpp" // IWYU pragma: export
 
 #endif // IO_SOCKET_HANDLE_HPP
