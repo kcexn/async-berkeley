@@ -20,6 +20,8 @@ Developer setup guide for the iosched C++20 I/O scheduling library with asynchro
 This project uses several modern C++ libraries and tools:
 
 - **GoogleTest**: Auto-fetched via CMake FetchContent for comprehensive unit testing
+- **GoogleBenchmark**: Auto-fetched via CMake FetchContent for building and running benchmarks.
+- **Boost.ASIO**: The boost libraries are needed to build and run the benchmarks.
 - **NVIDIA stdexec**: Auto-fetched via CPM for sender/receiver execution patterns and asynchronous operations
 - **CPM.cmake**: CMake package manager for automatic dependency fetching and management
 
@@ -28,6 +30,7 @@ This project uses several modern C++ libraries and tools:
 #### Development Tools (Optional but Recommended)
 
 **Documentation Generator:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install doxygen
@@ -43,11 +46,13 @@ sudo dnf install doxygen
 ```
 
 **Code Coverage Tool:**
+
 ```bash
 pip install gcovr
 ```
 
 **Static Analysis:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install clang-tidy
@@ -60,6 +65,7 @@ sudo dnf install clang-tools-extra
 ```
 
 **Build Tools:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install ninja-build cmake
@@ -137,8 +143,10 @@ cmake --build --preset debug
 ```
 
 **Example Programs:**
+
 - **`async_ping_pong_client.cpp`**: Asynchronous client showcasing connection establishment, message sending/receiving, and proper async operation chaining with error handling
-```
+
+- **`tcp_echo.cpp`**: A simple asynchronous echo client.
 
 #### Release Build (Production)
 
@@ -305,6 +313,7 @@ cmake --build . --target docs-deploy
 ### Documentation Features
 
 The generated documentation includes:
+
 - Complete API reference for all classes and functions
 - Code examples and usage patterns
 - Cross-referenced source code listings
@@ -315,6 +324,7 @@ The generated documentation includes:
 ### Customizing Documentation
 
 Edit `docs/Doxyfile` to customize:
+
 - Project information and branding
 - Output formats and styling
 - Input file filters
@@ -334,7 +344,7 @@ gcovr --version
 
 ### Generating Coverage Reports
 
-#### Using Presets (Recommended)
+#### Coverage Reports Using Presets (Recommended)
 
 ```bash
 # Configure debug build (includes coverage)
@@ -379,14 +389,6 @@ cmake --build . --target coverage-xml  # XML report for CI
 - **HTML Report**: `build/coverage/index.html` or `build/debug/coverage/index.html` (interactive, detailed)
 - **XML Report**: `build/coverage/coverage.xml` or `build/debug/coverage/coverage.xml` (for CI/CD integration)
 
-### Coverage Targets
-
-The coverage analysis focuses on:
-- `src/` directory implementation files only (`.cpp` files)
-- All production code (excludes test files and header-only templates)
-- Line coverage and branch coverage metrics
-- Template instantiations through comprehensive test coverage
-
 ## Running Tests
 
 ### All Tests
@@ -419,172 +421,4 @@ ctest --preset debug -R socket_handle_test
 
 # Run with specific test filter (if using Google Test)
 ./build/debug/tests/socket_handle_test --gtest_filter="*ConstructorTest*"
-```
-
-### Test Categories
-
-Current test suites:
-- **socket_handle_test**: Tests for RAII socket wrapper (`io::socket::socket_handle`) including persistent error tracking and comprehensive tag-invoke operations (both sync and async variants)
-- **socket_message_test**: Tests for thread-safe socket messages (`io::socket::socket_message`) with push/emplace functionality and scatter-gather I/O support
-- **socket_address_test**: Tests for platform-independent socket address abstraction (`io::socket::socket_address`) and `socket_option` wrapper with template-based construction
-- **socket_option_test**: Tests for the generic `socket_option` wrapper template used by socket_address and other socket option types
-- **poll_triggers_test**: Tests for asynchronous execution framework including executor, poll multiplexer, execution triggers, and socket dialog interface with sender/receiver patterns and shared_ptr-based lifetime management
-
-### High Test Coverage
-
-The project maintains **100% code coverage** through comprehensive testing including:
-- Success and failure scenarios for all operations
-- Thread safety and concurrent access testing
-- Resource management and RAII verification
-- Cross-platform compatibility testing
-- Edge cases and error condition handling
-- Persistent socket error tracking validation
-- Asynchronous execution patterns with lifetime management
-- Socket dialog interface testing for async operations
-- Dual sync/async operation implementations
-
-## Troubleshooting
-
-### Common Build Issues
-
-#### Coverage Tools Missing
-
-```bash
-# If gcovr is not found:
-pip install --user gcovr
-# or
-pip install gcovr
-
-# If clang-tidy is missing:
-sudo apt-get install clang-tidy  # Ubuntu
-brew install llvm               # macOS
-```
-
-#### Build System Issues
-
-```bash
-# If Ninja is not available, use Unix Makefiles
-cmake .. -G "Unix Makefiles"
-
-# For Windows without Ninja
-cmake .. -G "Visual Studio 17 2022"  # or appropriate version
-```
-
-### Clean Build
-
-```bash
-# Remove build directory and start fresh
-rm -rf build/
-cmake --preset debug
-cmake --build --preset debug
-```
-
-## Development Workflow
-
-### 1. Setup Development Environment
-
-```bash
-git clone https://github.com/kcexn/iosched.git
-cd iosched
-cmake --preset debug
-cmake --build --preset debug
-```
-
-### 2. Make Changes
-
-Edit source files in `include/` directory for public headers (organized by component: `include/io/socket/`, `include/io/execution/`, `include/io/detail/`) and implementation files in `src/` directory, add tests in `tests/` directory.
-
-**For Asynchronous Development:**
-- Study the examples in `examples/async_ping_pong_*.cpp` for async patterns
-- Use `basic_triggers<poll_multiplexer>` instead of manual executor management
-- All async operations (`connect`, `accept`, `sendmsg`, `recvmsg`) return senders
-- Chain operations with `stdexec::then()` and handle errors with `stdexec::upon_error()`
-- Manage async lifetimes with `exec::async_scope` and `scope_.spawn()`
-
-### 3. Build and Test
-
-```bash
-# Incremental build
-cmake --build --preset debug
-
-# Run tests
-ctest --preset debug
-
-# Check coverage
-cmake --build --preset debug --target coverage
-
-# Generate documentation (if working on API docs)
-cmake --build --preset debug --target docs
-```
-
-### 4. Code Quality Checks
-
-```bash
-# Run static analysis
-clang-tidy src/**/*.cpp include/**/*.hpp -- -std=c++20 -I include/
-
-# Format code (if clang-format is configured)
-find include src tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
-```
-
-### 5. Source Code Organization
-
-The library follows a clean separation between public interface and implementation:
-
-#### Public Interface (`include/` directory)
-- **Socket Components**: Place socket-related headers in `include/io/socket/` (handles, addresses, messages, dialogs)
-- **Execution Framework**: Add execution-related headers to `include/io/execution/` with utilities in `detail/` and implementations in `impl/`
-- **Tag-Invoke CPOs**: Define customization point objects in `include/io/detail/customization.hpp`
-- **Socket Operations**: Synchronous implementations in `include/io/socket/detail/sync_operations.hpp` and asynchronous versions in `include/io/socket/detail/async_operations.hpp`
-- **Platform Support**: Add platform-specific headers to `include/io/socket/platforms/` or `include/io/detail/platforms/`
-- **Main Header**: Export public API through `include/io.hpp`
-
-#### Implementation (`src/` directory)
-- **Core Implementations**: Only `.cpp` files containing actual implementations (currently: `poll_multiplexer.cpp`, `socket_handle.cpp`, `socket_message.cpp`)
-- **New Implementations**: Add new `.cpp` files for components requiring implementation code
-
-#### Tests (`tests/` directory)
-- **Test Files**: Create corresponding test files following the existing naming pattern
-- **Coverage**: Maintain 100% code coverage by testing all public API functionality
-
-#### Examples (`examples/` directory)
-- **Example Programs**: Demonstrate real-world usage patterns and best practices
-- **Async Patterns**: `async_ping_pong_server.cpp` and `async_ping_pong_client.cpp` showcase asynchronous programming with `basic_triggers` and sender/receiver patterns
-- **CMake Integration**: Examples are built automatically when `IO_BUILD_EXAMPLES=ON` (default)
-- **Documentation**: Examples serve as living documentation and are referenced in README.md
-
-When adding new features, follow the established structure and ensure proper separation between interface and implementation.
-
-## IDE Integration
-
-### VS Code
-
-Create `.vscode/settings.json`:
-```json
-{
-    "cmake.configurePreset": "debug",
-    "cmake.buildPreset": "debug",
-    "cmake.testPreset": "debug",
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
-}
-```
-
-### CLion
-
-CLion automatically detects `CMakePresets.json` and provides preset selection in the IDE.
-
-## Performance Testing
-
-For performance testing, use the benchmark preset:
-
-```bash
-cmake --preset benchmark
-cmake --build --preset benchmark
-
-# Run performance-critical tests
-ctest --preset benchmark
-
-# Profile with perf (Linux)
-perf record -g ./build/benchmark/tests/socket_handle_test
-perf report
 ```

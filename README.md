@@ -5,10 +5,12 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/async-berkeley/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d2dfc8d21d4342f5915f18237628ac7f)](https://app.codacy.com/gh/kcexn/async-berkeley/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-AsyncBerkeley is a modern C++ socket I/O library that provides an asynchronous implementation of (most of) the
-Berkeley Sockets API. It is built using NVIDIA's [stdexec library](https://github.com/NVIDIA/stdexec) and aims
-to drop `stdexec` as a dependency once there is adequate compiler support for C++26's `std::execution`.
-AsyncBerkeley aims to make asynchronous socket I/O as simple as the ubiquitous Berkeley sockets API.
+AsyncBerkeley is a modern header-only C++ socket I/O library that provides an
+asynchronous implementation of (most of) the Berkeley Sockets API. It is built using
+NVIDIA's [stdexec library](https://github.com/NVIDIA/stdexec) and aims
+to drop `stdexec` as a dependency once there is adequate compiler support for C++26's
+`std::execution`. AsyncBerkeley aims to make asynchronous socket I/O as simple as the
+ubiquitous Berkeley sockets API.
 
 ## Features
 
@@ -41,10 +43,14 @@ Please open a Github issue if you have a question or send me an
 
 - CMake 3.28+
 - C++20 compatible compiler
-- **GoogleTest**: Auto-fetched via CMake FetchContent
-for unit testing
 - **NVIDIA stdexec**: Auto-fetched via CPM for
 sender/receiver execution patterns
+- **GoogleTest (Optional)**: Auto-fetched via CMake FetchContent
+for unit testing
+- **GoogleBenchmark (Optional)**: Auto-fetched via CMake FetchContent for
+running benchmarks.
+- **Boost.ASIO (Optional)**: [Boost](https://www.boost.org/) libraries are needed to compile the
+benchmarks.
 
 ### Build and Install with Cmake
 
