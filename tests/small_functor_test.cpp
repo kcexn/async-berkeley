@@ -55,6 +55,10 @@ TEST_F(SmallFunctorTest, MoveTest)
   g = std::move(fn);
   EXPECT_TRUE(g);
   EXPECT_FALSE(fn);
+
+  small_functor<void(), sizeof(T)> h{std::move(g)};
+  EXPECT_TRUE(h);
+  EXPECT_FALSE(g);
 }
 
 TEST_F(SmallFunctorTest, SwapTest)

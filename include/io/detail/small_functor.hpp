@@ -140,11 +140,9 @@ public:
    * @brief Move constructor.
    * @param other The small_functor to move from.
    */
-  small_functor_impl(small_functor_impl &&other) noexcept : vptr_(other.vptr_)
+  small_functor_impl(small_functor_impl &&other) noexcept : small_functor_impl()
   {
-    if (vptr_)
-      vptr_->move(&other.storage_, &storage_);
-    other.vptr_ = nullptr;
+    swap(*this, other);
   }
 
   /**
