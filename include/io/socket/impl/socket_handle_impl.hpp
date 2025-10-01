@@ -15,14 +15,13 @@
 #pragma once
 #ifndef IO_SOCKET_HANDLE_IMPL_HPP
 #define IO_SOCKET_HANDLE_IMPL_HPP
-#include "io/socket/socket_handle.hpp"
 #include "io/error.hpp"
-#include "io/macros.h"
+#include "io/socket/socket_handle.hpp"
 
 #include <atomic>
 
 namespace io::socket {
-namespace detail{
+namespace detail {
 /**
  * @brief Swaps the values of two atomic variables.
  * @tparam T The type of the atomic variables.
@@ -38,14 +37,14 @@ auto swap_atomic(std::atomic<T> &lhs, std::atomic<T> &rhs,
   auto tmp = lhs.exchange(rhs.load(order), order);
   rhs.store(tmp, order);
 }
-} // namespace
+} // namespace detail
 
 /**
  * @brief Checks if a native socket handle is valid.
  * @param handle The native socket handle to check.
  * @return `true` if the socket handle is valid, `false` otherwise.
  */
-IO_STATIC(auto) is_valid_socket(native_socket_type handle) -> bool
+inline auto is_valid_socket(native_socket_type handle) -> bool
 {
   if (handle == INVALID_SOCKET)
     return false;
@@ -61,36 +60,38 @@ IO_STATIC(auto) is_valid_socket(native_socket_type handle) -> bool
 // socket_handle implementation
 namespace io::socket {
 
-socket_handle::socket_handle(socket_handle &&other) noexcept : socket_handle()
+inline socket_handle::socket_handle(socket_handle &&other) noexcept
+    : socket_handle()
 {
   swap(*this, other);
 }
 
-auto socket_handle::operator=(socket_handle &&other) noexcept -> socket_handle &
+inline auto
+socket_handle::operator=(socket_handle &&other) noexcept -> socket_handle &
 {
   swap(*this, other);
   return *this;
 }
 
-socket_handle::socket_handle(native_socket_type handle) : socket_{handle}
+inline socket_handle::socket_handle(native_socket_type handle) : socket_{handle}
 {
   if (handle != INVALID_SOCKET && !is_valid_socket(handle))
     throw_system_error(IO_ERROR_MESSAGE("Invalid socket handle."));
 }
 
-socket_handle::socket_handle(int domain, int type, int protocol)
+inline socket_handle::socket_handle(int domain, int type, int protocol)
     : socket_{::socket(domain, type, protocol)}
 {
   if (socket_ == INVALID_SOCKET)
     throw_system_error(IO_ERROR_MESSAGE("Failed to create socket."));
 }
 
-socket_handle::operator native_socket_type() const noexcept
+inline socket_handle::operator native_socket_type() const noexcept
 {
   return socket_.load(std::memory_order_relaxed);
 }
 
-auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void
+inline auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void
 {
   using std::swap;
   using namespace detail;
@@ -102,47 +103,48 @@ auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void
   swap_atomic(lhs.error_, rhs.error_);
 }
 
-socket_handle::operator bool() const noexcept
+inline socket_handle::operator bool() const noexcept
 {
   return socket_ != INVALID_SOCKET;
 }
 
-auto socket_handle::operator<=>(const socket_handle &other) const noexcept
-    -> std::strong_ordering
+inline auto socket_handle::operator<=>(
+    const socket_handle &other) const noexcept -> std::strong_ordering
 {
   return socket_ <=> other.socket_;
 }
 
-auto socket_handle::operator==(const socket_handle &other) const noexcept
-    -> bool
+inline auto
+socket_handle::operator==(const socket_handle &other) const noexcept -> bool
 {
   return (*this <=> other) == 0;
 }
 
-auto socket_handle::operator<=>(native_socket_type other) const noexcept
+inline auto socket_handle::operator<=>(native_socket_type other) const noexcept
     -> std::strong_ordering
 {
   return socket_ <=> other;
 }
 
-auto socket_handle::operator==(native_socket_type other) const noexcept -> bool
+inline auto
+socket_handle::operator==(native_socket_type other) const noexcept -> bool
 {
   return (*this <=> other) == 0;
 }
 
-auto socket_handle::set_error(int error) noexcept -> void
+inline auto socket_handle::set_error(int error) noexcept -> void
 {
   error_.store(error, std::memory_order_relaxed);
 }
 
-auto socket_handle::get_error() const noexcept -> std::error_code
+inline auto socket_handle::get_error() const noexcept -> std::error_code
 {
   return {error_.load(std::memory_order_relaxed), std::system_category()};
 }
 
-socket_handle::~socket_handle() { close(); }
+inline socket_handle::~socket_handle() { close(); }
 
-auto socket_handle::close() noexcept -> void
+inline auto socket_handle::close() noexcept -> void
 {
   auto handle = socket_.exchange(INVALID_SOCKET, std::memory_order_relaxed);
   if (handle != INVALID_SOCKET)

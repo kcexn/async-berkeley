@@ -156,7 +156,7 @@ template <SocketAddress Addr, AllocatorLike Allocator>
 
 #if OS_WINDOWS
 #else
-message_header::operator socket_message_type() noexcept
+inline message_header::operator socket_message_type() noexcept
 {
   return {.msg_name = msg_name.data(),
           .msg_namelen = static_cast<socklen_t>(msg_name.size()),
