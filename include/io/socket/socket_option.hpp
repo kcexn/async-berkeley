@@ -1,8 +1,4 @@
-/**
- * @file socket_option.hpp
- * @brief Defines a generic socket option wrapper.
- * @author Kevin Exton
- * @copyright Copyright 2025 Kevin Exton
+/* Copyright 2025 Kevin Exton
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +12,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file socket_option.hpp
+ * @brief Defines the `socket_option` wrapper for native socket options.
+ */
 #pragma once
 #ifndef IO_SOCKET_OPTION_HPP
 #define IO_SOCKET_OPTION_HPP
 #include <cassert>
 #include <cstring>
 #include <span>
+#include <type_traits>
 namespace io::socket {
 
 /**
@@ -29,15 +31,13 @@ namespace io::socket {
  * @brief A generic wrapper for socket options.
  * @tparam T The type of the socket option value.
  */
-template <typename T> class socket_option {
+template <typename T>
+  requires std::is_trivially_copyable_v<T>
+class socket_option {
 public:
-  /**
-   * @brief The type of the socket option value.
-   */
+  /** @brief The type of the socket option value. */
   using value_type = std::decay_t<T>;
-  /**
-   * @brief The size type for the socket option.
-   */
+  /** @brief The size type for the socket option. */
   using size_type = std::size_t;
 
   /**
@@ -50,13 +50,9 @@ public:
   constexpr socket_option(size_type size = Size) noexcept : size_{size}
   {}
 
-  /**
-   * @brief Default copy constructor.
-   */
+  /** @brief Default copy constructor. */
   socket_option(const socket_option &) = default;
-  /**
-   * @brief Default move constructor.
-   */
+  /** @brief Default move constructor. */
   socket_option(socket_option &&) = default;
 
   /**
@@ -108,9 +104,7 @@ public:
    */
   auto operator=(socket_option &&) -> socket_option & = default;
 
-  /**
-   * @brief Default destructor.
-   */
+  /** @brief Default destructor. */
   ~socket_option() = default;
 
   /**
@@ -197,13 +191,9 @@ public:
   }
 
 private:
-  /**
-   * @brief The raw byte storage for the option value.
-   */
+  /** @brief The raw byte storage for the option value. */
   std::array<std::byte, sizeof(value_type)> storage_{};
-  /**
-   * @brief The actual size of the option value in bytes.
-   */
+  /** @brief The actual size of the option value in bytes. */
   size_type size_{sizeof(value_type)};
 };
 
