@@ -48,12 +48,12 @@ constexpr auto message_buffer<Allocator>::push_back(const Buf &buf) -> void
   using element_type = std::remove_pointer_t<decltype(std::ranges::data(buf))>;
   using pointer_type = std::decay_t<element_type> *;
 #if OS_WINDOWS
-  buffer_.push_back({std::ranges::size(buf) * sizeof(element_type),
-                     reinterpret_cast<char *>(
-                         const_cast<pointer_type>(std::ranges::data(buf)))});
+  push_back({std::ranges::size(buf) * sizeof(element_type),
+             reinterpret_cast<char *>(
+                 const_cast<pointer_type>(std::ranges::data(buf)))});
 #else
-  buffer_.push_back({const_cast<pointer_type>(std::ranges::data(buf)),
-                     std::ranges::size(buf) * sizeof(element_type)});
+  push_back({const_cast<pointer_type>(std::ranges::data(buf)),
+             std::ranges::size(buf) * sizeof(element_type)});
 #endif // OS_WINDOWS
 }
 
