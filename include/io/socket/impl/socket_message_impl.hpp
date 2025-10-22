@@ -28,8 +28,8 @@
 namespace io::socket {
 
 template <AllocatorLike Allocator>
-constexpr message_buffer<Allocator>::message_buffer(
-    const Allocator &alloc) noexcept(noexcept(Allocator()))
+message_buffer<Allocator>::message_buffer(const Allocator &alloc) noexcept(
+    noexcept(Allocator()))
     : buffer_(alloc)
 {}
 
@@ -111,14 +111,23 @@ template <AllocatorLike Allocator>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::empty() const noexcept -> bool
 {
-  return buffer_.empty();
+  std::size_t len = 0;
+  for (const auto &buf : buffer_)
+  {
+#if OS_WINDOWS
+    len += buf.len;
+#else
+    len += buf.iov_len;
+#endif // OS_WINDOWS
+  }
+  return len == 0;
 }
 
 template <AllocatorLike Allocator>
 [[nodiscard]] constexpr message_buffer<Allocator>::operator bool()
     const noexcept
 {
-  return !buffer_.empty();
+  return !empty();
 }
 
 template <AllocatorLike Allocator>

@@ -29,8 +29,8 @@ protected:
 
 TEST_F(SocketMessageTest, CustomAllocatorConstruction)
 {
-  auto alloc = std::allocator<char>();
-  auto msg = message_buffer<>(alloc);
+  auto alloc = std::allocator<native_buffer_type>();
+  auto msg = message_buffer(alloc);
 }
 
 TEST_F(SocketMessageTest, SendRecvMsgTest)
@@ -50,13 +50,8 @@ TEST_F(SocketMessageTest, SendRecvMsgTest)
   msg = {};
   EXPECT_NE(std::strncmp(msg.data(), "Hello, world!", 14), 0);
 
-  auto addr = make_address<sockaddr_un>();
-  auto result = ::io::getsockname(sender, addr);
-  ASSERT_NE(result.data(), nullptr);
-  ASSERT_NE(addr, result);
-  addr = result;
-  ASSERT_EQ(addr, result);
-  message.address = addr;
+  auto addr = socket_address<sockaddr_un>();
+  message.address = ::io::getsockname(sender, addr);
 
   len = ::io::recvmsg(receiver, message, 0);
   EXPECT_EQ(len, 14);
@@ -78,7 +73,7 @@ TEST_F(SocketMessageTest, CompoundAdditionTest)
   EXPECT_EQ(buffers.size(), 1);
 
   buffers.push_back(buf1);
-  ASSERT_EQ(buffers.size(), 2);
+  EXPECT_EQ(buffers.size(), 2);
 
   buffers += 128;
   EXPECT_EQ(buffers.size(), 2);
@@ -88,5 +83,11 @@ TEST_F(SocketMessageTest, CompoundAdditionTest)
 
   buffers += 512;
   EXPECT_TRUE(buffers.empty());
+
+  buffers.emplace_back(nullptr, 0);
+  EXPECT_TRUE(buffers.empty());
+
+  buffers += 512;
+  EXPECT_FALSE(buffers);
 }
 // NOLINTEND
