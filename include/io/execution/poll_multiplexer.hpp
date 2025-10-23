@@ -28,7 +28,7 @@
 
 #include <stdexec/execution.hpp>
 
-#include <map>
+#include <deque>
 #include <memory>
 
 #include <poll.h>
@@ -108,15 +108,11 @@ public:
     socket_handle *socket = nullptr;
   };
 
-  /** @brief The mapped value. */
-  using mapped_value_t =
-      typename std::map<native_socket_type, demultiplexer>::value_type;
   /** @brief The allocator for the map. */
   using map_allocator =
-      std::allocator_traits<Allocator>::template rebind_alloc<mapped_value_t>;
+      std::allocator_traits<Allocator>::template rebind_alloc<demultiplexer>;
   /** @brief The map type. */
-  using map_type = std::map<native_socket_type, demultiplexer,
-                            std::less<native_socket_type>, map_allocator>;
+  using map_type = std::deque<demultiplexer, map_allocator>;
 
   /**
    * @brief A sender for the poll multiplexer.

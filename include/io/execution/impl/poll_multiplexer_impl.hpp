@@ -182,9 +182,11 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::connect(Receiver &&receiver)
   {
     std::lock_guard lock{*mtx};
 
-    auto [pair, emplaced] =
-        demux->try_emplace(static_cast<socket_type>(*socket));
-    demux_ptr = &pair->second;
+    auto sockfd = static_cast<socket_type>(*socket);
+    if (demux->size() < static_cast<std::size_t>(sockfd) + 1)
+      demux->resize(sockfd + 1);
+
+    demux_ptr = std::addressof(demux->at(sockfd));
 
     update_or_insert_event(list, make_poll_event(*socket, trigger));
   }
@@ -452,8 +454,9 @@ auto basic_poll_multiplexer<Allocator>::wait_for(interval_type interval)
     for (const auto &event : list)
     {
       clear_event(event, list_);
-      if (auto dem = demux_.find(event.fd); dem != std::end(demux_))
-        prepare_handles<Allocator>(event.revents, dem->second, ready_queue);
+      if (demux_.size() < static_cast<std::size_t>(event.fd) + 1)
+        demux_.resize(event.fd + 1);
+      prepare_handles<Allocator>(event.revents, demux_[event.fd], ready_queue);
     }
   });
 
