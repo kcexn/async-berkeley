@@ -60,6 +60,3 @@ option(IO_BUILD_EXAMPLES "Build example programs" ON)
 if(IO_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-
-# Add the uninstall target.
-include(cmake/Uninstall.cmake)
