@@ -1,32 +1,25 @@
 include(GoogleTest)
 
-set(TEST_NAMES
-  socket_handle_test
-  socket_address_test
-  poll_triggers_test
-  socket_option_test
-  socket_message_test
-  socket_dialog_test
-  mock_poll_test
-  mock_fcntl_test
-  mock_accept_test
-  mock_recvmsg_test
-  mock_sendmsg_test
-  small_functor_test
+set(
+  TEST_NAMES
+    socket_handle_test
+    socket_address_test
+    poll_triggers_test
+    socket_option_test
+    socket_message_test
+    socket_dialog_test
+    mock_poll_test
+    mock_fcntl_test
+    mock_accept_test
+    mock_recvmsg_test
+    mock_sendmsg_test
+    small_functor_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
-  add_executable(
-    ${TEST_NAME}
-    ${TEST_NAME}.cpp
-  )
+  add_executable(${TEST_NAME} ${TEST_NAME}.cpp)
 
-  target_link_libraries(
-    ${TEST_NAME}
-    PRIVATE
-    asyncberk
-    GTest::gtest_main
-  )
+  target_link_libraries(${TEST_NAME} PRIVATE asyncberk GTest::gtest_main)
 
   if(IO_ENABLE_COVERAGE)
     target_link_libraries(${TEST_NAME} PRIVATE gcov)
