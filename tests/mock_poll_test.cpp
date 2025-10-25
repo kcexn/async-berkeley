@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io.hpp"
+#include "io/io.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>

@@ -21,15 +21,10 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
     ${TEST_NAME}.cpp
   )
 
-  target_include_directories(${TEST_NAME}
-    PUBLIC
-    "${INCLUDE_DIRS}"
-    ${CMAKE_BINARY_DIR}/_deps/stdexec-src/include
-  )
-
   target_link_libraries(
     ${TEST_NAME}
     PRIVATE
+    asyncberk
     GTest::gtest_main
   )
 

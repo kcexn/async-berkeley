@@ -22,7 +22,7 @@
  */
 // NOLINTBEGIN
 #include <exec/async_scope.hpp>
-#include <io.hpp>
+#include <io/io.hpp>
 #include <io/config.h>
 #include <stdexec/execution.hpp>
 

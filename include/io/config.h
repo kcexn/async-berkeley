@@ -32,9 +32,8 @@
  * @brief True if the Windows OS is detected.
  */
 #define OS_WINDOWS 0
-#if defined(_WIN32) || defined(_WIN64) || \
-    defined(__WIN32__) || defined(__TOS_WIN__) || \
-    defined(__WINDOWS__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) ||                \
+    defined(__TOS_WIN__) || defined(__WINDOWS__)
 #undef OS_WINDOWS
 #define OS_WINDOWS 1
 #endif

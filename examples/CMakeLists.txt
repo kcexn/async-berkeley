@@ -15,17 +15,22 @@
 # Examples CMakeLists.txt for io library
 
 # Async Ping/Pong Client Example
-add_executable(async_ping_pong_client async_ping_pong_client.cpp)
-target_include_directories(async_ping_pong_client
-    PUBLIC
-    "${INCLUDE_DIRS}"
-    ${CMAKE_BINARY_DIR}/_deps/stdexec-src/include
+add_executable(
+  async_ping_pong_client
+  async_ping_pong_client.cpp
 )
-
+target_link_libraries(
+  async_ping_pong_client
+  PRIVATE
+  asyncberk
+)
 # TCP Echo Example
-add_executable(tcp_echo tcp_echo.cpp)
-target_include_directories(tcp_echo
-    PUBLIC
-    "${INCLUDE_DIRS}"
-    ${CMAKE_BINARY_DIR}/_deps/stdexec-src/include
+add_executable(
+  tcp_echo
+  tcp_echo.cpp
+)
+target_link_libraries(
+  tcp_echo
+  PRIVATE
+  asyncberk
 )

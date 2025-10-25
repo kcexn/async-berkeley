@@ -51,7 +51,7 @@
  */
 // NOLINTBEGIN
 #include <benchmark/benchmark.h>
-#include <io.hpp>
+#include <io/io.hpp>
 
 #include <boost/asio.hpp>
 

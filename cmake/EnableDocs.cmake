@@ -17,12 +17,12 @@ option(IO_DOCS_PUBLIC_ONLY "Only generate documentation for public API" ON)
 set(DOXYGEN_INPUT_FILES
     "${CMAKE_SOURCE_DIR}/README.md"
     "${CMAKE_SOURCE_DIR}/DEVELOPER.md"
-    "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/include/io"
 )
 
 if(IO_DOCS_PUBLIC_ONLY)
     message(STATUS "Generating public API documentation only.")
-    set(PUBLIC_API_HEADER ${CMAKE_SOURCE_DIR}/include/io.hpp)
+    set(PUBLIC_API_HEADER ${CMAKE_SOURCE_DIR}/include/io/io.hpp)
 
     # Read the public API header and find all exported files
     file(STRINGS ${PUBLIC_API_HEADER} public_api_includes REGEX "#include")
@@ -31,7 +31,7 @@ if(IO_DOCS_PUBLIC_ONLY)
     foreach(include_line ${public_api_includes})
         # Extract the file path from the include line
         string(REGEX REPLACE "^#include \"([^\"]+)\".*" "\\1" header_path ${include_line})
-        list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/${header_path}")
+        list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/${header_path}")
     endforeach()
 
     # Explicitly add the configuration preprocessor macros to the public documentation.
