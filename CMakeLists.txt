@@ -19,6 +19,7 @@ CPMAddPackage(
   URI "gh:NVIDIA/stdexec#main"
   OPTIONS
     "STDEXEC_BUILD_EXAMPLES OFF"
+    "STDEXEC_BUILD_TESTING OFF"
 )
 
 # Add AsyncBerkeley targets
