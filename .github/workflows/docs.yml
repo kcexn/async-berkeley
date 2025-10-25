@@ -52,7 +52,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build libboost-dev gcc g++ ccache cmake doxygen graphviz python3-all
+        sudo apt-get install -y ninja-build gcc g++ ccache cmake doxygen graphviz python3-all
 
     - name: Cache Python dependencies
       uses: actions/cache@v4
@@ -65,19 +65,48 @@ jobs:
     - name: Install Python dependencies
       run: pip install gcovr==7.0
 
+    - name: Create cache directories
+      run: mkdir -p ~/.cache/.ccache ~/.cache/CPM
+
+    - name: Setup ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/.ccache
+        key: ccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.h', '**/*.c') }}
+        restore-keys: |
+          ccache-${{ runner.os }}-
+
+    - name: Cache CMake build directory
+      uses: actions/cache@v4
+      with:
+        path: |
+          build/debug/_deps
+          build/debug/CMakeCache.txt
+          build/debug/CMakeFiles
+        key: cmake-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
+        restore-keys: |
+          cmake-${{ runner.os }}-
+
+    - name: Cache CPM Sources
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/CPM
+        key: cpm-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          cpm-${{ runner.os }}-
+
     - name: Configure CMake
-      run: cmake --preset debug -DIO_ENABLE_DOCS=ON
+      run: cmake --preset debug \
+        -DCPM_SOURCE_CACHE='~/.cache/CPM'
+        -DIO_ENABLE_DOCS=ON
 
     - name: Build documentation
       run: cmake --build --preset debug --target docs
 
-    - name: Deploy docs to source
-      run: cmake --build --preset debug --target docs-deploy
-
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: docs/html
+        path: build/debug/docs/html
 
     - name: Deploy to GitHub Pages
       id: deployment

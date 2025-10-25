@@ -31,16 +31,16 @@ jobs:
     - name: Install Python dependencies
       run: pip install gcovr==7.0
 
-    - name: Create ccache directory
-      run: mkdir -p ~/.ccache
+    - name: Create cache directories
+      run: mkdir -p ~/.cache/.ccache ~/.cache/CPM
 
     - name: Setup ccache
       uses: actions/cache@v4
       with:
-        path: ~/.ccache
-        key: ccache-test-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.h', '**/*.c') }}
+        path: ~/.cache/.ccache
+        key: ccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.h', '**/*.c') }}
         restore-keys: |
-          ccache-test-${{ runner.os }}-
+          ccache-${{ runner.os }}-
 
     - name: Cache CMake build directory
       uses: actions/cache@v4
@@ -49,9 +49,17 @@ jobs:
           build/debug/_deps
           build/debug/CMakeCache.txt
           build/debug/CMakeFiles
-        key: test-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
+        key: cmake-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMakePresets.json') }}
         restore-keys: |
-          test-${{ runner.os }}-
+          cmake-${{ runner.os }}-
+
+    - name: Cache CPM Sources
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/CPM
+        key: cpm-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          cpm-${{ runner.os }}-
 
     - name: Configure ccache
       run: |
@@ -62,6 +70,7 @@ jobs:
     - name: Configure CMake with tests and coverage
       run: |
         cmake --preset debug \
+          -DCPM_SOURCE_CACHE='~/.cache/CPM' \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
           -DCMAKE_C_COMPILER_LAUNCHER=ccache \
           -DIO_BUILD_EXAMPLES=OFF \
@@ -85,12 +94,4 @@ jobs:
       uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 #v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        coverage-reports: "./build/debug/coverage/coverage.xml"
-
-    - name: Upload coverage reports
-      if: github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-reports
-        path: build/debug/coverage/
-        retention-days: 7
+        coverage-reports: "build/debug/coverage/coverage.xml"
