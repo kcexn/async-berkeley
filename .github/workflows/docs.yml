@@ -66,12 +66,12 @@ jobs:
       run: pip install gcovr==7.0
 
     - name: Create cache directories
-      run: mkdir -p ~/.cache/.ccache ~/.cache/CPM
+      run: mkdir -p ~/.ccache ~/.cache/CPM
 
     - name: Setup ccache
       uses: actions/cache@v4
       with:
-        path: ~/.cache/.ccache
+        path: ~/.ccache
         key: ccache-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.hpp', '**/*.h', '**/*.c') }}
         restore-keys: |
           ccache-${{ runner.os }}-
