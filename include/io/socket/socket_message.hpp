@@ -179,6 +179,8 @@ struct socket_message {
   /** @brief Flags on the received message. */
   int flags{};
 
+  /** @brief Converts the socket message to the portable message header type. */
+  [[nodiscard]] explicit operator message_header() noexcept;
   /** @brief Converts the socket message to the native socket message type. */
   [[nodiscard]] explicit operator socket_message_type() noexcept;
 };

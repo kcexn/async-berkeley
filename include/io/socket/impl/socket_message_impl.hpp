@@ -154,13 +154,20 @@ auto message_buffer<Allocator>::operator+=(std::size_t len) noexcept
 
 template <SocketAddress Addr, AllocatorLike Allocator>
 [[nodiscard]] socket_message<Addr,
-                             Allocator>::operator socket_message_type() noexcept
+                             Allocator>::operator message_header() noexcept
 {
-  message_header header = {
+  auto header = message_header{
       .msg_iov = buffers, .msg_control = control, .flags = flags};
   if (address)
     header.msg_name = *address;
-  return static_cast<socket_message_type>(header);
+  return header;
+}
+
+template <SocketAddress Addr, AllocatorLike Allocator>
+[[nodiscard]] socket_message<Addr,
+                             Allocator>::operator socket_message_type() noexcept
+{
+  return static_cast<socket_message_type>(static_cast<message_header>(*this));
 }
 
 #if OS_WINDOWS
