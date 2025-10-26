@@ -36,18 +36,11 @@ namespace io::execution {
  * @tparam Mux The multiplexer type.
  */
 template <Multiplexer Mux> class basic_triggers {
-  /**
-   * @internal
-   * @brief The socket handle type.
-   */
-  using socket_handle = ::io::socket::socket_handle;
-  /**
-   * @internal
-   * @brief The socket dialog type.
-   */
-  using socket_dialog = ::io::socket::socket_dialog<Mux>;
-
 public:
+  /** @brief The socket handle type. */
+  using socket_handle = ::io::socket::socket_handle;
+  /** @brief The socket dialog type. */
+  using socket_dialog = ::io::socket::socket_dialog<Mux>;
   /** @brief The executor type. */
   using executor_type = executor<Mux>;
 
