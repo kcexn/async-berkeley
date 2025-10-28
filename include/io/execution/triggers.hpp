@@ -121,6 +121,15 @@ public:
   constexpr auto wait() -> decltype(auto) { return executor_->wait(); }
 
   /**
+   * @brief Sends a notice when the triggers are empty.
+   * @returns A sender that notifies when the triggers are empty.
+   */
+  [[nodiscard]] auto on_empty() -> decltype(auto)
+  {
+    return executor_->on_empty();
+  }
+
+  /**
    * @brief Gets the executor.
    * @return A weak pointer to the executor.
    */

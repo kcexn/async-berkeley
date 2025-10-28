@@ -113,6 +113,11 @@ public:
   {
     return scope_.nest(Mux::set(std::forward<Args>(args)...));
   }
+  /**
+   * @brief Sends a notice when the executor is empty.
+   * @returns A sender that notifies when the executor is empty.
+   */
+  [[nodiscard]] auto on_empty() -> decltype(auto) { return scope_.on_empty(); }
 
 private:
   /**

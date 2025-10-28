@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// NOLINTBEGIN
 #include "io/io.hpp"
 
 #include <exec/async_scope.hpp>
@@ -27,10 +28,6 @@ using namespace io::execution;
 
 class PollTriggersTest : public ::testing::Test {
 protected:
-  void SetUp() override {}
-  void TearDown() override {}
-
-  // NOLINTNEXTLINE
   basic_triggers<poll_multiplexer> triggers;
 };
 
@@ -56,7 +53,6 @@ TEST_F(PollTriggersTest, MoveConstructorTest)
 
 TEST_F(PollTriggersTest, MoveAssignmentTest)
 {
-  // NOLINTNEXTLINE
   basic_triggers<poll_multiplexer> triggers1, triggers2;
   auto ptr1 = triggers1.get_executor().lock();
   auto ptr2 = triggers2.get_executor().lock();
@@ -261,3 +257,15 @@ TEST_F(PollTriggersTest, HandleGetSockOptErrorTest)
   EXPECT_THROW(handle_getsockopt_error({EFAULT, std::system_category()}),
                std::system_error);
 }
+
+TEST_F(PollTriggersTest, OnEmptyTest)
+{
+  using namespace stdexec;
+  bool empty = false;
+  sender auto on_empty =
+      triggers.on_empty() | then([&]() noexcept { empty = true; });
+  sync_wait(on_empty);
+
+  ASSERT_TRUE(empty);
+}
+// NOLINTEND
