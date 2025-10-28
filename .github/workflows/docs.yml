@@ -97,7 +97,7 @@ jobs:
 
     - name: Configure CMake
       run: cmake --preset debug \
-        -DCPM_SOURCE_CACHE='~/.cache/CPM'
+        -DCPM_SOURCE_CACHE='~/.cache/CPM' \
         -DIO_ENABLE_DOCS=ON
 
     - name: Build documentation
