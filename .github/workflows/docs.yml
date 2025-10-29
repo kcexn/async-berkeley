@@ -51,6 +51,8 @@ jobs:
 
     - name: Install dependencies
       run: |
+        echo 'set man-db/auto-update false' | sudo debconf-communicate >/dev/null
+        sudo dpkg-reconfigure man-db
         sudo apt-get update
         sudo apt-get install -y ninja-build gcc g++ ccache cmake doxygen graphviz python3-all
 
