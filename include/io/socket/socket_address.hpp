@@ -44,10 +44,10 @@ struct socket_address : public socket_option<Addr> {
   using Base::Base;
 
   /**
-   * @brief Constructs a socket_address from a raw socket address structure.
+   * @brief Constructs a socket_address from a pointer to a socket address.
    *
    * @tparam Size The size of the socket address structure.
-   * @param addr A pointer to the raw socket address structure.
+   * @param addr A pointer to the socket address structure.
    * @param size The size of the socket address structure.
    */
   template <socklen_type Size = sizeof(Addr)>
@@ -56,6 +56,16 @@ struct socket_address : public socket_option<Addr> {
       : Base(std::span<const std::byte, Size>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const std::byte *>(addr), size))
+  {}
+
+  /**
+   * @brief Constructs a socket_address from a typed socket address.
+   * @param addr A pointer to the raw socket address structure.
+   */
+  socket_address(const Addr *addr) noexcept
+      : Base(std::span<const std::byte, sizeof(Addr)>(
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            reinterpret_cast<const std::byte *>(addr), sizeof(Addr)))
   {}
 
   /**

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// NOLINTBEGIN
 #include "io/socket/socket_address.hpp"
 
 #include <cstring>
@@ -45,3 +46,25 @@ TEST_F(SocketAddressTest, TestPointerConstruction)
   auto address2 = make_address(&addr);
   EXPECT_EQ(address1, address2);
 }
+
+TEST_F(SocketAddressTest, TestOrdering)
+{
+  struct sockaddr_in addrv4 {};
+  addrv4.sin_family = AF_INET;
+
+  auto addr1 = socket_address<sockaddr_in>(&addrv4);
+  addr1->sin_port = 8080;
+  auto addr2 = socket_address<sockaddr_in>(&addrv4);
+  addr2->sin_port = 8081;
+
+  EXPECT_LT(addr1, addr2);
+
+  struct sockaddr_in6 addrv6 {};
+  addrv6.sin6_family = AF_INET6;
+  auto addr3 = socket_address<sockaddr_in6>(&addrv6);
+  addr3->sin6_port = 8079;
+
+  auto spanv4 = std::span(std::ranges::data(addr1), std::ranges::size(addr1));
+  EXPECT_LT(spanv4, addr3);
+}
+// NOLINTEND

@@ -25,7 +25,6 @@
 #include <span>
 #include <type_traits>
 namespace io::socket {
-
 /**
  * @class socket_option
  * @brief A generic wrapper for socket options.
@@ -172,10 +171,12 @@ public:
    * @return The result of the lexicographical comparison, first by size, then
    * by the raw byte data.
    */
-  auto operator<=>(const socket_option &other) const noexcept -> bool
+  auto
+  operator<=>(const socket_option &other) const noexcept -> std::strong_ordering
   {
+    using std::memcmp;
     return (size_ == other.size_)
-               ? std::memcmp(storage_.data(), other.storage_.data(), size_)
+               ? memcmp(storage_.data(), other.storage_.data(), size_) <=> 0
                : size_ <=> other.size_;
   }
 
