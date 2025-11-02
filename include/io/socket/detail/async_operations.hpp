@@ -319,7 +319,7 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
     msg_flags = &msg.msg_flags;
 
   return executor->set(
-      socket, READ, functor([=, socket = socket.get()]() noexcept {
+      socket, READ, functor([=, socket = socket.get()]() mutable noexcept {
         std::streamsize len = ::io::recvmsg(*socket, msghdr, flags);
         if (msg_flags)
           *msg_flags = msghdr.msg_flags;
