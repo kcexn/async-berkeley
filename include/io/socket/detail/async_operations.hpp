@@ -310,9 +310,19 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
   }
 
   auto msghdr = static_cast<socket_message_type>(msg);
+  int *msg_flags = nullptr;
+
+  if constexpr (requires { msg.flags; })
+    msg_flags = &msg.flags;
+
+  if constexpr (requires { msg.msg_flags; })
+    msg_flags = &msg.msg_flags;
+
   return executor->set(
       socket, READ, functor([=, socket = socket.get()]() noexcept {
         std::streamsize len = ::io::recvmsg(*socket, msghdr, flags);
+        if (msg_flags)
+          *msg_flags = msghdr.msg_flags;
         return (len < 0) ? std::nullopt : std::optional<result_t>{len};
       }));
 }

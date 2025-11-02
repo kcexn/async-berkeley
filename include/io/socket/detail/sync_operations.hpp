@@ -216,13 +216,20 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr, const Socket &socket,
 {
   std::streamsize len = -1;
   auto msghdr = static_cast<socket_message_type>(msg);
+  auto *msgptr = &msghdr;
 
-  while ((len = ::recvmsg(static_cast<native_socket_type>(socket), &msghdr,
+  if constexpr (std::same_as<socket_message_type, Message>)
+    msgptr = &msg;
+
+  while ((len = ::recvmsg(static_cast<native_socket_type>(socket), msgptr,
                           flags)) < 0)
   {
     if (errno != EINTR)
       break;
   }
+
+  if constexpr (requires { msg.flags; })
+    msg.flags = msgptr->msg_flags;
 
   return len;
 }
