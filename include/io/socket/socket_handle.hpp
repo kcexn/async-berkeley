@@ -42,12 +42,12 @@ namespace io::socket {
 class socket_handle {
 
 public:
-  /**
-   * @brief Initializes an invalid socket handle.
-   */
+  /** @brief Initializes an invalid socket handle.*/
   socket_handle() = default;
 
+  /** @brief Deleted copy constructor. */
   socket_handle(const socket_handle &other) = delete;
+  /** @brief Deleted copy assignment. */
   auto operator=(const socket_handle &other) -> socket_handle & = delete;
 
   /**
@@ -79,75 +79,47 @@ public:
    */
   explicit socket_handle(int domain, int type, int protocol);
 
-  /**
-   * @brief Gets the underlying native socket handle.
-   */
-  explicit operator native_socket_type() const noexcept;
+  /** @brief Gets the underlying native socket handle. */
+  [[nodiscard]] explicit operator native_socket_type() const noexcept;
 
-  /**
-   * @brief Swaps two `socket_handle` objects.
-   */
+  /** @brief Swaps two `socket_handle` objects. */
   friend auto swap(socket_handle &lhs, socket_handle &rhs) noexcept -> void;
 
-  /**
-   * @brief Checks if the socket handle is valid.
-   */
+  /** @brief Checks if the socket handle is valid. */
   [[nodiscard]] explicit operator bool() const noexcept;
 
-  /**
-   * @brief Compares two `socket_handle` objects.
-   */
+  /** @brief Compares two `socket_handle` objects. */
   auto operator<=>(const socket_handle &other) const noexcept
       -> std::strong_ordering;
 
-  /**
-   * @brief Checks for equality between two `socket_handle` objects.
-   */
+  /** @brief Checks for equality between two `socket_handle` objects. */
   auto operator==(const socket_handle &other) const noexcept -> bool;
 
-  /**
-   * @brief Compares with a native socket handle.
-   */
+  /** @brief Compares with a native socket handle. */
   auto
   operator<=>(native_socket_type other) const noexcept -> std::strong_ordering;
 
-  /**
-   * @brief Checks for equality with a native socket handle.
-   */
+  /** @brief Checks for equality with a native socket handle. */
   auto operator==(native_socket_type other) const noexcept -> bool;
 
-  /**
-   * @brief Sets a socket error.
-   */
+  /** @brief Sets a socket error. */
   auto set_error(int error) noexcept -> void;
 
-  /**
-   * @brief Gets the last socket error.
-   */
+  /** @brief Gets the last socket error. */
   auto get_error() const noexcept -> std::error_code;
 
-  /**
-   * @brief Closes the managed socket.
-   */
+  /** @brief Closes the managed socket. */
   ~socket_handle();
 
 private:
-  /**
-   * @brief Closes the managed socket.
-   */
+  /** @brief Closes the managed socket. */
   auto close() noexcept -> void;
 
-  /**
-   * @brief The underlying native socket handle.
-   */
+  /** @brief The underlying native socket handle. */
   std::atomic<native_socket_type> socket_{INVALID_SOCKET};
-  /**
-   * @brief The last error code on the socket.
-   */
+  /** @brief The last error code on the socket. */
   std::atomic<int> error_;
-  /**
-   * @brief A mutex for thread-safe access to the handle.
-   */
+  /** @brief A mutex for thread-safe access to the handle. */
   mutable std::mutex mtx_;
 };
 

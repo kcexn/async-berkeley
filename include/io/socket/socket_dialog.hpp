@@ -21,7 +21,6 @@
 #ifndef IO_SOCKET_DIALOG_HPP
 #define IO_SOCKET_DIALOG_HPP
 #include "io/detail/concepts.hpp"
-#include "io/error.hpp"
 #include "io/socket/socket_handle.hpp"
 
 #include <memory>
@@ -42,50 +41,89 @@ namespace io::socket {
  * @tparam Mux The multiplexer type.
  */
 template <Multiplexer Mux> struct socket_dialog {
-  /**
-   * @brief The executor type for this dialog.
-   */
+  /** @brief The executor type for this dialog. */
   using executor_type = ::io::execution::executor<Mux>;
-  /**
-   * @brief A weak pointer to the executor that owns the socket.
-   */
+  /** @brief A weak pointer to the executor that owns the socket. */
   std::weak_ptr<executor_type> executor;
-  /**
-   * @brief A shared pointer to the socket handle.
-   */
+  /** @brief A shared pointer to the socket handle. */
   std::shared_ptr<socket_handle> socket;
   /**
    * @brief Checks if the socket_dialog is valid.
+   * @returns `true` if the socket_dialog is valid, `false` otherwise.
    */
-  [[nodiscard]] explicit operator bool() const noexcept
-  {
-    return !executor.expired() && socket && static_cast<bool>(*socket);
-  }
-  /**
-   * @brief Compares two `socket_dialog` objects.
-   */
-  auto operator<=>(const socket_dialog &other) const -> std::strong_ordering
-  {
-    if (!socket || !other.socket)
-      throw std::invalid_argument(IO_ERROR_MESSAGE("Invalid socket pointer."));
-
-    return *socket <=> *other.socket;
-  }
-  /**
-   * @brief Checks for equality between two `socket_dialog` objects.
-   */
-  auto operator==(const socket_dialog &other) const -> bool
-  {
-    if (!socket && !other.socket)
-      throw std::invalid_argument(IO_ERROR_MESSAGE("Invalid socket pointer."));
-
-    return socket == other.socket ||
-           (socket && other.socket && *socket == *other.socket);
-  }
+  [[nodiscard]] explicit operator bool() const noexcept;
 };
+
+/**
+ * @brief Compares two `socket_dialog` objects.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns A `std::strong_ordering` indicating the result of the comparison.
+ * @throws std::invalid_argument if the underlying socket of either side is
+ * nullptr.
+ */
+template <Multiplexer Mux>
+auto operator<=>(const socket_dialog<Mux> &lhs,
+                 const socket_dialog<Mux> &rhs) -> std::strong_ordering;
+
+/**
+ * @brief Checks for equality between two `socket_dialog` objects.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns `true` if the two objects are equal, `false` otherwise.
+ * @throws std::invalid_argument if the underlying socket of either side is
+ * nullptr.
+ */
+template <Multiplexer Mux>
+auto operator==(const socket_dialog<Mux> &lhs,
+                const socket_dialog<Mux> &rhs) -> bool;
+
+/**
+ * @brief Compares a `socket_dialog` and a `socket_handle`.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns A `std::strong_ordering` indicating the result of the comparison.
+ * @throws std::invalid_argument if the underlying socket is nullptr.
+ */
+template <Multiplexer Mux>
+auto operator<=>(const socket_dialog<Mux> &lhs,
+                 const socket_handle &rhs) -> std::strong_ordering;
+
+/**
+ * @brief Checks for equality between a `socket_dialog` and a `socket_handle`.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns `true` if the two objects are equal, `false` otherwise.
+ * @throws std::invalid_argument if the underlying socket is nullptr.
+ */
+template <Multiplexer Mux>
+auto operator==(const socket_dialog<Mux> &lhs,
+                const socket_handle &rhs) -> bool;
+
+/**
+ * @brief Compares a `socket_dialog` and a `native_socket`.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns A `std::strong_ordering` indicating the result of the comparison.
+ * @throws std::invalid_argument if the underlying socket is nullptr.
+ */
+template <Multiplexer Mux>
+auto operator<=>(const socket_dialog<Mux> &lhs,
+                 native_socket_type rhs) -> std::strong_ordering;
+
+/**
+ * @brief Checks for equality between a `socket_dialog` and a `native_socket`.
+ * @param lhs The left-hand side of the comparison.
+ * @param rhs The right-hand side of the comparison.
+ * @returns `true` if the two objects are equal, `false` otherwise.
+ * @throws std::invalid_argument if the underlying socket is nullptr.
+ */
+template <Multiplexer Mux>
+auto operator==(const socket_dialog<Mux> &lhs, native_socket_type rhs) -> bool;
 
 } // namespace io::socket
 
 #include "detail/async_operations.hpp" // IWYU pragma: export
+#include "impl/socket_dialog_impl.hpp" // IWYU pragma: export
 
 #endif // IO_SOCKET_DIALOG_HPP

@@ -135,11 +135,7 @@ INSTANTIATE_TEST_SUITE_P(SocketDialogTests, SocketDialogTest, ::testing::Bool(),
                            return info.param ? "Lazy" : "Normal";
                          });
 
-class SocketDialogHelperTest : public ::testing::Test {
-protected:
-  void SetUp() override {}
-  void TearDown() override {}
-};
+class SocketDialogHelperTest : public ::testing::Test {};
 
 TEST_F(SocketDialogHelperTest, getExecutorTest)
 {
@@ -184,10 +180,52 @@ TEST_F(SocketDialogHelperTest, SetSockOptTest)
 TEST_F(SocketDialogHelperTest, ShutdownTest)
 {
   using triggers_type = basic_triggers<poll_multiplexer>;
-
   auto poller = triggers_type{};
   auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
 
   EXPECT_EQ(::io::shutdown(dialog, SHUT_RD), 0);
 }
+
+class SocketDialogComparisonTest : public ::testing::Test {
+protected:
+  void SetUp() override
+  {
+    dialog1 = triggers.emplace(AF_INET, SOCK_STREAM, 0);
+    dialog2 = triggers.emplace(AF_INET, SOCK_STREAM, 0);
+  }
+
+  basic_triggers<poll_multiplexer> triggers;
+  socket_dialog<poll_multiplexer> dialog1;
+  socket_dialog<poll_multiplexer> dialog2;
+};
+
+TEST_F(SocketDialogComparisonTest, DialogToDialogComparison)
+
+{
+  EXPECT_EQ(dialog1, dialog1);
+  EXPECT_NE(dialog1, dialog2);
+  EXPECT_LT(dialog1, dialog2);
+}
+
+TEST_F(SocketDialogComparisonTest, DialogToHandleComparison)
+{
+  auto &handle = *dialog1.socket;
+  EXPECT_EQ(dialog1, handle);
+  EXPECT_NE(dialog2, handle);
+}
+
+TEST_F(SocketDialogComparisonTest, DialogToNativeComparison)
+{
+  auto native_handle = static_cast<native_socket_type>(*dialog1.socket);
+  EXPECT_EQ(dialog1, native_handle);
+  EXPECT_NE(dialog2, native_handle);
+}
+
+TEST_F(SocketDialogComparisonTest, InvalidDialogThrowsException)
+{
+  auto invalid_dialog = socket_dialog<poll_multiplexer>{};
+  EXPECT_THROW((void)(invalid_dialog <=> dialog1), std::invalid_argument);
+  EXPECT_THROW((void)(dialog1 <=> invalid_dialog), std::invalid_argument);
+}
+
 // NOLINTEND
