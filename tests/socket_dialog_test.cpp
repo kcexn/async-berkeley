@@ -226,6 +226,12 @@ TEST_F(SocketDialogComparisonTest, InvalidDialogThrowsException)
   auto invalid_dialog = socket_dialog<poll_multiplexer>{};
   EXPECT_THROW((void)(invalid_dialog <=> dialog1), std::invalid_argument);
   EXPECT_THROW((void)(dialog1 <=> invalid_dialog), std::invalid_argument);
+  EXPECT_THROW((void)(invalid_dialog <=> *dialog1.socket),
+               std::invalid_argument);
+  EXPECT_THROW((void)(*dialog1.socket <=> invalid_dialog),
+               std::invalid_argument);
+  EXPECT_THROW((void)(invalid_dialog <=> 1), std::invalid_argument);
+  EXPECT_THROW((void)(1 <=> invalid_dialog), std::invalid_argument);
 }
 
 // NOLINTEND

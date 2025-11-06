@@ -20,6 +20,7 @@
 #pragma once
 #ifndef IO_SOCKET_MESSAGE_HPP
 #define IO_SOCKET_MESSAGE_HPP
+#include "detail/buffer_iterator.hpp"
 #include "detail/socket.hpp"
 #include "socket_address.hpp"
 
@@ -58,10 +59,11 @@ class message_buffer {
 public:
   /** @brief The underlying buffer type. */
   using buffer_type = std::vector<native_buffer_type, Allocator>;
-  /** @brief Iterator for the buffer. */
-  using iterator = typename buffer_type::iterator;
-  /** @brief Constant iterator for the buffer. */
-  using const_iterator = typename buffer_type::const_iterator;
+  /** @brief Iterator for the buffer that returns spans when dereferenced. */
+  using iterator = buffer_iterator<typename buffer_type::iterator>;
+  /** @brief Constant iterator for the buffer that returns spans when
+   * dereferenced. */
+  using const_iterator = buffer_iterator<typename buffer_type::const_iterator>;
   /** @brief Size type for the buffer. */
   using size_type = typename buffer_type::size_type;
 
@@ -140,6 +142,9 @@ public:
    * @return A reference to this scatter_gather_buffers object.
    */
   auto operator+=(std::size_t len) noexcept -> message_buffer &;
+
+  /** @brief Returns a reference to the underlying array of native buffers. */
+  constexpr auto native() -> buffer_type & { return buffer_; }
 
 private:
   buffer_type buffer_;

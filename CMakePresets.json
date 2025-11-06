@@ -75,7 +75,10 @@
             "name": "debug",
             "description": "tests",
             "displayName": "Debug",
-            "configurePreset": "debug"
+            "configurePreset": "debug",
+            "execution": {
+                "jobs": 1
+            }
         },
         {
             "name": "benchmark",

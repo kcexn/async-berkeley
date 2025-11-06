@@ -18,15 +18,16 @@
  * @brief Defines structures for handling socket messages.
  */
 #pragma once
-#include <io/detail/concepts.hpp>
 #ifndef IO_SOCKET_MESSAGE_IMPL_HPP
 #define IO_SOCKET_MESSAGE_IMPL_HPP
 #include "io/config.h"
 #include "io/socket/socket_message.hpp"
+#include <io/detail/concepts.hpp>
 
 #include <algorithm>
 namespace io::socket {
 
+// message_buffer member function implementations
 template <AllocatorLike Allocator>
 message_buffer<Allocator>::message_buffer(const Allocator &alloc) noexcept(
     noexcept(Allocator()))
@@ -76,28 +77,28 @@ template <AllocatorLike Allocator>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::begin() noexcept -> iterator
 {
-  return buffer_.begin();
+  return iterator(buffer_.begin());
 }
 
 template <AllocatorLike Allocator>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::begin() const noexcept -> const_iterator
 {
-  return buffer_.cbegin();
+  return const_iterator(buffer_.cbegin());
 }
 
 template <AllocatorLike Allocator>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::end() noexcept -> iterator
 {
-  return buffer_.end();
+  return iterator(buffer_.end());
 }
 
 template <AllocatorLike Allocator>
 [[nodiscard]] constexpr auto
 message_buffer<Allocator>::end() const noexcept -> const_iterator
 {
-  return buffer_.cend();
+  return const_iterator(buffer_.cend());
 }
 
 template <AllocatorLike Allocator>
@@ -157,7 +158,7 @@ template <SocketAddress Addr, AllocatorLike Allocator>
                              Allocator>::operator message_header() noexcept
 {
   auto header = message_header{
-      .msg_iov = buffers, .msg_control = control, .flags = flags};
+      .msg_iov = buffers.native(), .msg_control = control, .flags = flags};
   if (address)
     header.msg_name = *address;
   return header;

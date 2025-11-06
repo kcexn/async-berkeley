@@ -112,12 +112,7 @@ private:
     // Receive message asynchronously
     auto recvmsg = io::recvmsg(client, pong_msg, 0) |
                    then([this, client, sequence, buf](auto bytes_received) {
-#if OS_WINDOWS
-                     std::string message(buf->buf, bytes_received);
-#else
-                     std::string message(static_cast<char *>(buf->iov_base),
-                                         bytes_received);
-#endif
+                     auto message = std::string(reinterpret_cast<char *>((*buf).data()), bytes_received);
                      int next = sequence;
                      // Check if it's a pong response
                      if (message.find("pong") != std::string::npos)

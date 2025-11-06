@@ -454,8 +454,6 @@ auto basic_poll_multiplexer<Allocator>::wait_for(interval_type interval)
     for (const auto &event : list)
     {
       clear_event(event, list_);
-      if (demux_.size() < static_cast<std::size_t>(event.fd) + 1)
-        demux_.resize(event.fd + 1);
       prepare_handles<Allocator>(event.revents, demux_[event.fd], ready_queue);
     }
   });

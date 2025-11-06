@@ -14,6 +14,7 @@ set(
     mock_recvmsg_test
     mock_sendmsg_test
     small_functor_test
+    buffer_iterator_test
 )
 
 foreach(TEST_NAME IN LISTS TEST_NAMES)
