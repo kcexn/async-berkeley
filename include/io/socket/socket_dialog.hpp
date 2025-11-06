@@ -52,6 +52,12 @@ template <Multiplexer Mux> struct socket_dialog {
    * @returns `true` if the socket_dialog is valid, `false` otherwise.
    */
   [[nodiscard]] explicit operator bool() const noexcept;
+  /**
+   * @brief Casts the socket dialog to a native socket value.
+   * @throws std::invalid_argument if the socket is nullptr.
+   * @returns A copy of the native socket handle.
+   */
+  [[nodiscard]] explicit operator native_socket_type() const;
 };
 
 /**

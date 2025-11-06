@@ -26,6 +26,15 @@ template <Multiplexer Mux> socket_dialog<Mux>::operator bool() const noexcept
 }
 
 template <Multiplexer Mux>
+socket_dialog<Mux>::operator native_socket_type() const
+{
+  if (!socket)
+    throw std::invalid_argument(IO_ERROR_MESSAGE("Invalid socket pointer."));
+
+  return static_cast<native_socket_type>(*socket);
+}
+
+template <Multiplexer Mux>
 auto operator<=>(const socket_dialog<Mux> &lhs,
                  const socket_dialog<Mux> &rhs) -> std::strong_ordering
 {

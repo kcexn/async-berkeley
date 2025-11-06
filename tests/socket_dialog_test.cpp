@@ -234,4 +234,16 @@ TEST_F(SocketDialogComparisonTest, InvalidDialogThrowsException)
   EXPECT_THROW((void)(1 <=> invalid_dialog), std::invalid_argument);
 }
 
+TEST_F(SocketDialogComparisonTest, NativeSocketTypeCastOperator)
+{
+  // Test successful conversion from valid dialog to native socket type
+  native_socket_type native_handle = static_cast<native_socket_type>(dialog1);
+  EXPECT_EQ(native_handle, static_cast<native_socket_type>(*dialog1.socket));
+
+  // Test that invalid dialog (null socket) throws exception
+  auto invalid_dialog = socket_dialog<poll_multiplexer>{};
+  EXPECT_THROW((void)static_cast<native_socket_type>(invalid_dialog),
+               std::invalid_argument);
+}
+
 // NOLINTEND
