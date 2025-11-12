@@ -20,7 +20,8 @@
 #pragma once
 #ifndef IO_UTILITIES_HPP
 #define IO_UTILITIES_HPP
-#include <mutex>
+#include "io/detail/concepts.hpp"
+
 #include <type_traits>
 
 /**
@@ -36,10 +37,11 @@ namespace io::execution {
  * @param func The function to execute.
  * @return The result of the function.
  */
-template <typename Fn>
+template <BasicLockable Lock, typename Fn>
   requires std::is_invocable_v<Fn>
-auto with_lock(std::unique_lock<std::mutex> lock, Fn &&func) -> decltype(auto)
+auto with_lock(Lock &mtx, Fn &&func) -> decltype(auto)
 {
+  auto guard = std::lock_guard(mtx);
   return std::forward<Fn>(func)();
 }
 

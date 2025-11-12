@@ -443,14 +443,13 @@ template <AllocatorLike Allocator>
 auto basic_poll_multiplexer<Allocator>::wait_for(interval_type interval)
     -> size_type
 {
-  auto list =
-      with_lock(std::unique_lock{mtx_}, [&] { return copy_active(list_); });
+  auto list = with_lock(mtx_, [&] { return copy_active(list_); });
 
   list = poll_(std::move(list), static_cast<int>(interval.count()));
 
   intrusive_task_queue ready_queue;
 
-  with_lock(std::unique_lock{mtx_}, [&] {
+  with_lock(mtx_, [&] {
     for (const auto &event : list)
     {
       clear_event(event, list_);

@@ -54,6 +54,13 @@ concept AllocatorLike =
       { alloc.deallocate(ptr, 0) } -> std::same_as<void>;
     };
 
+/** @brief A concept that validates the C++ BasicLockable named requirement. */
+template <typename Lock>
+concept BasicLockable = requires(Lock lock) {
+  { lock.lock() } -> std::same_as<void>;
+  { lock.unlock() } -> std::same_as<void>;
+};
+
 /** @brief A concept that describes a scatter/gather like buffer object. */
 template <typename B>
 concept ScatterGatherLike = requires(B buf) {
