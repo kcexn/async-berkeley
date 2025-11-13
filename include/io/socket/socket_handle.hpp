@@ -34,14 +34,12 @@ auto is_valid_socket(native_socket_type handle) -> bool;
 /** \endcond */
 
 namespace io::socket {
-/**
- * @brief A thread-safe, move-only RAII wrapper for a native socket handle.
- *
- * Ensures unique ownership and automatic closing of a native socket handle.
- */
+/** @brief A thread-safe, move-only RAII wrapper for a native socket handle. */
 class socket_handle {
-
 public:
+  /** @brief The mutex type. */
+  using mutex = std::mutex;
+
   /** @brief Initializes an invalid socket handle.*/
   socket_handle() = default;
 
@@ -120,7 +118,7 @@ private:
   /** @brief The last error code on the socket. */
   std::atomic<int> error_;
   /** @brief A mutex for thread-safe access to the handle. */
-  mutable std::mutex mtx_;
+  mutable mutex mtx_;
 };
 
 } // namespace io::socket

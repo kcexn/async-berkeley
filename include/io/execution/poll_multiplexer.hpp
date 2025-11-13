@@ -78,6 +78,8 @@ class basic_poll_multiplexer : public basic_multiplexer<poll_t> {
 public:
   /** @brief The base class for the multiplexer. */
   using Base = basic_multiplexer<poll_t>;
+  /** @brief The mutex type. */
+  using mutex = std::mutex;
   /** @brief The socket handle type. */
   using socket_handle = ::io::socket::socket_handle;
   /** @brief The task type. */
@@ -152,7 +154,7 @@ public:
       /** @brief The demultiplexer for the socket. */
       demultiplexer *demux = nullptr;
       /** @brief A mutex for thread safety. */
-      std::mutex *mtx = nullptr;
+      mutex *mtx = nullptr;
       /** @brief The poll trigger. */
       execution_trigger trigger{};
     };
@@ -174,7 +176,7 @@ public:
     /** @brief The list of poll events. */
     vector_type *list = nullptr;
     /** @brief A mutex for thread safety. */
-    std::mutex *mtx = nullptr;
+    mutex *mtx = nullptr;
     /** @brief The poll trigger. */
     execution_trigger trigger{};
   };
@@ -210,7 +212,7 @@ private:
   /** @brief A list of poll events. */
   vector_type list_;
   /** @brief A mutex for thread safety. */
-  mutable std::mutex mtx_;
+  mutable mutex mtx_;
 };
 
 /**
