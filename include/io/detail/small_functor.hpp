@@ -181,15 +181,30 @@ public:
       return;
 
     alignas(std::max_align_t) std::array<std::byte, Size> temp_storage;
+    const vtable *temp_vptr = nullptr;
 
+    // Move lhs to temp (no destroy needed, temp is uninitialized)
     if (lhs.vptr_)
+    {
       lhs.vptr_->move(&lhs.storage_, &temp_storage);
+      temp_vptr = lhs.vptr_;
+    }
 
+    // Destroy lhs before overwriting, then move rhs to lhs
+    if (lhs.vptr_)
+      lhs.vptr_->destroy(&lhs.storage_);
     if (rhs.vptr_)
       rhs.vptr_->move(&rhs.storage_, &lhs.storage_);
 
-    if (lhs.vptr_)
-      lhs.vptr_->move(&temp_storage, &rhs.storage_);
+    // Destroy rhs before overwriting, then move temp to rhs
+    if (rhs.vptr_)
+      rhs.vptr_->destroy(&rhs.storage_);
+    if (temp_vptr)
+      temp_vptr->move(&temp_storage, &rhs.storage_);
+
+    // Destroy the moved-from object in temp
+    if (temp_vptr)
+      temp_vptr->destroy(&temp_storage);
 
     swap(lhs.vptr_, rhs.vptr_);
   }

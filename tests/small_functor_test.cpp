@@ -76,4 +76,51 @@ TEST_F(SmallFunctorTest, SwapTest)
   fn = g;
   EXPECT_TRUE(g);
 }
+
+TEST_F(SmallFunctorTest, SwapDestructorTest)
+{
+  using std::swap;
+
+  // Track construction and destruction counts
+  static int construct_count = 0;
+  static int destruct_count = 0;
+
+  struct TrackedCallable {
+    TrackedCallable() { ++construct_count; }
+    TrackedCallable(const TrackedCallable &) { ++construct_count; }
+    TrackedCallable(TrackedCallable &&) noexcept { ++construct_count; }
+    ~TrackedCallable() { ++destruct_count; }
+    void operator()() const {}
+  };
+
+  construct_count = 0;
+  destruct_count = 0;
+
+  {
+    using T = TrackedCallable;
+    auto fn = small_functor<void(), sizeof(T)>(TrackedCallable{});
+    auto g = small_functor<void(), sizeof(T)>(TrackedCallable{});
+
+    ASSERT_TRUE(fn);
+    ASSERT_TRUE(g);
+
+    // After construction, we should have 2 constructions (temporary + placement
+    // new for each) and destructions of the temporaries
+    int constructs_before_swap = construct_count;
+    int destructs_before_swap = destruct_count;
+
+    // Perform swap - this should not leak the temporary
+    swap(fn, g);
+
+    EXPECT_EQ(construct_count, constructs_before_swap + 3);
+    EXPECT_EQ(destruct_count, destructs_before_swap + 3);
+
+    EXPECT_TRUE(fn);
+    EXPECT_TRUE(g);
+  }
+
+  // After scope exit, both functors should be destroyed
+  // We should have 2 more destructions (one for each functor)
+  EXPECT_EQ(construct_count, destruct_count);
+}
 // NOLINTEND
