@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(
   AsyncBerk
-  VERSION 0.3.3
+  VERSION 0.4.1
   LANGUAGES CXX)
 
 # iosched requires at least C++20
