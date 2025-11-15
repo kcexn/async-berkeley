@@ -26,7 +26,6 @@
 #include "io/error.hpp"
 #include "io/execution/detail/execution_trigger.hpp"
 #include "io/socket/socket_dialog.hpp"
-#include "io/socket/socket_handle.hpp"
 #include "socket.hpp"
 
 #include <stdexec/execution.hpp>
@@ -90,22 +89,6 @@ struct fairness {
     return counter;
   }
 };
-
-/**
- * @brief Sets an error on the socket handle if the error is not a "would block"
- * error.
- * @param handle The socket handle.
- * @param error The error code.
- * @return `true` if the error was `EWOULDBLOCK` or `EAGAIN`, `false`
- * otherwise.
- */
-inline auto set_error_if_not_blocked(::io::socket::socket_handle &handle,
-                                     int error) -> bool
-{
-  if (error != EWOULDBLOCK && error != EAGAIN)
-    handle.set_error(error);
-  return error != EWOULDBLOCK && error != EAGAIN;
-}
 } // namespace detail
 
 /**
@@ -148,8 +131,11 @@ auto tag_invoke([[maybe_unused]] accept_t *ptr,
                              }));
       }
 
-      if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, functor{});
+      socket->set_error(errno);
+      auto error = socket->get_error();
+
+      if (error && error != std::errc::operation_would_block)
+        return executor->set(socket, EAGER, functor());
     }
   }
 
@@ -304,8 +290,11 @@ auto tag_invoke([[maybe_unused]] recvmsg_t *ptr,
                              }));
       }
 
-      if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, functor{});
+      socket->set_error(errno);
+      auto error = socket->get_error();
+
+      if (error && error != std::errc::operation_would_block)
+        return executor->set(socket, EAGER, functor());
     }
   }
 
@@ -366,8 +355,11 @@ auto tag_invoke([[maybe_unused]] sendmsg_t *ptr,
                              }));
       }
 
-      if (set_error_if_not_blocked(*socket, errno))
-        return executor->set(socket, EAGER, functor{});
+      socket->set_error(errno);
+      auto error = socket->get_error();
+
+      if (error && error != std::errc::operation_would_block)
+        return executor->set(socket, EAGER, functor());
     }
   }
 

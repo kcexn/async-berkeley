@@ -77,14 +77,8 @@
             "displayName": "Debug",
             "configurePreset": "debug",
             "execution": {
-                "jobs": 1
+                "timeout": 10
             }
-        },
-        {
-            "name": "benchmark",
-            "description": "benchmark tests",
-            "displayName": "Benchmark",
-            "configurePreset": "benchmark"
         }
     ],
     "packagePresets": [

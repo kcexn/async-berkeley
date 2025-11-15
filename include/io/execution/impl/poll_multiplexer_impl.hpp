@@ -67,13 +67,15 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::state<Receiver>::complete(
 {
   auto *self = static_cast<state *>(task_ptr);
 
-  if (auto error = self->socket->get_error())
-    return stdexec::set_error(std::move(self->receiver), error.value());
+  auto error = self->socket->get_error();
+  if (error && error != std::errc::operation_would_block)
+    return stdexec::set_error(std::move(self->receiver), error);
 
   if (auto result = self->func())
     return stdexec::set_value(std::move(self->receiver), std::move(*result));
 
-  return stdexec::set_error(std::move(self->receiver), errno);
+  return stdexec::set_error(std::move(self->receiver),
+                            std::error_code{errno, std::system_category()});
 }
 
 /**
@@ -89,7 +91,8 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::state<
     Receiver>::start() noexcept -> void
 {
   using enum execution_trigger;
-  if (socket->get_error() || trigger == EAGER)
+  auto error = socket->get_error();
+  if (trigger == EAGER || (error && error != std::errc::operation_would_block))
     return complete(this);
 
   std::lock_guard lock{*mtx};
@@ -178,7 +181,8 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::connect(Receiver &&receiver)
   using enum execution_trigger;
 
   demultiplexer *demux_ptr = nullptr;
-  if (!socket->get_error() && trigger != EAGER)
+  auto error = socket->get_error();
+  if ((!error || error == std::errc::operation_would_block) && trigger != EAGER)
   {
     std::lock_guard lock{*mtx};
 

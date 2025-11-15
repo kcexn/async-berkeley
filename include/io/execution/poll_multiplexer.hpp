@@ -128,7 +128,7 @@ public:
     /** @brief The completion signatures for the sender. */
     using completion_signatures = stdexec::completion_signatures<
         stdexec::set_value_t(typename std::invoke_result_t<Fn>::value_type),
-        stdexec::set_error_t(int)>;
+        stdexec::set_error_t(std::error_code)>;
 
     /**
      * @brief An operation state for the poll multiplexer.

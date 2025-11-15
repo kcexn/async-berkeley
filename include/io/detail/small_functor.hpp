@@ -181,30 +181,26 @@ public:
       return;
 
     alignas(std::max_align_t) std::array<std::byte, Size> temp_storage;
-    const vtable *temp_vptr = nullptr;
 
-    // Move lhs to temp (no destroy needed, temp is uninitialized)
+    // Since left and right may not be the same type, these
+    // moves need to be destructive.
     if (lhs.vptr_)
     {
-      lhs.vptr_->move(&lhs.storage_, &temp_storage);
-      temp_vptr = lhs.vptr_;
+      lhs.vptr_->move(lhs.storage_.data(), temp_storage.data());
+      lhs.vptr_->destroy(lhs.storage_.data());
     }
 
-    // Destroy lhs before overwriting, then move rhs to lhs
+    if (rhs.vptr_)
+    {
+      rhs.vptr_->move(rhs.storage_.data(), lhs.storage_.data());
+      rhs.vptr_->destroy(rhs.storage_.data());
+    }
+
     if (lhs.vptr_)
-      lhs.vptr_->destroy(&lhs.storage_);
-    if (rhs.vptr_)
-      rhs.vptr_->move(&rhs.storage_, &lhs.storage_);
-
-    // Destroy rhs before overwriting, then move temp to rhs
-    if (rhs.vptr_)
-      rhs.vptr_->destroy(&rhs.storage_);
-    if (temp_vptr)
-      temp_vptr->move(&temp_storage, &rhs.storage_);
-
-    // Destroy the moved-from object in temp
-    if (temp_vptr)
-      temp_vptr->destroy(&temp_storage);
+    {
+      lhs.vptr_->move(temp_storage.data(), rhs.storage_.data());
+      lhs.vptr_->destroy(temp_storage.data());
+    }
 
     swap(lhs.vptr_, rhs.vptr_);
   }

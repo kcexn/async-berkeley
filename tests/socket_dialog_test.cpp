@@ -156,16 +156,6 @@ TEST_F(SocketDialogHelperTest, HandleConnectErrorTest)
   EXPECT_EQ(dialog.socket->get_error(), std::errc::not_enough_memory);
 }
 
-TEST_F(SocketDialogHelperTest, SetErrorIfNotBlocked)
-{
-  using socket_handle = ::io::socket::socket_handle;
-
-  auto sock = socket_handle{AF_UNIX, SOCK_STREAM, 0};
-  EXPECT_FALSE(set_error_if_not_blocked(sock, EWOULDBLOCK));
-  EXPECT_FALSE(set_error_if_not_blocked(sock, EAGAIN));
-  EXPECT_TRUE(set_error_if_not_blocked(sock, ENOMEM));
-}
-
 TEST_F(SocketDialogHelperTest, SetSockOptTest)
 {
   using triggers_type = basic_triggers<poll_multiplexer>;

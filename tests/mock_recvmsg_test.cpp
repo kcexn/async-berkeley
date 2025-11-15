@@ -60,29 +60,19 @@ TEST_F(MockRecvmsgTest, TestAsyncRecvmsg0)
   using triggers =
       io::execution::basic_triggers<io::execution::poll_multiplexer>;
   using socket_message = ::io::socket::socket_message<>;
+  using async_scope = exec::async_scope;
 
   auto poller = triggers();
-  auto mtx = std::mutex();
-  auto lock = std::unique_lock(mtx);
-  auto cvar = std::condition_variable();
-  auto started = std::atomic<bool>();
+  auto scope = async_scope();
+  auto sock = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
+  auto msg = socket_message{};
+  sender auto recvmsg =
+      io::recvmsg(sock, msg, 0) | then([](auto) {}) | upon_error([](auto) {});
+  scope.spawn(std::move(recvmsg));
 
-  {
-    auto sock = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
-    auto msg = socket_message{};
-    sender auto recvmsg = io::recvmsg(sock, msg, 0);
-    auto thread = std::thread([&] {
-      started = true;
-      cvar.notify_all();
-      sync_wait(std::move(recvmsg));
-    });
-
-    cvar.wait(lock, [&] { return started == true; });
-    ::shutdown(static_cast<int>(*sock.socket), SHUT_RD);
-    ASSERT_GT(poller.wait_for(50), 0);
-    thread.join();
-    EXPECT_EQ(msg.flags, MSG_TRUNC);
-  }
+  io::shutdown(sock, SHUT_RD);
+  ASSERT_GT(poller.wait_for(50), 0);
+  EXPECT_EQ(msg.flags, MSG_TRUNC);
 }
 
 TEST_F(MockRecvmsgTest, TestAsyncRecvmsg1)

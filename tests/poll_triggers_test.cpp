@@ -178,7 +178,8 @@ TEST_F(PollTriggersTest, SubmitTest)
   stdexec::sender auto write_error_fut =
       scope.spawn_future(std::move(write_error));
   triggers.wait_for(0);
-  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut)), int);
+  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut)),
+               std::system_error);
 
   write_socket->set_error(ECONNRESET);
   stdexec::sender auto write_error2 = triggers.set(
@@ -186,7 +187,8 @@ TEST_F(PollTriggersTest, SubmitTest)
   stdexec::sender auto write_error_fut2 =
       scope.spawn_future(std::move(write_error2));
   triggers.wait_for(0);
-  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut2)), int);
+  EXPECT_THROW(stdexec::sync_wait(std::move(write_error_fut2)),
+               std::system_error);
 }
 
 TEST_F(PollTriggersTest, WaitTest)
