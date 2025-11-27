@@ -42,6 +42,7 @@ Some simple examples of applications build with AsyncBerkeley:
 
 - [**A TCP/UDP Echo Server**](https://github.com/kcexn/rfc862-echo)
 - [**A Simple TFTP server**](https://github.com/kcexn/tftpd)
+- [**A Simple TFTP client**](https://github.com/kcexn/tftp)
 
 ## Quick Start
 
