@@ -75,8 +75,8 @@ jobs:
           -DCPM_SOURCE_CACHE='~/.cache/CPM' \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
           -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-          -DIO_BUILD_EXAMPLES=OFF \
-          -DIO_ENABLE_DOCS=OFF
+          -DABRK_BUILD_EXAMPLES=OFF \
+          -DABRK_ENABLE_DOCS=OFF
 
     - name: Build with tests
       run: cmake --build --preset debug
