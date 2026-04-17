@@ -190,7 +190,7 @@ auto basic_poll_multiplexer<Allocator>::sender<Fn>::connect(Receiver &&receiver)
     if (demux->size() < static_cast<std::size_t>(sockfd) + 1)
       demux->resize(sockfd + 1);
 
-    demux_ptr = std::addressof(demux->at(sockfd));
+    demux_ptr = std::addressof(demux->operator[](sockfd));
 
     update_or_insert_event(list, make_poll_event(*socket, trigger));
   }
@@ -299,7 +299,7 @@ auto remaining_duration(int duration,
  */
 template <AllocatorLike Allocator>
 auto poll_(std::vector<pollfd, Allocator> list,
-           int duration) -> std::vector<pollfd>
+           int duration) -> std::vector<pollfd, Allocator>
 {
   using namespace detail;
   using clock = std::chrono::steady_clock;
@@ -380,7 +380,7 @@ auto prepare_handles(
    * subsequently called `close`. Under normal
    * circumstances, it is impossible for a socket
    * to be invalid after the sender has been constructed
-   * constructed as the sender takes shared ownership
+   * as the sender takes shared ownership
    * of the underlying socket.
    */
   if (revents & (POLLERR | POLLNVAL))
@@ -394,15 +394,15 @@ auto prepare_handles(
 }
 
 /**
- * @brief Copies a list of pollfds and clears the events in the original list.
- * @param list The list of pollfds to copy and clear.
- * @return A copy of the list.
+ * @brief Copies a list of active pollfds.
+ * @param list The list of pollfds to copy from.
+ * @return A list of active pollfds.
  */
 template <AllocatorLike Allocator>
 auto copy_active(std::vector<pollfd, Allocator> &list)
     -> std::vector<pollfd, Allocator>
 {
-  std::vector<pollfd, Allocator> tmp{list.get_allocator()};
+  auto tmp = std::vector<pollfd, Allocator>{list.get_allocator()};
   tmp.reserve(list.size());
 
   std::ranges::copy_if(list, std::back_inserter(tmp),
@@ -451,7 +451,7 @@ auto basic_poll_multiplexer<Allocator>::wait_for(interval_type interval)
 
   list = poll_(std::move(list), static_cast<int>(interval.count()));
 
-  intrusive_task_queue ready_queue;
+  auto ready_queue = intrusive_task_queue{};
 
   with_lock(mtx_, [&] {
     for (const auto &event : list)
