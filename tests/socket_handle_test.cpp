@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <vector>
 
-using namespace io::socket;
+using namespace abrk::socket;
 
 class SocketHandleTest : public ::testing::Test {
 protected:
@@ -529,22 +529,22 @@ TEST_F(SocketHandleOperationsTest, AcceptTest)
 {
   socket_handle server(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  ASSERT_EQ(::io::bind(server, in_address), 0);
-  ASSERT_EQ(::io::listen(server, 1), 0);
+  ASSERT_EQ(::abrk::bind(server, in_address), 0);
+  ASSERT_EQ(::abrk::listen(server, 1), 0);
 
   auto bound_address = make_address<sockaddr_in>();
-  auto result = ::io::getsockname(server, bound_address);
+  auto result = ::abrk::getsockname(server, bound_address);
   ASSERT_NE(result.data(), nullptr);
 
   socket_handle client(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   std::thread connect_thread([&client, &bound_address]() {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_EQ(::io::connect(client, bound_address), 0);
+    ASSERT_EQ(::abrk::connect(client, bound_address), 0);
   });
 
   auto client_addr = make_address<sockaddr_in>();
-  auto [server_handle, addr] = ::io::accept(server, client_addr);
+  auto [server_handle, addr] = ::abrk::accept(server, client_addr);
   ASSERT_NE(server_handle, INVALID_SOCKET);
   connect_thread.join();
 
@@ -554,14 +554,14 @@ TEST_F(SocketHandleOperationsTest, AcceptTest)
 TEST_F(SocketHandleOperationsTest, BindTagInvoke)
 {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  EXPECT_EQ(::io::bind(handle, in_address), 0);
+  EXPECT_EQ(::abrk::bind(handle, in_address), 0);
 }
 
 TEST_F(SocketHandleOperationsTest, ListenTagInvoke)
 {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  ASSERT_EQ(::io::bind(handle, in_address), 0);
-  EXPECT_EQ(::io::listen(handle, SOMAXCONN), 0);
+  ASSERT_EQ(::abrk::bind(handle, in_address), 0);
+  EXPECT_EQ(::abrk::listen(handle, SOMAXCONN), 0);
 }
 
 TEST_F(SocketHandleOperationsTest, ConnectTagInvoke)
@@ -573,7 +573,7 @@ TEST_F(SocketHandleOperationsTest, ConnectTagInvoke)
   address->sin_addr.s_addr = inet_addr("127.0.0.1");
   address->sin_port = htons(12345);
 
-  EXPECT_EQ(::io::connect(handle, address), -1);
+  EXPECT_EQ(::abrk::connect(handle, address), -1);
   EXPECT_TRUE(errno == ECONNREFUSED || errno == EADDRNOTAVAIL);
 }
 
@@ -581,13 +581,13 @@ TEST_F(SocketHandleOperationsTest, FcntlTagInvoke)
 {
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  int flags = ::io::fcntl(handle, F_GETFL);
+  int flags = ::abrk::fcntl(handle, F_GETFL);
   EXPECT_GE(flags, 0);
 
-  int result = ::io::fcntl(handle, F_SETFL, flags | O_NONBLOCK);
+  int result = ::abrk::fcntl(handle, F_SETFL, flags | O_NONBLOCK);
   EXPECT_EQ(result, 0);
 
-  int new_flags = ::io::fcntl(handle, F_GETFL);
+  int new_flags = ::abrk::fcntl(handle, F_GETFL);
   EXPECT_GE(new_flags, 0);
   EXPECT_TRUE(new_flags & O_NONBLOCK);
 }
@@ -599,13 +599,13 @@ TEST_F(SocketHandleOperationsTest, Getpeername)
   ASSERT_EQ(::socketpair(AF_UNIX, SOCK_STREAM, 0, sockets.data()), 0);
 
   socket_handle error_handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  auto result = ::io::getpeername(error_handle, address);
+  auto result = ::abrk::getpeername(error_handle, address);
   EXPECT_EQ(result.data(), nullptr);
 
   auto client = socket_handle{sockets[0]};
   auto server = socket_handle{sockets[1]};
 
-  auto addr_ = ::io::getpeername(client, address);
+  auto addr_ = ::abrk::getpeername(client, address);
   EXPECT_EQ(std::memcmp(addr_.data(), std::ranges::data(address), addr_.size()),
             0);
 }
@@ -614,12 +614,12 @@ TEST_F(SocketHandleOperationsTest, Getsockname)
 {
   auto error_handle = socket_handle{-1};
   auto address = make_address<sockaddr_in>();
-  auto result = ::io::getsockname(error_handle, address);
+  auto result = ::abrk::getsockname(error_handle, address);
   EXPECT_EQ(result.data(), nullptr);
 
   auto handle = socket_handle{AF_INET, SOCK_STREAM, IPPROTO_TCP};
-  ASSERT_EQ(::io::bind(handle, in_address), 0);
-  result = ::io::getsockname(handle, address);
+  ASSERT_EQ(::abrk::bind(handle, in_address), 0);
+  result = ::abrk::getsockname(handle, address);
   EXPECT_EQ(address, result);
 }
 
@@ -628,7 +628,7 @@ TEST_F(SocketHandleOperationsTest, GetsockoptTagInvoke)
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_option<int> type{};
-  auto [result, opt] = ::io::getsockopt(handle, SOL_SOCKET, SO_TYPE, type);
+  auto [result, opt] = ::abrk::getsockopt(handle, SOL_SOCKET, SO_TYPE, type);
   EXPECT_EQ(result, 0);
   EXPECT_EQ(type, opt);
   EXPECT_EQ(*type, SOCK_STREAM);
@@ -639,9 +639,9 @@ TEST_F(SocketHandleOperationsTest, SetsockoptTagInvoke)
   socket_handle handle(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   socket_option<int> reuse{1};
-  EXPECT_EQ(::io::setsockopt(handle, SOL_SOCKET, SO_REUSEADDR, reuse), 0);
+  EXPECT_EQ(::abrk::setsockopt(handle, SOL_SOCKET, SO_REUSEADDR, reuse), 0);
   auto [result, optval] =
-      ::io::getsockopt(handle, SOL_SOCKET, SO_REUSEADDR, reuse);
+      ::abrk::getsockopt(handle, SOL_SOCKET, SO_REUSEADDR, reuse);
   ASSERT_EQ(result, 0);
   EXPECT_EQ(reuse, optval);
   EXPECT_EQ(*reuse, 1);

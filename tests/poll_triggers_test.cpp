@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
@@ -24,7 +24,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace io::execution;
+using namespace abrk::execution;
 
 class PollTriggersTest : public ::testing::Test {
 protected:
@@ -78,7 +78,7 @@ TEST_F(PollTriggersTest, SelfSwapTest)
 
 TEST_F(PollTriggersTest, PushHandleTest)
 {
-  using socket_handle = ::io::socket::socket_handle;
+  using socket_handle = ::abrk::socket::socket_handle;
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   auto sockfd = static_cast<int>(socket);
 
@@ -117,7 +117,7 @@ TEST_F(PollTriggersTest, PollTest)
 
 TEST_F(PollTriggersTest, PollSetErrorTest)
 {
-  using socket_handle = ::io::socket::socket_handle;
+  using socket_handle = ::abrk::socket::socket_handle;
 
   socket_handle socket{AF_INET, SOCK_STREAM, IPPROTO_TCP};
   EXPECT_NO_THROW(set_error(socket));
@@ -140,7 +140,7 @@ TEST_F(PollTriggersTest, PollClearEventsTest)
 TEST_F(PollTriggersTest, SubmitTest)
 {
   using trigger = execution_trigger;
-  using socket_handle = ::io::socket::socket_handle;
+  using socket_handle = ::abrk::socket::socket_handle;
   using async_scope = exec::async_scope;
 
   async_scope scope;
@@ -199,7 +199,7 @@ TEST_F(PollTriggersTest, WaitTest)
 
 TEST_F(PollTriggersTest, AsyncAcceptTest)
 {
-  using ::io::socket::make_address;
+  using ::abrk::socket::make_address;
   using async_scope = exec::async_scope;
 
   async_scope scope;
@@ -212,21 +212,21 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   address->sin_addr.s_addr = INADDR_ANY;
   address->sin_port = 0;
 
-  int status = ::io::bind(*dialog.socket, address);
+  int status = ::abrk::bind(*dialog.socket, address);
   ASSERT_EQ(status, 0);
 
-  status = ::io::listen(*dialog.socket, 1);
+  status = ::abrk::listen(*dialog.socket, 1);
   ASSERT_EQ(status, 0);
 
   auto bound_address = make_address<struct sockaddr_in>();
-  auto addr = ::io::getsockname(*dialog.socket, bound_address);
+  auto addr = ::abrk::getsockname(*dialog.socket, bound_address);
   ASSERT_EQ(bound_address, addr);
 
-  ::io::socket::socket_handle client{AF_INET, SOCK_STREAM, 0};
-  status = ::io::connect(client, bound_address);
+  ::abrk::socket::socket_handle client{AF_INET, SOCK_STREAM, 0};
+  status = ::abrk::connect(client, bound_address);
   EXPECT_EQ(status, 0);
 
-  stdexec::sender auto accept = ::io::accept(dialog, address);
+  stdexec::sender auto accept = ::abrk::accept(dialog, address);
   stdexec::sender auto accept_future = scope.spawn_future(std::move(accept));
   triggers1.wait_for(0);
   auto [result] = stdexec::sync_wait(std::move(accept_future)).value();
@@ -234,7 +234,7 @@ TEST_F(PollTriggersTest, AsyncAcceptTest)
   EXPECT_TRUE(accept_dialog);
 
   auto client_address = make_address<struct sockaddr_in>();
-  auto client_addr = ::io::getsockname(client, client_address);
+  auto client_addr = ::abrk::getsockname(client, client_address);
   ASSERT_EQ(client_addr, client_address);
   EXPECT_EQ(client_address, accept_address);
 }

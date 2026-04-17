@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/socket/socket_address.hpp"
+#include "abrk/socket/socket_address.hpp"
 
 #include <cstring>
 #include <gtest/gtest.h>
@@ -21,7 +21,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-using namespace io::socket;
+using namespace abrk::socket;
 
 class SocketAddressTest : public ::testing::Test {
 protected:

@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 // NOLINTBEGIN"
-#include "io/socket/detail/buffer_iterator.hpp"
-#include "io/socket/detail/socket.hpp"
+#include "abrk/socket/detail/buffer_iterator.hpp"
+#include "abrk/socket/detail/socket.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,7 +24,7 @@
 #include <span>
 #include <vector>
 
-using namespace io::socket;
+using namespace abrk::socket;
 
 class BufferIteratorTest : public ::testing::Test {
 protected:

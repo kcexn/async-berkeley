@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/execution/poll_multiplexer.hpp"
-#include "io/io.hpp"
+#include "abrk/execution/poll_multiplexer.hpp"
+#include "abrk/abrk.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
@@ -23,7 +23,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace io::execution;
+using namespace abrk::execution;
 
 static int test_state = 0;
 ssize_t recvmsg(int __fd, struct msghdr *__message, int flags)
@@ -45,12 +45,12 @@ protected:
 
 TEST_F(MockRecvmsgTest, TestSyncRecvmsg)
 {
-  using socket_handle = ::io::socket::socket_handle;
-  using message = ::io::socket::socket_message<>;
+  using socket_handle = ::abrk::socket::socket_handle;
+  using message = ::abrk::socket::socket_message<>;
 
   auto sock = socket_handle{AF_UNIX, SOCK_STREAM, 0};
   auto msg = message{};
-  EXPECT_EQ(::io::recvmsg(sock, msg, 0), -1);
+  EXPECT_EQ(::abrk::recvmsg(sock, msg, 0), -1);
   EXPECT_EQ(msg.flags, MSG_TRUNC);
 }
 
@@ -58,8 +58,8 @@ TEST_F(MockRecvmsgTest, TestAsyncRecvmsg0)
 {
   using namespace stdexec;
   using triggers =
-      io::execution::basic_triggers<io::execution::poll_multiplexer>;
-  using socket_message = ::io::socket::socket_message<>;
+      abrk::execution::basic_triggers<abrk::execution::poll_multiplexer>;
+  using socket_message = ::abrk::socket::socket_message<>;
   using async_scope = exec::async_scope;
 
   auto poller = triggers();
@@ -67,10 +67,10 @@ TEST_F(MockRecvmsgTest, TestAsyncRecvmsg0)
   auto sock = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
   auto msg = socket_message{};
   sender auto recvmsg =
-      io::recvmsg(sock, msg, 0) | then([](auto) {}) | upon_error([](auto) {});
+      abrk::recvmsg(sock, msg, 0) | then([](auto) {}) | upon_error([](auto) {});
   scope.spawn(std::move(recvmsg));
 
-  io::shutdown(sock, SHUT_RD);
+  abrk::shutdown(sock, SHUT_RD);
   ASSERT_GT(poller.wait_for(50), 0);
   EXPECT_EQ(msg.flags, MSG_TRUNC);
 }
@@ -79,7 +79,7 @@ TEST_F(MockRecvmsgTest, TestAsyncRecvmsg1)
 {
   using namespace stdexec;
   using triggers =
-      io::execution::basic_triggers<io::execution::poll_multiplexer>;
+      abrk::execution::basic_triggers<abrk::execution::poll_multiplexer>;
 
   auto poller = triggers();
   auto mtx = std::mutex();
@@ -89,8 +89,8 @@ TEST_F(MockRecvmsgTest, TestAsyncRecvmsg1)
 
   {
     auto sock = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
-    auto msg = io::socket::socket_message_type();
-    sender auto recvmsg = io::recvmsg(sock, msg, 0);
+    auto msg = abrk::socket::socket_message_type();
+    sender auto recvmsg = abrk::recvmsg(sock, msg, 0);
     auto thread = std::thread([&] {
       started = true;
       cvar.notify_all();

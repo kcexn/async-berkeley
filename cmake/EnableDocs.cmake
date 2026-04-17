@@ -11,18 +11,18 @@ if(NOT DOXYGEN_FOUND)
 endif()
 
 # Add option to control documentation scope
-option(IO_DOCS_PUBLIC_ONLY "Only generate documentation for public API" ON)
+option(ABRK_DOCS_PUBLIC_ONLY "Only generate documentation for public API" ON)
 
 # For non-public builds, include all sources
 set(DOXYGEN_INPUT_FILES
     "${CMAKE_SOURCE_DIR}/README.md"
     "${CMAKE_SOURCE_DIR}/DEVELOPER.md"
-    "${CMAKE_SOURCE_DIR}/include/io"
+    "${CMAKE_SOURCE_DIR}/include/abrk"
 )
 
-if(IO_DOCS_PUBLIC_ONLY)
+if(ABRK_DOCS_PUBLIC_ONLY)
     message(STATUS "Generating public API documentation only.")
-    set(PUBLIC_API_HEADER ${CMAKE_SOURCE_DIR}/include/io/io.hpp)
+    set(PUBLIC_API_HEADER ${CMAKE_SOURCE_DIR}/include/abrk/abrk.hpp)
 
     # Read the public API header and find all exported files
     file(STRINGS ${PUBLIC_API_HEADER} public_api_includes REGEX "#include")
@@ -31,15 +31,15 @@ if(IO_DOCS_PUBLIC_ONLY)
     foreach(include_line ${public_api_includes})
         # Extract the file path from the include line
         string(REGEX REPLACE "^#include \"([^\"]+)\".*" "\\1" header_path ${include_line})
-        list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/${header_path}")
+        list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/abrk/${header_path}")
     endforeach()
 
     # Explicitly add the configuration preprocessor macros to the public documentation.
-    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/config.h")
+    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/abrk/config.h")
     # Explicitly add the customization points to the public documentation.
-    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/detail/customization.hpp")
+    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/abrk/detail/customization.hpp")
     # Explicitly add the concepts to the public documentation.
-    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/io/detail/concepts.hpp")
+    list(APPEND public_doc_files "${CMAKE_SOURCE_DIR}/include/abrk/detail/concepts.hpp")
 
     # Doxygen's INPUT tag requires a space-separated string.
     # We must create a single string variable containing all paths.

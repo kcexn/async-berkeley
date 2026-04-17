@@ -12,11 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "io/socket/socket_option.hpp"
+#include "abrk/socket/socket_option.hpp"
 
 #include <gtest/gtest.h>
 
-using namespace io::socket;
+using namespace abrk::socket;
 
 class SocketOptionTest : public ::testing::Test {
 protected:

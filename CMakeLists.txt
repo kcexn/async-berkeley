@@ -37,13 +37,13 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
 # Enable testing by default if this is a top-level project or in submodules if
 # the project has explicitly set BUILD_TESTING by including CTest.
 if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) OR BUILD_TESTING)
-  set(IO_BUILD_TESTING_DEFAULT ON)
+  set(ABRK_BUILD_TESTING_DEFAULT ON)
 else()
-  set(IO_BUILD_TESTING_DEFAULT OFF)
+  set(ABRK_BUILD_TESTING_DEFAULT OFF)
 endif()
 
-option(IO_BUILD_TESTING "Enable testing." ${IO_BUILD_TESTING_DEFAULT})
-if(IO_BUILD_TESTING)
+option(ABRK_BUILD_TESTING "Enable testing." ${ABRK_BUILD_TESTING_DEFAULT})
+if(ABRK_BUILD_TESTING)
   # Add GoogleTest
   message(STATUS "Configure tests with GoogleTest")
   CPMAddPackage(
@@ -56,8 +56,8 @@ if(IO_BUILD_TESTING)
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
   # Enable and configure code coverage
-  option(IO_ENABLE_COVERAGE "Enable code coverage reporting with gcovr" ON)
-  if(IO_ENABLE_COVERAGE)
+  option(ABRK_ENABLE_COVERAGE "Enable code coverage reporting with gcovr" ON)
+  if(ABRK_ENABLE_COVERAGE)
     include(cmake/EnableCoverage.cmake)
   endif()
 
@@ -69,8 +69,8 @@ if(IO_BUILD_TESTING)
 endif()
 
 # Configure benchmarks with googlebenchmark.
-option(IO_ENABLE_BENCHMARKS "Enable benchmarking with google benchmark." OFF)
-if(IO_ENABLE_BENCHMARKS)
+option(ABRK_ENABLE_BENCHMARKS "Enable benchmarking with google benchmark." OFF)
+if(ABRK_ENABLE_BENCHMARKS)
   CPMAddPackage(
     NAME googlebenchmark
     URL "https://github.com/google/benchmark/archive/refs/tags/v1.9.4.zip"
@@ -81,13 +81,13 @@ if(IO_ENABLE_BENCHMARKS)
 endif()
 
 # enable and configure doxygen documentation
-option(IO_ENABLE_DOCS "Build Doxygen documentation" OFF)
-if(IO_ENABLE_DOCS)
+option(ABRK_ENABLE_DOCS "Build Doxygen documentation" OFF)
+if(ABRK_ENABLE_DOCS)
   include(cmake/EnableDocs.cmake)
 endif()
 
 # Add examples
-option(IO_BUILD_EXAMPLES "Build example programs" ON)
-if(IO_BUILD_EXAMPLES)
+option(ABRK_BUILD_EXAMPLES "Build example programs" ON)
+if(ABRK_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()

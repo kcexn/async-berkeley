@@ -1,0 +1,46 @@
+/* Copyright 2025 Kevin Exton
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @file immovable.hpp
+ * @brief This file defines a struct to make a class immovable.
+ */
+#pragma once
+#ifndef ABRK_IMMOVABLE_HPP
+#define ABRK_IMMOVABLE_HPP
+
+/**
+ * @namespace abrk::execution
+ * @brief Provides high-level interfaces for executors and completion triggers.
+ */
+namespace abrk::execution {
+/** @brief A base struct to make a class immovable. */
+struct immovable {
+  /** @brief Default constructor. */
+  immovable() = default;
+  /** @brief Default copy constructor. */
+  immovable(const immovable &) = delete;
+  /** @brief Deleted move constructor. */
+  immovable(immovable &&) = delete;
+  /** @brief Default copy assignment. */
+  auto operator=(const immovable &) -> immovable & = delete;
+  /** @brief Deleted move assignemtn. */
+  auto operator=(immovable &&) noexcept -> immovable & = delete;
+  /** @brief Default destructor. */
+  ~immovable() = default;
+};
+} // namespace abrk::execution
+
+#endif // ABRK_IMMOVABLE_HPP

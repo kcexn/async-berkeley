@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
@@ -22,7 +22,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace io::execution;
+using namespace abrk::execution;
 
 static bool error_test = false;
 int accept(int __fd, struct sockaddr *addr, socklen_t *__addr_len)
@@ -43,11 +43,11 @@ protected:
 
 TEST_F(MockAcceptTest, TestAccept)
 {
-  using socket_handle = ::io::socket::socket_handle;
+  using socket_handle = ::abrk::socket::socket_handle;
   auto sock = socket_handle{AF_UNIX, SOCK_STREAM, 0};
 
   error_test = true;
-  auto [handle, addr] = ::io::accept(sock);
+  auto [handle, addr] = ::abrk::accept(sock);
   EXPECT_EQ(handle, -1);
 }
 // NOLINTEND

@@ -124,7 +124,7 @@ ctest --preset debug
 ./build/debug/tests/socket_option_test
 ./build/debug/tests/poll_triggers_test  # Execution framework tests
 
-# Run example programs (if IO_BUILD_EXAMPLES=ON)
+# Run example programs (if ABRK_BUILD_EXAMPLES=ON)
 ./build/debug/examples/async_ping_pong_client
 ```
 

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <gtest/gtest.h>
 #include <stdexec/execution.hpp>
@@ -24,9 +24,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace io::socket;
-using namespace io::execution;
-using namespace io::socket::detail;
+using namespace abrk::socket;
+using namespace abrk::execution;
+using namespace abrk::socket::detail;
 
 class SocketDialogTest : public ::testing::TestWithParam<bool> {
 protected:
@@ -55,19 +55,19 @@ TEST_P(SocketDialogTest, ConnectAcceptOperation)
   address->sin_addr.s_addr = INADDR_ANY;
   address->sin_port = 0;
 
-  int status = ::io::bind(accept_dialog, address);
+  int status = ::abrk::bind(accept_dialog, address);
   ASSERT_EQ(status, 0);
 
-  status = ::io::listen(accept_dialog, 1);
+  status = ::abrk::listen(accept_dialog, 1);
   ASSERT_EQ(status, 0);
 
   auto bound_address = make_address<sockaddr_in>();
-  auto addr = ::io::getsockname(accept_dialog, bound_address);
+  auto addr = ::abrk::getsockname(accept_dialog, bound_address);
   ASSERT_EQ(bound_address, addr);
 
   auto client_addr = make_address<sockaddr_in>();
-  stdexec::sender auto connect = ::io::connect(connect_dialog, bound_address);
-  stdexec::sender auto accept = ::io::accept(accept_dialog, client_addr);
+  stdexec::sender auto connect = ::abrk::connect(connect_dialog, bound_address);
+  stdexec::sender auto accept = ::abrk::accept(accept_dialog, client_addr);
   stdexec::sender auto connect_accept_future = scope.spawn_future(
       stdexec::when_all(std::move(accept), std::move(connect)));
 
@@ -107,7 +107,7 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
     fairness::counter() = -1;
   }
 
-  stdexec::sender auto send_sender = ::io::sendmsg(send_dialog, send_msg, 0);
+  stdexec::sender auto send_sender = ::abrk::sendmsg(send_dialog, send_msg, 0);
   stdexec::sender auto send_future = scope.spawn_future(std::move(send_sender));
   while (triggers.wait_for(0));
 
@@ -117,7 +117,7 @@ TEST_P(SocketDialogTest, SendmsgRecvmsgOperation)
     fairness::counter() = -1;
   }
 
-  stdexec::sender auto recv_sender = ::io::recvmsg(recv_dialog, recv_msg, 0);
+  stdexec::sender auto recv_sender = ::abrk::recvmsg(recv_dialog, recv_msg, 0);
   stdexec::sender auto recv_future = scope.spawn_future(std::move(recv_sender));
   while (triggers.wait_for(0));
 
@@ -164,7 +164,7 @@ TEST_F(SocketDialogHelperTest, SetSockOptTest)
   auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
 
   auto reuse = socket_option<int>{1};
-  EXPECT_EQ(::io::setsockopt(dialog, SOL_SOCKET, SO_REUSEADDR, reuse), 0);
+  EXPECT_EQ(::abrk::setsockopt(dialog, SOL_SOCKET, SO_REUSEADDR, reuse), 0);
 }
 
 TEST_F(SocketDialogHelperTest, ShutdownTest)
@@ -173,7 +173,7 @@ TEST_F(SocketDialogHelperTest, ShutdownTest)
   auto poller = triggers_type{};
   auto dialog = poller.emplace(AF_UNIX, SOCK_STREAM, 0);
 
-  EXPECT_EQ(::io::shutdown(dialog, SHUT_RD), 0);
+  EXPECT_EQ(::abrk::shutdown(dialog, SHUT_RD), 0);
 }
 
 class SocketDialogComparisonTest : public ::testing::Test {

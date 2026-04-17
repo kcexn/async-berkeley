@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <exec/async_scope.hpp>
 #include <gtest/gtest.h>
@@ -22,7 +22,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-using namespace io::execution;
+using namespace abrk::execution;
 
 static int poll_call_count = 0;
 static int interruptions = 3;

@@ -51,7 +51,7 @@
  */
 // NOLINTBEGIN
 #include <benchmark/benchmark.h>
-#include <io/io.hpp>
+#include <abrk/abrk.hpp>
 
 #include <boost/asio.hpp>
 
@@ -67,12 +67,12 @@
 using namespace exec;
 
 // Type aliases for the specific implementations used in this benchmark.
-using multiplexer = ::io::execution::poll_multiplexer;
-using socket_type = ::io::socket::native_socket_type;
-using basic_triggers = ::io::execution::basic_triggers<multiplexer>;
-using socket_dialog = ::io::socket::socket_dialog<multiplexer>;
+using multiplexer = ::abrk::execution::poll_multiplexer;
+using socket_type = ::abrk::socket::native_socket_type;
+using basic_triggers = ::abrk::execution::basic_triggers<multiplexer>;
+using socket_dialog = ::abrk::socket::socket_dialog<multiplexer>;
 using message_buffer = std::string;
-using socket_message = ::io::socket::socket_message<sockaddr_in>;
+using socket_message = ::abrk::socket::socket_message<sockaddr_in>;
 
 /**
  * @class BaseEchoFixture
@@ -139,7 +139,7 @@ public:
     {
       using namespace stdexec;
       auto sendmsg =
-          ::io::sendmsg(client, msg, 0) |
+          ::abrk::sendmsg(client, msg, 0) |
           then([this, client, buffers = msg.buffers, &scope,
                 iterations](auto len) {
             if (auto bufs = std::move(buffers); bufs += len)
@@ -163,7 +163,7 @@ public:
     {
       using namespace stdexec;
       sender auto recvmsg =
-          ::io::recvmsg(client, msg, 0) |
+          ::abrk::recvmsg(client, msg, 0) |
           then([this, client, &scope, iterations](auto len) {
             if (len && ++count < iterations)
             {
@@ -213,7 +213,7 @@ BENCHMARK_REGISTER_F(AsyncBerkeleyEchoFixture, EchoTest)
     ->Args({64, 100, 100})
     ->Args({64, 100, 1000})
     ->Args({64, 1000, 100})
-    ->Args({64, 100000, 100})
+    ->Args({64, 1000, 1000})
     ->Unit(benchmark::kMillisecond);
 
 
@@ -316,7 +316,7 @@ BENCHMARK_REGISTER_F(AsioEchoFixture, EchoTest)
     ->Args({64, 100, 100})
     ->Args({64, 100, 1000})
     ->Args({64, 1000, 100})
-    ->Args({64, 100000, 100})
+    ->Args({64, 1000, 1000})
     ->Unit(benchmark::kMillisecond);
 
 BENCHMARK_MAIN();

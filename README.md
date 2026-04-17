@@ -101,28 +101,28 @@ cmake --build build/release --t docs-deploy
 ### Basic Socket Operations
 
 ```cpp
-#include <io.hpp>
+#include <abrk.hpp>
 #include <netinet/in.h>
 
 // Create a RAII socket handle
-io::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+abrk::socket::socket_handle server_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 // Create socket address using the new socket_option-based API
-auto server_addr = io::socket::make_address<sockaddr_in>();
+auto server_addr = abrk::socket::make_address<sockaddr_in>();
 server_addr->sin_family = AF_INET;
 server_addr->sin_addr.s_addr = INADDR_ANY;
 server_addr->sin_port = 0; // Let system choose port
 
 // Bind using the socket_address wrapper
-int err = io::bind(server_socket, server_addr);
+int err = abrk::bind(server_socket, server_addr);
 
 
 // Start listening
-err = io::listen(server_socket, 5);
+err = abrk::listen(server_socket, 5);
 
-auto client_address = io::socket::make_address<sockaddr_in>();
+auto client_address = abrk::socket::make_address<sockaddr_in>();
 // Accept incoming connections - high-level API returns managed objects
-auto [client_socket, addr] = io::accept(server_socket, client_address);
+auto [client_socket, addr] = abrk::accept(server_socket, client_address);
 
 // Some socket types (like UNIX domain sockets) may return
 // a differently sized address from accept. In this
@@ -135,12 +135,12 @@ if(client_address != addr)
 ### Client Socket Connection
 
 ```cpp
-#include <io.hpp>
+#include <abrk.hpp>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 // Create client socket
-io::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+abrk::socket::socket_handle client_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 // Create server address from a native sockaddr structure.
 struct sockaddr_in native_addr{};
@@ -148,19 +148,19 @@ native_addr.sin_family = AF_INET;
 native_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 native_addr.sin_port = htons(8080);
 
-auto server_addr = io::socket::make_address(&native_addr);
+auto server_addr = abrk::socket::make_address(&native_addr);
 
 // Connect using socket_address
-int result = io::connect(client_socket, server_addr);
+int result = abrk::connect(client_socket, server_addr);
 
 if (result == 0) {
   // Connected successfully - send/receive data
   const char *message = "Hello, server!";
 
-  io::socket::socket_message msg;
+  abrk::socket::socket_message msg;
   msg.buffers.emplace_back(message, strlen(message));
 
-  io::sendmsg(client_socket, msg, 0);
+  abrk::sendmsg(client_socket, msg, 0);
 }
 ```
 

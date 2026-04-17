@@ -13,13 +13,13 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/io.hpp"
+#include "abrk/abrk.hpp"
 
 #include <gtest/gtest.h>
 
 #include <sys/socket.h>
 
-using namespace io::socket;
+using namespace abrk::socket;
 
 class SocketMessageTest : public ::testing::Test {
 protected:
@@ -45,15 +45,15 @@ TEST_F(SocketMessageTest, SendRecvMsgTest)
   std::array<char, 14> msg{"Hello, world!"};
   message.buffers.emplace_back(msg.data(), msg.size());
 
-  auto len = ::io::sendmsg(sender, message, 0);
+  auto len = ::abrk::sendmsg(sender, message, 0);
   EXPECT_EQ(len, 14);
   msg = {};
   EXPECT_NE(std::strncmp(msg.data(), "Hello, world!", 14), 0);
 
   auto addr = socket_address<sockaddr_un>();
-  message.address = ::io::getsockname(sender, addr);
+  message.address = ::abrk::getsockname(sender, addr);
 
-  len = ::io::recvmsg(receiver, message, 0);
+  len = ::abrk::recvmsg(receiver, message, 0);
   EXPECT_EQ(len, 14);
   EXPECT_EQ(std::strncmp(msg.data(), "Hello, world!", 14), 0);
 }

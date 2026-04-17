@@ -22,7 +22,7 @@ foreach(TEST_NAME IN LISTS TEST_NAMES)
 
   target_link_libraries(${TEST_NAME} PRIVATE asyncberk GTest::gtest_main)
 
-  if(IO_ENABLE_COVERAGE)
+  if(ABRK_ENABLE_COVERAGE)
     target_link_libraries(${TEST_NAME} PRIVATE gcov)
   endif()
 

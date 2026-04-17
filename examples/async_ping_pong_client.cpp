@@ -22,8 +22,8 @@
  */
 // NOLINTBEGIN
 #include <exec/async_scope.hpp>
-#include <io/io.hpp>
-#include <io/config.h>
+#include <abrk/abrk.hpp>
+#include <abrk/config.h>
 #include <stdexec/execution.hpp>
 
 #include <chrono>
@@ -36,9 +36,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-using namespace io;
-using namespace io::socket;
-using namespace io::execution;
+using namespace abrk;
+using namespace abrk::socket;
+using namespace abrk::execution;
 using namespace stdexec;
 using namespace exec;
 
@@ -57,7 +57,7 @@ public:
     auto client = triggers_.emplace(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     // Connect asynchronously
-    auto connect = io::connect(client, server_) |
+    auto connect = abrk::connect(client, server_) |
                    then([this, client](const auto &connect_result) {
                      // Start ping/pong sequence
                      start_ping_pong(client, 0);
@@ -91,7 +91,7 @@ private:
                                  ::strnlen(ping_message, 7));
 
     // Send ping asynchronously
-    auto sendmsg = io::sendmsg(client, message, 0) |
+    auto sendmsg = abrk::sendmsg(client, message, 0) |
                    then([this, client, sequence](const auto &send_result) {
                      std::cout << "Sent: " << ++pings_sent_ << " pings.\n"
                                << std::flush;
@@ -110,7 +110,7 @@ private:
   {
     auto buf = std::ranges::begin(pong_msg.buffers);
     // Receive message asynchronously
-    auto recvmsg = io::recvmsg(client, pong_msg, 0) |
+    auto recvmsg = abrk::recvmsg(client, pong_msg, 0) |
                    then([this, client, sequence, buf](auto bytes_received) {
                      auto message = std::string(reinterpret_cast<char *>((*buf).data()), bytes_received);
                      int next = sequence;

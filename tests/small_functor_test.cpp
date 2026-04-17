@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 // NOLINTBEGIN
-#include "io/detail/small_functor.hpp"
+#include "abrk/detail/small_functor.hpp"
 
 #include <gtest/gtest.h>
 
-using namespace io::detail;
+using namespace abrk::detail;
 
 class SmallFunctorTest : public ::testing::TestWithParam<bool> {
 protected:
